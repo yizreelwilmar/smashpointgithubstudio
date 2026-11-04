@@ -1,0 +1,25 @@
+{
+  "name": "Powershoot PIC Lapangan",
+  "short_name": "Powershoot PIC",
+  "description": "Aplikasi Operasional Rotasi Lapangan, Papan Skor & Absensi Mabar Badminton",
+  "start_url": "/app/",
+  "scope": "/app/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#071324",
+  "theme_color": "#0b1e36",
+  "icons": [
+    {
+      "src": "/public/uploads/powershoot_logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/public/uploads/powershoot_logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

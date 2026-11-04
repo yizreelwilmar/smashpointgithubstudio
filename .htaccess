@@ -1,0 +1,29 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # 1. Strip index.php from raw direct URL requests safely (only for GET requests to prevent losing POST form data)
+    RewriteCond %{REQUEST_METHOD} !POST
+    RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s/index\.php[?\s] [NC]
+    RewriteRule ^index\.php$ / [R=301,L]
+
+    RewriteCond %{REQUEST_METHOD} !POST
+    RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s/([^/]+)/index\.php[?\s] [NC]
+    RewriteRule ^([^/]+)/index\.php$ /$1/ [R=301,L]
+
+    # Clean alias: /cms to /admin/
+    RewriteRule ^cms/?$ /admin/ [R=301,L]
+
+    # 2. Clean Gallery URLs: /gallery or /galeri -> /gallery.php
+    RewriteRule ^gallery/?$ /gallery.php [L,QSA]
+    RewriteRule ^galeri/?$ /gallery.php [L,QSA]
+    RewriteRule ^gallery/([a-zA-Z0-9_-]+)/?$ /gallery.php?session=$1 [L,QSA]
+    RewriteRule ^galeri/([a-zA-Z0-9_-]+)/?$ /gallery.php?session=$1 [L,QSA]
+
+    # 3. Allow direct access to real existing files and directories
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # 4. Master Dispatcher
+    RewriteRule ^(.*)$ /index.php?page=$1 [QSA,L]
+</IfModule>

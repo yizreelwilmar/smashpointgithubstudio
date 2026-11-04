@@ -1,0 +1,8 @@
+{
+  "name": "Powershoot Badminton",
+  "description": "Powershoot Badminton Community & Mabar Management System with courtside rotation, live scoring, fee tracking, and leaderboard.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

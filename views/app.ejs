@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Courtside Ops — <%= settings.community_name %></title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .badminton-court {
+      background: #0f766e;
+      border: 3px solid #f8fafc;
+      position: relative;
+    }
+    .court-net {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: #f1f5f9;
+      transform: translateY(-50%);
+      box-shadow: 0 0 8px rgba(255,255,255,0.4);
+    }
+    .court-line-h {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: rgba(255,255,255,0.7);
+    }
+    .court-line-v {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: rgba(255,255,255,0.7);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- TOP NAVIGATION PILL BAR -->
+  <header class="sticky top-0 z-50 bg-slate-900/95 backdrop-blur border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <a href="/" class="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center font-black text-lg text-white shadow">
+          🏸
+        </a>
+        <div>
+          <span class="font-extrabold text-sm text-white block leading-tight">Powershoot Courtside</span>
+          <span class="text-[11px] text-emerald-400 font-medium">Aplikasi Operasional Mabar</span>
+        </div>
+      </div>
+
+      <!-- Quick Switcher Pills -->
+      <nav class="flex items-center space-x-1 bg-slate-950 p-1 rounded-full border border-slate-800">
+        <a href="/" class="px-3.5 py-1 rounded-full text-xs font-semibold text-slate-300 hover:text-white transition">
+          🏠 Landing
+        </a>
+        <a href="/app" class="px-3.5 py-1 rounded-full text-xs font-bold transition bg-emerald-500 text-slate-950 shadow">
+          📱 Operasional
+        </a>
+        <a href="/admin" class="px-3.5 py-1 rounded-full text-xs font-semibold text-slate-300 hover:text-white transition">
+          ⚙️ Admin
+        </a>
+      </nav>
+
+      <!-- Active Session Selector -->
+      <div class="flex items-center space-x-2">
+        <form method="GET" action="/app" class="flex items-center gap-1.5">
+          <input type="hidden" name="view" value="<%= currentView %>">
+          <select name="session_id" onchange="this.form.submit()" class="bg-slate-800 border border-slate-700 text-xs font-semibold text-emerald-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-emerald-500 max-w-[220px] truncate">
+            <% allSchedules.forEach(s => { %>
+              <option value="<%= s.id %>" <%= s.id === activeSession.id ? 'selected' : '' %>>
+                <%= s.day_name %> — <%= s.title %>
+              </option>
+            <% }) %>
+          </select>
+        </form>
+      </div>
+    </div>
+  </header>
+
+  <!-- SESSION BAR & SUB-TABS -->
+  <section class="bg-slate-900 border-b border-slate-800 py-3 px-4">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase <%= activeSession.status === 'in_progress' ? 'bg-amber-500 text-slate-950 animate-pulse' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' %>">
+            <%= activeSession.status === 'in_progress' ? 'Sedang Berlangsung' : 'Sesi Terbuka' %>
+          </span>
+          <h1 class="text-base sm:text-lg font-extrabold text-white"><%= activeSession.title %></h1>
+        </div>
+        <div class="text-xs text-slate-400 flex flex-wrap items-center gap-3 mt-1">
+          <span>📍 <%= activeSession.venue_name %></span>
+          <span>⏰ <%= activeSession.time_start %> - <%= activeSession.time_end %> WIB</span>
+          <span>🏸 <%= activeSession.court_count %> Lapangan</span>
+          <span>💰 Rp <%= Number(activeSession.fee_per_person).toLocaleString('id-ID') %> / org</span>
+        </div>
+      </div>
+
+      <!-- App Sub-Tabs -->
+      <div class="flex items-center space-x-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 overflow-x-auto">
+        <a href="/app?session_id=<%= activeSession.id %>&view=court" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap <%= currentView === 'court' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white' %>">
+          <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+          <span>Papan Lapangan</span>
+        </a>
+        <a href="/app?session_id=<%= activeSession.id %>&view=payments" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap <%= currentView === 'payments' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white' %>">
+          <i data-lucide="credit-card" class="w-3.5 h-3.5"></i>
+          <span>Iuran & Kas</span>
+          <% const unpaidCount = participants.filter(p => p.payment_status === 'unpaid').length; %>
+          <% if (unpaidCount > 0) { %>
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-rose-500 text-white font-black"><%= unpaidCount %></span>
+          <% } %>
+        </a>
+        <a href="/app?session_id=<%= activeSession.id %>&view=leaderboard" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap <%= currentView === 'leaderboard' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white' %>">
+          <i data-lucide="trophy" class="w-3.5 h-3.5"></i>
+          <span>Leaderboard</span>
+        </a>
+        <a href="/app?session_id=<%= activeSession.id %>&view=history" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap <%= currentView === 'history' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white' %>">
+          <i data-lucide="history" class="w-3.5 h-3.5"></i>
+          <span>Riwayat Pertandingan</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN TAB CONTENT -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full">
+
+    <!-- TAB 1: COURT ROTATION & LIVE SCOREKEEPER -->
+    <% if (currentView === 'court') { %>
+      <div class="space-y-6">
+        <!-- Top Action Bar -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 p-4 rounded-2xl border border-slate-800">
+          <div>
+            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider block">ROTASI OTOMATIS FAIR SOCIAL</span>
+            <div class="text-sm text-slate-300 mt-0.5">
+              Hadir: <strong class="text-white"><%= participants.filter(p => p.is_present).length %> Pemain</strong> • 
+              Kapasitas: <strong class="text-emerald-400"><%= activeSession.court_count * 4 %> Main Sekaligus</strong>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="generateRound()" class="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-900/30 transition flex items-center gap-2">
+              <i data-lucide="shuffle" class="w-4 h-4"></i>
+              <span>Acak Ronde Baru</span>
+            </button>
+            <button onclick="openAddPlayerModal()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl border border-slate-700 transition flex items-center gap-1.5">
+              <i data-lucide="user-plus" class="w-4 h-4 text-emerald-400"></i>
+              <span>+ Pemain</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Notification Toast -->
+        <div id="toastMessage" class="hidden p-3 rounded-xl text-xs font-bold text-center transition"></div>
+
+        <!-- Courts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <% if (activeMatches.length === 0) { %>
+            <div class="lg:col-span-2 bg-slate-900/60 border border-slate-800 rounded-3xl p-12 text-center">
+              <div class="w-16 h-16 rounded-2xl bg-emerald-950 border border-emerald-800 flex items-center justify-center mx-auto text-2xl mb-4">
+                🏸
+              </div>
+              <h3 class="text-lg font-bold text-white mb-2">Belum Ada Ronde Lapangan Aktif</h3>
+              <p class="text-slate-400 text-xs max-w-md mx-auto mb-6">
+                Klik tombol "Acak Ronde Baru" di atas untuk memasangkan 4 pemain per lapangan dengan algoritma Fair Social.
+              </p>
+              <button onclick="generateRound()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-3 rounded-xl transition shadow">
+                Generate Ronde Pertama Sekarang →
+              </button>
+            </div>
+          <% } else { %>
+            <% activeMatches.forEach(match => { %>
+              <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between" id="match-card-<%= match.id %>">
+                <div>
+                  <!-- Court Header -->
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                      <span class="w-3 h-3 rounded-full <%= match.status === 'completed' ? 'bg-slate-500' : 'bg-emerald-400 animate-pulse' %>"></span>
+                      <span class="font-extrabold text-sm text-white">Lapangan <%= match.court_number %></span>
+                      <span class="text-xs text-slate-400">• Ronde <%= match.round_number %></span>
+                    </div>
+                    <span class="text-xs font-bold px-2.5 py-0.5 rounded-full <%= match.status === 'completed' ? 'bg-slate-800 text-slate-400' : 'bg-emerald-500/20 text-emerald-400' %>">
+                      <%= match.status === 'completed' ? 'Selesai' : 'Sedang Main' %>
+                    </span>
+                  </div>
+
+                  <!-- Visual Court Representation -->
+                  <div class="badminton-court rounded-2xl p-4 my-2 text-center text-white shadow-inner relative overflow-hidden">
+                    <div class="court-net"></div>
+                    <div class="court-line-h" style="top: 25%"></div>
+                    <div class="court-line-h" style="top: 75%"></div>
+                    <div class="court-line-v" style="left: 50%"></div>
+
+                    <!-- Team A Top -->
+                    <div class="relative z-10 py-3">
+                      <span class="text-[10px] font-black uppercase tracking-wider text-emerald-200 bg-emerald-950/80 px-2 py-0.5 rounded-full">TIM A</span>
+                      <div class="text-sm font-extrabold mt-1 text-white flex items-center justify-center gap-2">
+                        <span><%= match.team_a_p1_name %></span>
+                        <span class="text-emerald-300">&</span>
+                        <span><%= match.team_a_p2_name %></span>
+                      </div>
+                    </div>
+
+                    <!-- VS Divider -->
+                    <div class="relative z-10 py-1">
+                      <span class="text-xs font-black bg-slate-950/90 text-amber-400 px-3 py-1 rounded-full border border-slate-700 shadow">
+                        VS
+                      </span>
+                    </div>
+
+                    <!-- Team B Bottom -->
+                    <div class="relative z-10 py-3">
+                      <div class="text-sm font-extrabold text-white flex items-center justify-center gap-2">
+                        <span><%= match.team_b_p1_name %></span>
+                        <span class="text-emerald-300">&</span>
+                        <span><%= match.team_b_p2_name %></span>
+                      </div>
+                      <span class="text-[10px] font-black uppercase tracking-wider text-emerald-200 bg-emerald-950/80 px-2 py-0.5 rounded-full mt-1 inline-block">TIM B</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Touch Scorekeeper Board -->
+                <div class="mt-4 pt-4 border-t border-slate-800 bg-slate-950/60 p-4 rounded-2xl">
+                  <div class="grid grid-cols-2 gap-4 text-center">
+                    <!-- Team A Score Controls -->
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl">
+                      <span class="text-[10px] font-bold text-slate-400 uppercase">Skor Tim A</span>
+                      <div class="text-3xl font-black text-emerald-400 my-1" id="score-a-<%= match.id %>">
+                        <%= match.score_a %>
+                      </div>
+                      <div class="flex items-center justify-center gap-2 mt-2">
+                        <button onclick="adjustScore(<%= match.id %>, 'a', -1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-black text-sm flex items-center justify-center transition">
+                          -
+                        </button>
+                        <button onclick="adjustScore(<%= match.id %>, 'a', 1)" class="w-10 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm flex items-center justify-center transition shadow">
+                          +1
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Team B Score Controls -->
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl">
+                      <span class="text-[10px] font-bold text-slate-400 uppercase">Skor Tim B</span>
+                      <div class="text-3xl font-black text-teal-400 my-1" id="score-b-<%= match.id %>">
+                        <%= match.score_b %>
+                      </div>
+                      <div class="flex items-center justify-center gap-2 mt-2">
+                        <button onclick="adjustScore(<%= match.id %>, 'b', -1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-black text-sm flex items-center justify-center transition">
+                          -
+                        </button>
+                        <button onclick="adjustScore(<%= match.id %>, 'b', 1)" class="w-10 h-8 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-black text-sm flex items-center justify-center transition shadow">
+                          +1
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Save Score Button -->
+                  <div class="mt-3">
+                    <button onclick="saveMatchScore(<%= match.id %>)" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow">
+                      <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                      <span>Simpan Skor & Akumulasi Poin</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            <% }) %>
+          <% } %>
+        </div>
+
+        <!-- Resting Bye Bench Queue -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+              <h3 class="text-sm font-extrabold text-white">Bangku Istirahat (Bye Bench Queue)</h3>
+            </div>
+            <span class="text-xs text-slate-400">Pemain yang istirahat akan diprioritaskan di ronde berikutnya</span>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <% const restingPlayers = participants.filter(p => !activePlayerIds.includes(p.player_id) && p.is_present); %>
+            <% if (restingPlayers.length === 0) { %>
+              <span class="text-xs text-slate-500 italic">Semua pemain yang hadir saat ini sedang bermain di lapangan.</span>
+            <% } else { %>
+              <% restingPlayers.forEach(p => { %>
+                <div class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-xl text-xs flex items-center gap-2">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                  <span class="font-bold text-white"><%= p.name %></span>
+                  <span class="text-[10px] text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded"><%= p.level %></span>
+                </div>
+              <% }) %>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- TAB 2: PAYMENTS & FINANCIAL CASH RECAP -->
+    <% if (currentView === 'payments') { %>
+      <div class="space-y-6">
+        <!-- Financial Summary Cards -->
+        <% 
+          const totalFee = activeSession.fee_per_person;
+          const totalRegistered = participants.length;
+          const totalPresent = participants.filter(p => p.is_present).length;
+          const paidList = participants.filter(p => p.payment_status === 'paid');
+          const unpaidList = participants.filter(p => p.payment_status === 'unpaid');
+          const cashIn = paidList.length * totalFee;
+          const pendingOut = unpaidList.length * totalFee;
+        %>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <span class="text-xs text-slate-400 block">Total Peserta</span>
+            <div class="text-2xl font-black text-white mt-1"><%= totalRegistered %> Orang</div>
+            <span class="text-[11px] text-emerald-400 mt-1 block">Hadir di GOR: <%= totalPresent %></span>
+          </div>
+
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <span class="text-xs text-slate-400 block">Status Pembayaran</span>
+            <div class="text-2xl font-black text-emerald-400 mt-1"><%= paidList.length %> Lunas</div>
+            <span class="text-[11px] text-rose-400 mt-1 block">Belum Bayar: <%= unpaidList.length %></span>
+          </div>
+
+          <div class="bg-emerald-950/50 border border-emerald-800/80 rounded-2xl p-4">
+            <span class="text-xs text-emerald-300 block">Total Kas Terkumpul (In)</span>
+            <div class="text-2xl font-black text-emerald-400 mt-1">Rp <%= cashIn.toLocaleString('id-ID') %></div>
+            <span class="text-[11px] text-emerald-300/80 mt-1 block">Dari <%= paidList.length %> peserta</span>
+          </div>
+
+          <div class="bg-rose-950/40 border border-rose-800/60 rounded-2xl p-4">
+            <span class="text-xs text-rose-300 block">Total Kas Tertunda</span>
+            <div class="text-2xl font-black text-rose-400 mt-1">Rp <%= pendingOut.toLocaleString('id-ID') %></div>
+            <span class="text-[11px] text-rose-300/80 mt-1 block">Belum Lunas: <%= unpaidList.length %> peserta</span>
+          </div>
+        </div>
+
+        <!-- Participants Payment Table -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div class="p-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 class="text-sm font-bold text-white">Daftar Kehadiran & Status Iuran</h3>
+              <p class="text-xs text-slate-400">Klik tombol status untuk mengubah status bayar secara instan.</p>
+            </div>
+            <button onclick="openAddPlayerModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 self-start">
+              <i data-lucide="user-plus" class="w-4 h-4"></i>
+              <span>Tambah Pemain ke Sesi</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-800/80 text-xs font-bold text-slate-300 uppercase tracking-wider">
+                <tr>
+                  <th class="py-3 px-4 w-12 text-center">#</th>
+                  <th class="py-3 px-4">Nama Pemain</th>
+                  <th class="py-3 px-4">Level</th>
+                  <th class="py-3 px-4">Nominal</th>
+                  <th class="py-3 px-4 text-center">Hadir di GOR</th>
+                  <th class="py-3 px-4 text-center">Status Iuran</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60 font-medium">
+                <% participants.forEach((pt, idx) => { %>
+                  <tr class="hover:bg-slate-800/40 transition">
+                    <td class="py-3 px-4 text-center text-xs text-slate-400"><%= idx + 1 %></td>
+                    <td class="py-3 px-4">
+                      <span class="text-white font-bold block"><%= pt.name %></span>
+                      <% if (pt.phone) { %>
+                        <span class="text-[11px] text-slate-400"><%= pt.phone %></span>
+                      <% } %>
+                    </td>
+                    <td class="py-3 px-4">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-bold <%= pt.level === 'Advance' ? 'bg-purple-900/40 text-purple-300' : pt.level === 'Intermediate' ? 'bg-blue-900/40 text-blue-300' : 'bg-emerald-900/40 text-emerald-300' %>">
+                        <%= pt.level %>
+                      </span>
+                    </td>
+                    <td class="py-3 px-4 text-xs font-semibold text-slate-300">
+                      Rp <%= Number(pt.payment_amount).toLocaleString('id-ID') %>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                      <button onclick="togglePresent(<%= pt.player_id %>)" class="px-2.5 py-1 rounded-lg text-xs font-bold transition <%= pt.is_present ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-500' %>">
+                        <%= pt.is_present ? '✓ Hadir' : '✕ Absen' %>
+                      </button>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                      <button onclick="togglePayment(<%= pt.player_id %>)" class="px-3 py-1.5 rounded-xl text-xs font-black transition shadow <%= pt.payment_status === 'paid' ? 'bg-emerald-600 text-white hover:bg-emerald-500' : 'bg-rose-600/80 text-white hover:bg-rose-500' %>">
+                        <%= pt.payment_status === 'paid' ? 'LUNAS' : 'BELUM BAYAR' %>
+                      </button>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- TAB 3: LEADERBOARD -->
+    <% if (currentView === 'leaderboard') { %>
+      <div class="space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-extrabold text-white">Leaderboard Akumulasi Poin</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Seluruh poin pertandingan resmi terekam dan mendongkrak peringkat member.</p>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-800/80 text-xs font-bold text-slate-300 uppercase tracking-wider">
+                <tr>
+                  <th class="py-3.5 px-4 w-16 text-center">Rank</th>
+                  <th class="py-3.5 px-4">Nama</th>
+                  <th class="py-3.5 px-4">Level</th>
+                  <th class="py-3.5 px-4 text-center">Main</th>
+                  <th class="py-3.5 px-4 text-center">Menang</th>
+                  <th class="py-3.5 px-4 text-center">Kalah</th>
+                  <th class="py-3.5 px-4 text-center">Win Rate</th>
+                  <th class="py-3.5 px-4 text-right">Total Poin</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60 font-medium">
+                <% leaderboard.forEach((p, idx) => { %>
+                  <tr class="hover:bg-slate-800/40 transition <%= idx === 0 ? 'bg-amber-950/20' : '' %>">
+                    <td class="py-3 px-4 text-center">
+                      <% if (idx === 0) { %>
+                        <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-400 text-slate-950 font-black text-xs">🥇 1</span>
+                      <% } else if (idx === 1) { %>
+                        <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-300 text-slate-950 font-black text-xs">🥈 2</span>
+                      <% } else if (idx === 2) { %>
+                        <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-700 text-white font-black text-xs">🥉 3</span>
+                      <% } else { %>
+                        <span class="text-slate-400 font-bold text-xs">#<%= idx + 1 %></span>
+                      <% } %>
+                    </td>
+                    <td class="py-3 px-4">
+                      <span class="text-white font-bold block"><%= p.name %></span>
+                    </td>
+                    <td class="py-3 px-4">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-bold <%= p.level === 'Advance' ? 'bg-purple-900/40 text-purple-300' : p.level === 'Intermediate' ? 'bg-blue-900/40 text-blue-300' : 'bg-emerald-900/40 text-emerald-300' %>">
+                        <%= p.level %>
+                      </span>
+                    </td>
+                    <td class="py-3 px-4 text-center text-slate-300"><%= p.total_matches %></td>
+                    <td class="py-3 px-4 text-center text-emerald-400 font-bold"><%= p.wins %></td>
+                    <td class="py-3 px-4 text-center text-rose-400 font-bold"><%= p.losses %></td>
+                    <td class="py-3 px-4 text-center">
+                      <span class="text-xs font-bold text-slate-200"><%= p.win_rate %>%</span>
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                      <span class="text-base font-black text-amber-400"><%= Number(p.total_points).toLocaleString('id-ID') %></span>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- TAB 4: MATCH HISTORY -->
+    <% if (currentView === 'history') { %>
+      <div class="space-y-6">
+        <div>
+          <h2 class="text-xl font-extrabold text-white">Riwayat Pertandingan Sesi</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Daftar pertandingan yang telah selesai dengan rekap skor akhir.</p>
+        </div>
+
+        <div class="space-y-3">
+          <% const completedMatches = matches.filter(m => m.status === 'completed'); %>
+          <% if (completedMatches.length === 0) { %>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-400 text-xs">
+              Belum ada pertandingan yang selesai di sesi ini.
+            </div>
+          <% } else { %>
+            <% completedMatches.forEach(m => { %>
+              <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center font-black text-xs text-emerald-400 border border-slate-700">
+                    C<%= m.court_number %>
+                  </div>
+                  <div>
+                    <span class="text-xs text-slate-400">Ronde <%= m.round_number %> • Lapangan <%= m.court_number %></span>
+                    <div class="text-sm font-bold text-white mt-0.5">
+                      <span class="<%= m.winner_team === 'team_a' ? 'text-amber-400' : 'text-slate-300' %>">
+                        <%= m.team_a_p1_name %> & <%= m.team_a_p2_name %>
+                      </span>
+                      <span class="text-slate-500 mx-2">vs</span>
+                      <span class="<%= m.winner_team === 'team_b' ? 'text-amber-400' : 'text-slate-300' %>">
+                        <%= m.team_b_p1_name %> & <%= m.team_b_p2_name %>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                  <div class="text-lg font-black bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
+                    <span class="<%= m.winner_team === 'team_a' ? 'text-emerald-400' : 'text-slate-400' %>"><%= m.score_a %></span>
+                    <span class="text-slate-600 mx-1">:</span>
+                    <span class="<%= m.winner_team === 'team_b' ? 'text-emerald-400' : 'text-slate-400' %>"><%= m.score_b %></span>
+                  </div>
+                  <span class="px-2.5 py-1 rounded text-[11px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
+                    <%= m.winner_team === 'team_a' ? 'Tim A Menang' : m.winner_team === 'team_b' ? 'Tim B Menang' : 'Draw' %>
+                  </span>
+                </div>
+              </div>
+            <% }) %>
+          <% } %>
+        </div>
+      </div>
+    <% } %>
+
+  </main>
+
+  <!-- MODAL: ADD PLAYER TO SESSION -->
+  <div id="addPlayerModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-extrabold text-white">Tambah Pemain ke Sesi</h3>
+        <button onclick="closeAddPlayerModal()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Pilih dari Member Terdaftar</label>
+          <select id="selectPlayerId" class="w-full bg-slate-800 border border-slate-700 text-xs rounded-xl p-2.5 text-white">
+            <option value="">-- Pilih Member --</option>
+            <% allPlayers.forEach(p => { %>
+              <option value="<%= p.id %>"><%= p.name %> (<%= p.level %>)</option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="text-center text-xs text-slate-500 font-bold uppercase tracking-wider">— ATAU PEMAIN BARU —</div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Nama Pemain Baru</label>
+          <input type="text" id="newPlayerName" placeholder="Contoh: Budi Santoso" class="w-full bg-slate-800 border border-slate-700 text-xs rounded-xl p-2.5 text-white">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Level Skill</label>
+          <select id="newPlayerLevel" class="w-full bg-slate-800 border border-slate-700 text-xs rounded-xl p-2.5 text-white">
+            <option value="Beginner">Beginner (Pemula)</option>
+            <option value="Intermediate" selected>Intermediate (Menengah)</option>
+            <option value="Advance">Advance (Mahir)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Status Iuran Langsung</label>
+          <select id="newPlayerPayment" class="w-full bg-slate-800 border border-slate-700 text-xs rounded-xl p-2.5 text-white">
+            <option value="unpaid">Belum Bayar (Pending)</option>
+            <option value="paid">LUNAS (Paid)</option>
+          </select>
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button onclick="closeAddPlayerModal()" class="w-1/2 bg-slate-800 text-slate-300 font-bold text-xs py-2.5 rounded-xl">Batal</button>
+          <button onclick="submitAddPlayer()" class="w-1/2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 rounded-xl">Tambahkan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+    const currentSessionId = <%= activeSession.id %>;
+
+    function showToast(msg, isError = false) {
+      const t = document.getElementById('toastMessage');
+      if (!t) return;
+      t.innerText = msg;
+      t.className = isError 
+        ? 'p-3 rounded-xl text-xs font-bold text-center bg-rose-950 text-rose-300 border border-rose-800 mb-4 block'
+        : 'p-3 rounded-xl text-xs font-bold text-center bg-emerald-950 text-emerald-300 border border-emerald-800 mb-4 block';
+      setTimeout(() => { t.className = 'hidden'; }, 3500);
+    }
+
+    function adjustScore(matchId, team, delta) {
+      const el = document.getElementById(`score-${team}-${matchId}`);
+      if (!el) return;
+      let curr = parseInt(el.innerText, 10) || 0;
+      curr = Math.max(0, curr + delta);
+      el.innerText = curr;
+    }
+
+    async function saveMatchScore(matchId) {
+      const scoreA = parseInt(document.getElementById(`score-a-${matchId}`)?.innerText || '0', 10);
+      const scoreB = parseInt(document.getElementById(`score-b-${matchId}`)?.innerText || '0', 10);
+
+      try {
+        const res = await fetch('/api?action=save_score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ match_id: matchId, score_a: scoreA, score_b: scoreB })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message || 'Skor berhasil disimpan!');
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          showToast(data.error || 'Gagal menyimpan skor', true);
+        }
+      } catch (e) {
+        showToast('Error koneksi menyimpan skor', true);
+      }
+    }
+
+    async function generateRound() {
+      try {
+        const res = await fetch('/api?action=generate_round', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: currentSessionId, court_count: <%= activeSession.court_count %> })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message || 'Ronde baru berhasil dibuat!');
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          showToast(data.error || 'Gagal generate ronde', true);
+        }
+      } catch (e) {
+        showToast('Error koneksi generate ronde', true);
+      }
+    }
+
+    async function togglePayment(playerId) {
+      try {
+        const res = await fetch('/api?action=toggle_payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: currentSessionId, player_id: playerId })
+        });
+        const data = await res.json();
+        if (data.success) {
+          window.location.reload();
+        }
+      } catch (e) {
+        alert('Gagal toggle pembayaran');
+      }
+    }
+
+    async function togglePresent(playerId) {
+      try {
+        const res = await fetch('/api?action=toggle_present', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: currentSessionId, player_id: playerId })
+        });
+        const data = await res.json();
+        if (data.success) {
+          window.location.reload();
+        }
+      } catch (e) {
+        alert('Gagal toggle kehadiran');
+      }
+    }
+
+    function openAddPlayerModal() {
+      document.getElementById('addPlayerModal').classList.remove('hidden');
+    }
+
+    function closeAddPlayerModal() {
+      document.getElementById('addPlayerModal').classList.add('hidden');
+    }
+
+    async function submitAddPlayer() {
+      const selectedId = document.getElementById('selectPlayerId').value;
+      const newName = document.getElementById('newPlayerName').value.trim();
+      const level = document.getElementById('newPlayerLevel').value;
+      const payment = document.getElementById('newPlayerPayment').value;
+
+      try {
+        const res = await fetch('/api?action=quick_add_player', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: currentSessionId,
+            player_id: selectedId,
+            name: newName,
+            level: level,
+            payment_status: payment
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          window.location.reload();
+        } else {
+          alert(data.error || 'Gagal menambahkan pemain');
+        }
+      } catch (e) {
+        alert('Error koneksi server');
+      }
+    }
+  </script>
+</body>
+</html>

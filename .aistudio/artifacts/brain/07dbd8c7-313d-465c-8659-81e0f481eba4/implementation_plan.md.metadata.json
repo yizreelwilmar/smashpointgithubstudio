@@ -1,0 +1,6 @@
+{
+  "summary": "Rencana implementasi penyesuaian aplikasi operasional mabar bulutangkis (PHP): penyederhanaan UI tanpa select-search yang rumit di HP, perbaikan logika impor list WhatsApp langsung ke Pemain Sesi Utama, penyempurnaan aksi Hadir / Ga Hadir dan Edit (Level & Waiting List), penguatan algoritma rotasi fair, serta penambahan indikator jumlah berapa kali main di menu Pemain dan menu Ronde Acak.",
+  "updatedAt": "2026-11-04T04:11:20.695378562Z",
+  "requestFeedback": true,
+  "userFacing": true
+}

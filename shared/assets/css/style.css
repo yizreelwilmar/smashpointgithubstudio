@@ -1,0 +1,83 @@
+/* shared/assets/css/style.css */
+/* POWERSHOOT BADMINTON — Athletic Navy & Vibrant Gold Design System */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap');
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Powershoot Athletic Identity: Deep Obsidian Navy + Electric Sky + Vibrant Gold */
+  --bg-page: #f8fafc;
+  --bg-card: #ffffff;
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  --text-main: #0a192f;
+  --text-muted: #475569;
+  --text-subtle: #94a3b8;
+
+  /* Brand Primary: Deep Powershoot Navy & Blue */
+  --brand-navy-950: #071324;
+  --brand-navy-900: #0b1e36;
+  --brand-navy-800: #132b4f;
+  --brand-blue: #1e40af;
+  --brand-cyan: #0284c7;
+
+  /* Brand Accent: Energetic Powershoot Gold / Yellow */
+  --brand-gold-500: #eab308;
+  --brand-gold-400: #facc15;
+  --brand-gold-300: #fde047;
+  --brand-gold-100: #fef9c3;
+  --brand-gold-50: #fefce8;
+
+  --brand-primary: #0b1e36;
+  --brand-primary-hover: #132b4f;
+  --brand-accent: #f59e0b;
+  --brand-light: #eff6ff;
+  --brand-border: #bfdbfe;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.015em;
+  font-stretch: normal !important;
+}
+
+/* Force standard font across all headings to eliminate stretched/squashed font artifacts */
+h1, h2, h3, h4, h5, h6, .font-display, .font-editorial, .font-heading {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  letter-spacing: -0.025em !important;
+  font-stretch: normal !important;
+  font-weight: 800;
+}
+
+.font-mono-num {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-feature-settings: 'tnum' 1, 'zero' 1;
+}
+
+/* Tactile micro-interactions */
+.btn-tactile {
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-tactile:hover {
+  transform: translateY(-1px);
+}
+.btn-tactile:active {
+  transform: translateY(1px);
+}
+
+/* Focus outline for accessibility */
+*:focus-visible {
+  outline: 2px solid #f59e0b !important;
+  outline-offset: 2px !important;
+}
