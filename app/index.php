@@ -2878,6 +2878,9 @@ $waitingListParticipants = array_filter($participants, function($p) {
     });
   </script>
 
+  <!-- Android-Friendly Smart Select -->
+  <script src="<?= $baseDir ?>/shared/assets/js/smart-select.js"></script>
+
   <script>
     // PWA Service Worker Registration
     if ('serviceWorker' in navigator) {
@@ -2886,6 +2889,5 @@ $waitingListParticipants = array_filter($participants, function($p) {
       });
     }
   </script>
-
 </body>
 </html>

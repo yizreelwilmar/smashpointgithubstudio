@@ -613,126 +613,32 @@ if ($isLoggedIn && $tab === 'finance' && isset($_GET['export']) && $_GET['export
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="<?= $baseDir ?>/shared/assets/css/style.css?v=<?= time() ?>">
-  <link rel="stylesheet" href="<?= $baseDir ?>/shared/assets/css/tom-select.default.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.default.min.css">
   <style>
     * {
       font-stretch: normal !important;
+      -webkit-tap-highlight-color: transparent;
     }
-    body, h1, h2, h3, h4, h5, h6, p, span, button, input, select {
+    body, h1, h2, h3, h4, h5, h6, p, span, button, input, select, textarea {
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
       font-stretch: normal !important;
     }
 
-    /* Mobile-First Butter-Smooth TomSelect Styling */
-    .ts-wrapper.single .ts-control {
-      min-height: 44px !important;
-      font-size: 14px !important;
-      border-radius: 6px !important;
-      border: 1px solid #cbd5e1 !important;
-      padding: 8px 12px !important;
-      display: flex !important;
-      align-items: center !important;
-      background-color: #f8fafc !important;
-      cursor: pointer;
-    }
-    .ts-control input {
-      font-size: 16px !important; /* Prevent iOS mobile auto-zoom */
-    }
-    .ts-dropdown {
-      z-index: 99999 !important;
-      border-radius: 8px !important;
-      box-shadow: 0 12px 28px -4px rgba(11, 30, 54, 0.2), 0 4px 10px -2px rgba(11, 30, 54, 0.08) !important;
-      border: 1px solid #cbd5e1 !important;
-      max-height: 280px !important;
-      -webkit-overflow-scrolling: touch !important;
-    }
-    .ts-dropdown .option {
-      min-height: 44px !important;
-      display: flex !important;
-      align-items: center !important;
-      padding: 10px 14px !important;
-      font-size: 13px !important;
-      font-weight: 600 !important;
-      color: #1e293b !important;
-    }
-    .ts-dropdown .option.active, .ts-dropdown .option:hover {
-      background-color: #0b1e36 !important;
-      color: #facc15 !important;
+    /* Prevent mobile zoom on Android & iOS on inputs */
+    @media (max-width: 640px) {
+      input[type="text"], input[type="search"], input[type="number"], input[type="tel"], input[type="email"], input[type="password"], textarea, select {
+        font-size: 16px !important;
+      }
     }
 
-    /* Custom Tom Select Styling for Powershoot Admin Panel */
-    .ts-wrapper {
-      font-family: 'Plus Jakarta Sans', sans-serif !important;
-      font-size: 12px !important;
-      width: 100% !important;
+    /* Clean mobile scrollbar */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
     }
-    .ts-control {
-      background-color: #f8fafc !important;
-      border: 1px solid #cbd5e1 !important;
-      border-radius: 6px !important;
-      padding: 7px 12px !important;
-      font-size: 12px !important;
-      font-weight: 700 !important;
-      color: #0f172a !important;
-      box-shadow: none !important;
-      min-height: 38px !important;
-      display: flex !important;
-      align-items: center !important;
-      transition: all 0.15s ease-in-out;
-    }
-    .ts-wrapper.focus .ts-control {
-      background-color: #ffffff !important;
-      border-color: #0b1e36 !important;
-      box-shadow: 0 0 0 2px rgba(11, 30, 54, 0.15) !important;
-    }
-    .ts-dropdown {
-      background: #ffffff !important;
-      border: 1px solid #cbd5e1 !important;
-      border-radius: 6px !important;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
-      font-size: 12px !important;
-      margin-top: 4px !important;
-      z-index: 99999 !important;
-      overflow: hidden !important;
-    }
-    .ts-dropdown .option {
-      padding: 8px 12px !important;
-      font-size: 12px !important;
-      color: #1e293b !important;
-      cursor: pointer !important;
-      border-bottom: 1px solid #f8fafc !important;
-    }
-    .ts-dropdown .option:last-child {
-      border-bottom: none !important;
-    }
-    .ts-dropdown .option:hover,
-    .ts-dropdown .active {
-      background-color: #0b1e36 !important;
-      color: #facc15 !important;
-    }
-    .ts-dropdown .active .highlight,
-    .ts-dropdown .option .highlight {
-      background: rgba(250, 204, 21, 0.35) !important;
-      color: inherit !important;
-      font-weight: 800 !important;
-    }
-    .ts-wrapper.single .ts-control::after {
-      border-color: #64748b transparent transparent !important;
-      border-width: 5px 4px 0 4px !important;
-      right: 12px !important;
-    }
-    .ts-wrapper.single.dropdown-active .ts-control::after {
-      border-color: transparent transparent #64748b !important;
-      border-width: 0 4px 5px 4px !important;
-    }
-    .plugin-clear_button .clear-button {
-      font-size: 14px !important;
-      color: #94a3b8 !important;
-      right: 28px !important;
-    }
-    .plugin-clear_button .clear-button:hover {
-      color: #e11d48 !important;
+    .no-scrollbar {
+      -ms-overflow-style: none !important;
+      scrollbar-width: none !important;
     }
   </style>
   <script>
@@ -1054,8 +960,8 @@ if ($isLoggedIn && $tab === 'finance' && isset($_GET['export']) && $_GET['export
 
         </header>
 
-        <!-- Main Body Content -->
-        <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <!-- Main Body Content (Mobile Thumb Optimized) -->
+        <main class="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto pb-24 lg:pb-8">
       
       <?php if ($successMsg): ?>
         <div class="mb-6 p-4 rounded-md bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold flex items-center justify-between">
@@ -1948,36 +1854,36 @@ if ($isLoggedIn && $tab === 'finance' && isset($_GET['export']) && $_GET['export
 
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Judul Dokumentasi:</label>
-                <input type="text" name="title" required placeholder="Contoh: Keseruan Game Final & Foto Bersama" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-700">
+                <input type="text" name="title" required placeholder="Contoh: Keseruan Game Final & Foto Bersama" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2.5 text-base sm:text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-700 min-h-[44px]">
               </div>
 
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
                   <span>Pilih File Foto Dokumentasi:</span>
-                  <span class="text-[10px] text-slate-400 font-normal">Maks 10MB</span>
+                  <span class="text-[10px] text-slate-400 font-normal">Kamera / Album (Maks 10MB)</span>
                 </label>
-                <input type="file" name="photo_file" accept="image/*" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-700 file:mr-3 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-emerald-700 file:text-white hover:file:bg-emerald-800 cursor-pointer">
+                <input type="file" name="photo_file" accept="image/*" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-700 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-[#0b1e36] file:text-amber-400 hover:file:bg-slate-900 cursor-pointer min-h-[44px]">
               </div>
 
               <div>
                 <label class="block text-[11px] font-semibold text-slate-500 mb-1">Atau Masukkan URL Gambar (Opsional jika foto di cloud):</label>
-                <input type="url" name="image_url" placeholder="https://images.unsplash.com/..." class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-700">
+                <input type="url" name="image_url" placeholder="https://images.unsplash.com/..." class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2 text-base sm:text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-700 min-h-[44px]">
               </div>
 
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Keterangan Singkat (Caption):</label>
-                <textarea name="caption" rows="2" placeholder="Keterangan suasana bermain, peserta, atau momen pertandingan..." class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-700"></textarea>
+                <textarea name="caption" rows="2" placeholder="Keterangan suasana bermain, peserta, atau momen pertandingan..." class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2 text-base sm:text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-700"></textarea>
               </div>
 
-              <button type="submit" class="w-full py-2.5 rounded-md bg-emerald-700 hover:bg-amber-400 text-slate-950 font-black font-bold text-xs uppercase tracking-wider transition-all btn-tactile shadow-xs flex items-center justify-center gap-1.5">
-                <svg class="w-4 h-4 text-emerald-600 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              <button type="submit" class="w-full min-h-[46px] rounded-lg bg-[#0b1e36] hover:bg-slate-900 active:scale-[0.98] text-amber-400 font-black text-xs uppercase tracking-wider transition-all border border-amber-400/30 shadow-xs flex items-center justify-center gap-1.5">
+                <svg class="w-4 h-4 text-amber-400 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 <span>Unggah Foto ke Galeri</span>
               </button>
             </form>
           </div>
 
           <!-- Gallery List Grid -->
-          <div class="lg:col-span-7 bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
+          <div class="lg:col-span-7 bg-white rounded-lg border border-slate-200 p-4 sm:p-6 shadow-sm">
             <div class="flex items-center justify-between mb-4">
               <div>
                 <h3 class="text-base font-black text-slate-900">Daftar Foto Dokumentasi (<?= count($gallery) ?>)</h3>
@@ -2013,8 +1919,8 @@ if ($isLoggedIn && $tab === 'finance' && isset($_GET['export']) && $_GET['export
                       <form method="POST" action="?tab=gallery" onsubmit="handleAdminFormConfirm(event, this, 'Hapus Foto Dokumentasi?', 'Foto ini akan dihapus dari galeri dan landing page.'); return false;">
                         <input type="hidden" name="form_action" value="delete_gallery">
                         <input type="hidden" name="id" value="<?= $pic['id'] ?>">
-                        <button type="submit" class="text-rose-600 hover:text-rose-800 text-xs font-bold hover:underline">
-                          Hapus
+                        <button type="submit" class="min-h-[36px] px-3 py-1 bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white font-bold text-xs rounded border border-rose-200 transition-all flex items-center justify-center">
+                          Hapus Foto
                         </button>
                       </form>
                     </div>
@@ -2988,7 +2894,66 @@ ${listLines.join('\n')}${fullTag}`;
               <input type="hidden" name="player_ids" id="bulkDeletePlayerIds">
             </form>
 
-            <div class="overflow-x-auto">
+            <!-- Mobile Responsive Card View for Android & Mobile Phones -->
+            <div class="block md:hidden divide-y divide-slate-100">
+              <?php foreach ($rosterPlayers as $idx => $rp): 
+                $venues = !empty($rp['branch_venues']) ? explode('||', $rp['branch_venues']) : [];
+                $lvlLower = strtolower($rp['level']);
+                $lvlBadge = (strpos($lvlLower, 'beg') !== false) 
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300' 
+                  : ((strpos($lvlLower, 'adv') !== false) ? 'bg-amber-50 text-amber-900 border-amber-300' : 'bg-blue-50 text-blue-800 border-blue-300');
+              ?>
+                <div class="p-3.5 bg-white space-y-2.5">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                      <input type="checkbox" value="<?= $rp['id'] ?>" onchange="updateSelectedPlayers()" class="player-checkbox w-5 h-5 rounded border-slate-300 text-amber-500 focus:ring-amber-400 cursor-pointer shrink-0">
+                      <div class="min-w-0">
+                        <div class="font-black text-slate-900 text-sm truncate"><?= htmlspecialchars($rp['name']) ?></div>
+                        <div class="flex items-center gap-2 mt-0.5">
+                          <span class="text-[10px] font-mono font-bold text-slate-400">#<?= $idx + 1 ?></span>
+                          <span class="text-[10px] font-black px-2 py-0.5 rounded border uppercase tracking-wider <?= $lvlBadge ?>"><?= htmlspecialchars($rp['level']) ?></span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                      <div class="font-mono font-black text-slate-900 text-sm"><?= number_format($rp['total_points']) ?> Pts</div>
+                      <div class="text-[10px] font-mono text-slate-500"><?= (int)$rp['total_sessions_joined'] ?>x main</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center justify-between gap-2 text-xs pt-1 border-t border-slate-100">
+                    <?php if (!empty($rp['phone'])): ?>
+                      <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $rp['phone']) ?>" target="_blank" class="min-h-[38px] px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded font-mono font-bold text-[11px] flex items-center gap-1 active:scale-95">
+                        <span>WA: <?= htmlspecialchars($rp['phone']) ?></span>
+                      </a>
+                    <?php else: ?>
+                      <span class="text-[10px] text-slate-400 italic">No WA belum ada</span>
+                    <?php endif; ?>
+
+                    <div class="flex items-center gap-1.5">
+                      <button type="button" onclick="openEditPlayerModal(<?= htmlspecialchars(json_encode([
+                        'id' => $rp['id'],
+                        'name' => $rp['name'],
+                        'phone' => $rp['phone'],
+                        'level' => $rp['level']
+                      ])) ?>)" class="min-h-[38px] px-3 py-1 bg-slate-100 hover:bg-[#0b1e36] hover:text-amber-400 text-slate-800 font-bold text-xs rounded border border-slate-300 transition-all flex items-center justify-center">
+                        Edit
+                      </button>
+                      <form method="POST" action="?tab=roster" onsubmit="handleAdminFormConfirm(event, this, 'Hapus Pemain <?= htmlspecialchars(addslashes($rp['name'])) ?>?', 'Pemain ini akan dihapus permanen dari daftar master komunitas.'); return false;" class="inline">
+                        <input type="hidden" name="form_action" value="delete_player">
+                        <input type="hidden" name="player_id" value="<?= $rp['id'] ?>">
+                        <button type="submit" class="min-h-[38px] px-3 py-1 bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white font-bold text-xs rounded border border-rose-200 transition-all flex items-center justify-center">
+                          Hapus
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+
+            <!-- Desktop Tabular View -->
+            <div class="hidden md:block overflow-x-auto">
               <table class="w-full text-left text-sm font-sans min-w-[750px]">
                 <thead class="bg-slate-50 text-slate-700 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
                   <tr>
@@ -3313,8 +3278,52 @@ ${listLines.join('\n')}${fullTag}`;
             </form>
           </div>
 
-          <!-- Leaderboard Table of the Month -->
-          <div class="mt-6 overflow-x-auto">
+          <!-- Mobile Responsive Ranking Card View for Android & Mobile Phones -->
+          <div class="block md:hidden mt-4 divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+            <?php foreach ($monthlyLeaderboard as $idx => $p): 
+              $wr = $p['total_matches'] > 0 ? round(($p['wins'] / $p['total_matches']) * 100) : 0;
+            ?>
+              <div class="p-3.5 space-y-2">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="w-8 h-8 rounded-lg flex items-center justify-center font-mono font-black text-xs shrink-0 <?= $idx === 0 ? 'bg-amber-400 text-slate-950 font-bold' : ($idx === 1 ? 'bg-slate-200 text-slate-800' : 'bg-slate-100 text-slate-600') ?>">
+                      #<?= $idx + 1 ?>
+                    </span>
+                    <div class="min-w-0">
+                      <div class="font-extrabold text-slate-900 text-sm truncate">
+                        <?= htmlspecialchars($p['name']) ?>
+                      </div>
+                      <div class="flex items-center gap-2 mt-0.5">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full <?= $p['level'] === 'Advance' ? 'bg-rose-50 text-rose-700 border border-rose-200' : ($p['level'] === 'Beginner' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-blue-50 text-blue-800 border border-blue-200') ?>">
+                          <?= htmlspecialchars($p['level']) ?>
+                        </span>
+                        <?php if ($idx === 0): ?>
+                          <span class="text-[9px] bg-amber-100 text-amber-900 font-black px-1.5 py-0.2 rounded uppercase">MVP</span>
+                        <?php endif; ?>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="text-right shrink-0">
+                    <div class="font-mono font-black text-blue-900 text-base leading-none">
+                      <?= number_format($p['total_points']) ?> Pts
+                    </div>
+                    <div class="text-[10px] font-mono text-slate-500 mt-1">
+                      WR: <strong><?= $wr ?>%</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-mono text-slate-600">
+                  <span>Main: <strong><?= $p['total_matches'] ?></strong> match</span>
+                  <span>Menang: <strong class="text-emerald-700"><?= $p['wins'] ?></strong> / Kalah: <strong class="text-rose-600"><?= $p['losses'] ?></strong></span>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+
+          <!-- Desktop Tabular View -->
+          <div class="hidden md:block mt-6 overflow-x-auto">
             <table class="w-full text-left text-sm font-sans min-w-[650px]">
               <thead class="bg-slate-50 text-slate-700 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
                 <tr>
@@ -4490,6 +4499,34 @@ ${listLines.join('\n')}${fullTag}`;
           </div>
         </footer>
 
+        <!-- ========================================== -->
+        <!-- ANDROID MOBILE BOTTOM NAVIGATION BAR       -->
+        <!-- ========================================== -->
+        <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-xl" style="padding-bottom: max(6px, env(safe-area-inset-bottom));">
+          <div class="grid grid-cols-5 items-center text-center py-1">
+            <a href="?tab=dashboard" class="flex flex-col items-center justify-center py-1.5 <?= $tab === 'dashboard' ? 'text-[#0b1e36] font-black' : 'text-slate-500 font-semibold' ?>">
+              <span class="text-[11px] font-mono leading-none">Ringkas</span>
+              <span class="text-[9px] text-slate-400 mt-0.5 font-sans">Panel</span>
+            </a>
+            <a href="?tab=schedules" class="flex flex-col items-center justify-center py-1.5 <?= ($tab === 'schedules' || $tab === 'schedule_form') ? 'text-[#0b1e36] font-black' : 'text-slate-500 font-semibold' ?>">
+              <span class="text-[11px] font-mono leading-none">Jadwal</span>
+              <span class="text-[9px] text-slate-400 mt-0.5 font-sans">Sesi GOR</span>
+            </a>
+            <a href="?tab=roster" class="flex flex-col items-center justify-center py-1.5 <?= $tab === 'roster' ? 'text-[#0b1e36] font-black' : 'text-slate-500 font-semibold' ?>">
+              <span class="text-[11px] font-mono leading-none">Roster</span>
+              <span class="text-[9px] text-slate-400 mt-0.5 font-sans">Pemain</span>
+            </a>
+            <a href="?tab=gallery" class="flex flex-col items-center justify-center py-1.5 <?= $tab === 'gallery' ? 'text-[#0b1e36] font-black' : 'text-slate-500 font-semibold' ?>">
+              <span class="text-[11px] font-mono leading-none">Galeri</span>
+              <span class="text-[9px] text-slate-400 mt-0.5 font-sans">Dokumentasi</span>
+            </a>
+            <button type="button" onclick="toggleSidebar(true)" class="flex flex-col items-center justify-center py-1.5 text-slate-500 hover:text-slate-900 font-semibold">
+              <span class="text-[11px] font-mono leading-none font-black text-amber-600">Menu</span>
+              <span class="text-[9px] text-slate-400 mt-0.5 font-sans">Lainnya</span>
+            </button>
+          </div>
+        </nav>
+
       </div> <!-- /Main Panel Wrapper -->
     </div> <!-- /Full Screen Control Panel Shell -->
 
@@ -5216,39 +5253,22 @@ ${listLines.join('\n')}${fullTag}`;
     }
   </script>
 
-  <!-- Tom Select Searchable Dropdown Library & Auto-Initializer -->
-  <script src="<?= $baseDir ?>/shared/assets/js/tom-select.complete.min.js"></script>
-  <script>
-    if (typeof TomSelect === 'undefined') {
-      document.write('<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"><\/script>');
-    }
-  </script>
+  <!-- Mobile-First SmartSelect Dropdown Engine (No Keyboard Flash on Android) -->
+  <script src="<?= $baseDir ?>/shared/assets/js/smart-select.js"></script>
   <script>
     function initSelectSearch() {
-      if (typeof TomSelect === 'undefined') return;
+      if (typeof SmartSelect === 'undefined') return;
 
       const selects = document.querySelectorAll('select:not([data-no-search])');
       selects.forEach(function(sel) {
-        if (sel.tomselect) return;
+        if (sel._smartSelect) return;
+        // Skip tiny clock hour/minute selectors
+        if (sel.id === 'selectStartHour' || sel.id === 'selectStartMin' || sel.id === 'selectEndHour' || sel.id === 'selectEndMin') return;
 
         try {
-          new TomSelect(sel, {
-            create: false,
-            sortField: false,
-            maxOptions: 500,
-            searchField: ['text'],
-            plugins: ['clear_button'],
-            dropdownParent: 'body',
-            onChange: function(value) {
-              if (typeof sel.onchange === 'function') {
-                sel.onchange();
-              } else {
-                sel.dispatchEvent(new Event('change', { bubbles: true }));
-              }
-            }
-          });
+          new SmartSelect(sel);
         } catch (e) {
-          console.warn('TomSelect init skipped for', sel, e);
+          console.warn('SmartSelect init skipped for', sel, e);
         }
       });
     }

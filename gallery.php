@@ -291,18 +291,18 @@ $galleryJson = json_encode(array_map(function($p) {
             <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </span>
-            <input type="text" name="q" value="<?= htmlspecialchars($filterQuery) ?>" placeholder="Cari foto, momen, venue..." class="bg-[#071324] border border-slate-700 pl-8 pr-8 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 w-full">
+            <input type="text" name="q" value="<?= htmlspecialchars($filterQuery) ?>" placeholder="Cari foto, momen, venue..." class="bg-[#071324] border border-slate-700 pl-8 pr-8 py-2.5 sm:py-2 text-base sm:text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 w-full min-h-[44px]">
             <?php if (!empty($filterQuery)): ?>
-              <a href="gallery.php<?= !empty($currentSessionHash) ? '?session=' . urlencode($currentSessionHash) : '' ?>" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-white text-sm" title="Hapus pencarian">&times;</a>
+              <a href="gallery.php<?= !empty($currentSessionHash) ? '?session=' . urlencode($currentSessionHash) : '' ?>" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white text-base" title="Hapus pencarian">&times;</a>
             <?php endif; ?>
           </div>
 
-          <button type="submit" class="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider transition-all border border-amber-400 active:scale-95 shrink-0">
+          <button type="submit" class="min-h-[44px] px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider transition-all border border-amber-400 active:scale-95 shrink-0 flex items-center justify-center">
             Cari
           </button>
           
           <?php if ($filterSessionId > 0 || !empty($filterQuery)): ?>
-            <a href="gallery.php" class="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs uppercase transition-colors border border-slate-700 shrink-0" title="Tampilkan Semua">
+            <a href="gallery.php" class="min-h-[44px] px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs uppercase transition-colors border border-slate-700 shrink-0 flex items-center justify-center" title="Tampilkan Semua">
               Reset
             </a>
           <?php endif; ?>
@@ -431,60 +431,75 @@ $galleryJson = json_encode(array_map(function($p) {
   </main>
 
   <!-- ========================================== -->
-  <!-- MODERN LIGHTBOX MODAL                      -->
+  <!-- ANDROID & DESKTOP PREMIUM LIGHTBOX MODAL   -->
   <!-- ========================================== -->
-  <div id="lightboxModal" class="hidden fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-3 sm:p-6 backdrop-blur-md transition-opacity duration-200" onclick="handleLightboxBackdrop(event)">
-    <div class="bg-[#0b1e36] max-w-5xl w-full max-h-[94vh] overflow-hidden shadow-2xl flex flex-col border border-slate-700" onclick="event.stopPropagation()">
+  <div id="lightboxModal" class="hidden fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-0 sm:p-6 backdrop-blur-md transition-opacity duration-200 select-none" onclick="handleLightboxBackdrop(event)">
+    <div class="bg-[#0b1e36] max-w-5xl w-full h-full sm:h-auto sm:max-h-[94vh] overflow-hidden shadow-2xl flex flex-col border-0 sm:border border-slate-700" onclick="event.stopPropagation()">
       
-      <!-- Lightbox Header Bar -->
+      <!-- Lightbox Header Bar (Mobile Thumb-Optimized) -->
       <div class="bg-[#071324] text-white px-4 py-3 flex items-center justify-between border-b border-slate-800 shrink-0">
         <div class="min-w-0 pr-3">
           <div class="flex items-center gap-2">
-            <span class="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-black" id="lbVenue">
+            <span class="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-black truncate max-w-[140px] sm:max-w-none" id="lbVenue">
               <?= htmlspecialchars(strtoupper($settings['community_name'] ?? 'BADMINTON CLUB')) ?>
             </span>
             <span class="text-slate-600">•</span>
             <span class="text-[10px] font-mono text-slate-400" id="lbDate">Tanggal</span>
           </div>
-          <h2 class="text-sm sm:text-base font-black text-white truncate mt-0.5" id="lbTitle">
+          <h2 class="text-xs sm:text-base font-black text-white truncate mt-0.5" id="lbTitle">
             Judul Dokumentasi
           </h2>
         </div>
         
         <div class="flex items-center gap-2 shrink-0">
-          <span class="text-xs font-mono font-bold text-amber-400 bg-amber-400/10 px-2.5 py-1 border border-amber-400/30" id="lbCounter">
+          <span class="text-[11px] sm:text-xs font-mono font-bold text-amber-400 bg-amber-400/10 px-2 sm:px-2.5 py-1 border border-amber-400/30" id="lbCounter">
             Foto 1 / 1
           </span>
-          <button type="button" onclick="closeLightbox()" class="px-3 py-1 bg-slate-800 hover:bg-rose-900 text-white font-bold text-xs uppercase tracking-wider border border-slate-700 transition-colors" title="Tutup (Esc)">
+          <button type="button" onclick="closeLightbox()" class="min-h-[44px] min-w-[44px] px-3 py-2 bg-slate-800 hover:bg-rose-900 active:scale-95 text-white font-bold text-xs uppercase tracking-wider border border-slate-700 transition-colors flex items-center justify-center" title="Tutup (Esc)">
             &times; Tutup
           </button>
         </div>
       </div>
 
-      <!-- Lightbox Main Stage (Responsive) -->
-      <div class="bg-black/90 flex-1 relative flex items-center justify-center min-h-[320px] max-h-[66vh] overflow-hidden select-none">
-        <img id="lbImg" src="" alt="Dokumentasi" class="max-h-[66vh] max-w-full object-contain transition-opacity duration-200">
+      <!-- Lightbox Main Stage with Touch Gestures -->
+      <div id="lbStage" class="bg-black flex-1 relative flex items-center justify-center min-h-[260px] max-h-[72vh] sm:max-h-[66vh] overflow-hidden touch-pan-y">
+        <img id="lbImg" src="" alt="Dokumentasi" class="max-h-[72vh] sm:max-h-[66vh] max-w-full object-contain transition-all duration-200 pointer-events-none">
 
-        <!-- Navigation Arrows -->
-        <button type="button" onclick="prevLightbox()" class="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 bg-slate-950/80 hover:bg-amber-400 hover:text-slate-950 text-white text-2xl font-bold flex items-center justify-center backdrop-blur border border-slate-700 transition-all active:scale-90" aria-label="Foto Sebelumnya" title="Panah Kiri">
+        <!-- Mobile Swipe Guidance Pill (Fades after 2s) -->
+        <div id="lbSwipeHint" class="sm:hidden absolute top-3 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur text-slate-300 border border-slate-700 text-[10px] font-mono font-bold transition-opacity duration-500 pointer-events-none">
+          ↔ Geser layar untuk foto lain
+        </div>
+
+        <!-- Desktop Navigation Arrows -->
+        <button type="button" onclick="prevLightbox()" class="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-slate-950/80 hover:bg-amber-400 hover:text-slate-950 text-white text-2xl font-bold items-center justify-center backdrop-blur border border-slate-700 transition-all active:scale-90" aria-label="Foto Sebelumnya" title="Panah Kiri">
           ‹
         </button>
-        <button type="button" onclick="nextLightbox()" class="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 bg-slate-950/80 hover:bg-amber-400 hover:text-slate-950 text-white text-2xl font-bold flex items-center justify-center backdrop-blur border border-slate-700 transition-all active:scale-90" aria-label="Foto Selanjutnya" title="Panah Kanan">
+        <button type="button" onclick="nextLightbox()" class="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-slate-950/80 hover:bg-amber-400 hover:text-slate-950 text-white text-2xl font-bold items-center justify-center backdrop-blur border border-slate-700 transition-all active:scale-90" aria-label="Foto Selanjutnya" title="Panah Kanan">
           ›
         </button>
       </div>
 
-      <!-- Lightbox Caption & Fullsize Button Footer -->
-      <div class="p-4 bg-[#0b1e36] border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+      <!-- Lightbox Caption & Thumb Navigation Bar -->
+      <div class="p-3.5 sm:p-4 bg-[#0b1e36] border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div class="min-w-0 flex-1">
-          <p class="text-xs text-slate-300 leading-relaxed" id="lbCaption">
+          <p class="text-xs text-slate-300 leading-relaxed line-clamp-2 sm:line-clamp-none" id="lbCaption">
             Keterangan foto dokumentasi.
           </p>
         </div>
 
-        <div class="flex items-center gap-2 shrink-0">
-          <a id="lbDownloadLink" href="#" target="_blank" download class="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider transition-all border border-amber-300 flex items-center gap-1.5 shadow-xs active:scale-95">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        <!-- Mobile & Desktop Actions (All Touch Hitboxes >= 44px) -->
+        <div class="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-1 sm:pt-0 border-t sm:border-0 border-slate-800">
+          <!-- Mobile Thumb Next/Prev -->
+          <div class="flex sm:hidden items-center gap-1">
+            <button type="button" onclick="prevLightbox()" class="min-h-[44px] min-w-[44px] px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white font-black text-sm border border-slate-700 active:scale-90 transition-all flex items-center justify-center">
+              ‹ Prev
+            </button>
+            <button type="button" onclick="nextLightbox()" class="min-h-[44px] min-w-[44px] px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white font-black text-sm border border-slate-700 active:scale-90 transition-all flex items-center justify-center">
+              Next ›
+            </button>
+          </div>
+
+          <a id="lbDownloadLink" href="#" target="_blank" download class="min-h-[44px] px-4 py-2 bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider transition-all border border-amber-300 flex items-center justify-center gap-1.5 shadow-xs">
             <span>Buka Ukuran Asli</span>
           </a>
         </div>
@@ -507,7 +522,7 @@ $galleryJson = json_encode(array_map(function($p) {
     </div>
   </footer>
 
-  <!-- Lightbox Script -->
+  <!-- Android & Desktop Touch-Optimized Lightbox Script -->
   <script>
     const galleryItems = <?= $galleryJson ?>;
     let currentIdx = 0;
@@ -516,12 +531,21 @@ $galleryJson = json_encode(array_map(function($p) {
       if (!galleryItems || galleryItems.length === 0) return;
       currentIdx = idx >= 0 && idx < galleryItems.length ? idx : 0;
       renderLightbox();
-      document.getElementById('lightboxModal').classList.remove('hidden');
+      const modal = document.getElementById('lightboxModal');
+      modal.classList.remove('hidden');
       document.body.style.overflow = 'hidden';
+
+      // Show swipe hint temporarily on touch devices
+      const hint = document.getElementById('lbSwipeHint');
+      if (hint) {
+        hint.style.opacity = '1';
+        setTimeout(() => { hint.style.opacity = '0'; }, 2400);
+      }
     }
 
     function closeLightbox() {
-      document.getElementById('lightboxModal').classList.add('hidden');
+      const modal = document.getElementById('lightboxModal');
+      modal.classList.add('hidden');
       document.body.style.overflow = '';
     }
 
@@ -558,6 +582,47 @@ $galleryJson = json_encode(array_map(function($p) {
       if (!galleryItems.length) return;
       currentIdx = (currentIdx + 1) % galleryItems.length;
       renderLightbox();
+    }
+
+    // Touch Swipe Gesture Support (Android & Mobile)
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+
+    const stageEl = document.getElementById('lbStage');
+    if (stageEl) {
+      stageEl.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+      }, { passive: true });
+
+      stageEl.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleGesture();
+      }, { passive: true });
+    }
+
+    function handleGesture() {
+      const deltaX = touchEndX - touchStartX;
+      const deltaY = touchEndY - touchStartY;
+      const minSwipeDistance = 45;
+
+      // Horizontal Swipe
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+        if (deltaX < 0) {
+          // Swipe Left -> Next
+          nextLightbox();
+        } else {
+          // Swipe Right -> Prev
+          prevLightbox();
+        }
+      } 
+      // Vertical Swipe Down -> Dismiss modal
+      else if (deltaY > 90 && Math.abs(deltaX) < 60) {
+        closeLightbox();
+      }
     }
 
     // Keyboard Shortcuts (Left, Right, Escape)
