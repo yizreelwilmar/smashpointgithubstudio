@@ -500,49 +500,142 @@ $igUrl = (strpos($igRaw, 'http') === 0) ? $igRaw : 'https://instagram.com/' . lt
 
     <!-- Hero Content Overlay (Editorial, High-Contrast, Direct Impact) -->
     <div class="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 w-full">
-      <div class="max-w-3xl space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
         
-        <!-- Live Community Status Badge -->
-        <div class="inline-flex items-center gap-2 px-3 py-1 bg-amber-400 text-slate-950 text-xs font-black font-mono uppercase tracking-wider border border-amber-300 shadow-md">
-          <span class="w-2 h-2 rounded-full bg-slate-950 animate-pulse"></span>
-          <span>KOMUNITAS MABAR BADMINTON RESMI • <?= strtoupper(htmlspecialchars($baseCityName)) ?></span>
+        <!-- Left Column: Typography, Badge & Direct CTA -->
+        <div class="lg:col-span-7 space-y-6">
+          
+          <!-- Live Community Status Badge -->
+          <div class="inline-flex items-center gap-2 px-3 py-1 bg-amber-400 text-slate-950 text-xs font-black font-mono uppercase tracking-wider border border-amber-300 shadow-md">
+            <span class="w-2 h-2 rounded-full bg-slate-950 animate-pulse"></span>
+            <span>KOMUNITAS MABAR BADMINTON RESMI • <?= strtoupper(htmlspecialchars($baseCityName)) ?></span>
+          </div>
+
+          <!-- Main Headline -->
+          <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.08] drop-shadow-md">
+            <?= htmlspecialchars(!empty($settings['hero_title']) ? $settings['hero_title'] : 'Main Badminton Bareng Tanpa Repot Cari Lawan & Lapangan.') ?>
+          </h1>
+
+          <!-- Subtitle -->
+          <p class="text-base sm:text-xl text-slate-200 leading-relaxed font-normal max-w-2xl drop-shadow-sm">
+            <?= nl2br(htmlspecialchars(!empty($settings['hero_subtitle']) ? $settings['hero_subtitle'] : 'Selamat datang di Powershoot Badminton Club. Kami menyelenggarakan sesi main bareng ganda di berbagai GOR terbaik Jakarta Selatan. Cukup daftar ke PIC WhatsApp, datang ke arena, dan nikmati pertandingan seru dengan pembagian giliran main yang teratur.')) ?>
+          </p>
+
+          <!-- CTA Buttons -->
+          <div class="pt-2 flex flex-wrap items-center gap-3">
+            <a href="#jadwal" class="px-7 py-4 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider transition-all btn-tactile shadow-xl border border-amber-300">
+              <?= htmlspecialchars(!empty($settings['hero_cta_text']) ? $settings['hero_cta_text'] : 'Pilih Jadwal & Daftar via WhatsApp PIC →') ?>
+            </a>
+            <a href="#cara-ikut" class="px-6 py-4 bg-slate-900/80 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider transition-all border border-slate-700 backdrop-blur-md">
+              Cara Kerja Mabar
+            </a>
+          </div>
+
+          <!-- Highlights Bar: Clean, Direct, High-Trust -->
+          <div class="pt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-300 font-medium">
+            <div class="inline-flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span>Semua Level Selamat Datang</span>
+            </div>
+            <div class="inline-flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              <span>Daftar Sendiri atau Berpasangan</span>
+            </div>
+            <div class="inline-flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+              <span>Langsung Datang & Bertanding</span>
+            </div>
+          </div>
+
         </div>
 
-        <!-- Main Headline -->
-        <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.08] drop-shadow-md">
-          <?= htmlspecialchars(!empty($settings['hero_title']) ? $settings['hero_title'] : 'Main Badminton Bareng Tanpa Repot Cari Lawan & Lapangan.') ?>
-        </h1>
+        <!-- Right Column: Interactive Upcoming Match Spotlight Card -->
+        <?php 
+          $heroSpotlight = !empty($upcomingSchedules) ? $upcomingSchedules[0] : null;
+          if ($heroSpotlight): 
+            $hsRawDate = !empty($heroSpotlight['schedule_date']) ? $heroSpotlight['schedule_date'] : '';
+            $hsWInfo = getScheduleWeekInfo($hsRawDate);
+            $hsDateFormatted = !empty($hsRawDate) ? formatIndoDate($hsRawDate) : '';
+            $hsQuota = isset($heroSpotlight['max_slots']) ? (int)$heroSpotlight['max_slots'] : (isset($heroSpotlight['max_participants']) ? (int)$heroSpotlight['max_participants'] : 16);
+            $hsEnrolled = isset($heroSpotlight['participant_count']) ? (int)$heroSpotlight['participant_count'] : 0;
+            $hsSlotsLeft = max(0, $hsQuota - $hsEnrolled);
+            $hsFeeFormatted = 'Rp ' . number_format($heroSpotlight['fee_per_person'], 0, ',', '.');
+            $hsTStart = isset($heroSpotlight['time_start']) ? $heroSpotlight['time_start'] : (isset($heroSpotlight['start_time']) ? $heroSpotlight['start_time'] : '19:00:00');
+            $hsTEnd = isset($heroSpotlight['time_end']) ? $heroSpotlight['time_end'] : (isset($heroSpotlight['end_time']) ? $heroSpotlight['end_time'] : '22:00:00');
+            $hsTime = substr($hsTStart, 0, 5) . ' - ' . substr($hsTEnd, 0, 5) . ' WIB';
 
-        <!-- Subtitle -->
-        <p class="text-base sm:text-xl text-slate-200 leading-relaxed font-normal max-w-2xl drop-shadow-sm">
-          <?= nl2br(htmlspecialchars(!empty($settings['hero_subtitle']) ? $settings['hero_subtitle'] : 'Selamat datang di Powershoot Badminton Club. Kami menyelenggarakan sesi main bareng ganda 4 kali setiap pekan di berbagai GOR terbaik Jakarta Selatan. Cukup daftar ke PIC WhatsApp, datang ke arena, dan nikmati pertandingan dengan pembagian giliran main yang teratur.')) ?>
-        </p>
+            $hsDefaultWa = !empty($settings['whatsapp_default']) ? $settings['whatsapp_default'] : '081299887766';
+            $hsPicContact = !empty($heroSpotlight['pic_whatsapp']) ? $heroSpotlight['pic_whatsapp'] : $hsDefaultWa;
+            $hsHostName = !empty($heroSpotlight['host_name']) ? $heroSpotlight['host_name'] : (!empty($heroSpotlight['pic_name']) ? $heroSpotlight['pic_name'] : 'PIC Sesi');
+            $hsCleanWa = preg_replace('/[^0-9]/', '', $hsPicContact);
+            if (substr($hsCleanWa, 0, 1) === '0') $hsCleanWa = '62' . substr($hsCleanWa, 1);
+            $hsGreeting = ($hsHostName !== 'PIC Sesi' && $hsHostName !== 'PIC Lapangan') ? "Kak {$hsHostName}" : "PIC Sesi";
+            $hsDateInWa = !empty($hsDateFormatted) ? " ({$hsDateFormatted})" : "";
+            $hsWaMsg = rawurlencode("Halo {$hsGreeting}, saya ingin mendaftar Mabar " . $settings['community_name'] . " untuk sesi " . $heroSpotlight['day_name'] . $hsDateInWa . " di " . $heroSpotlight['venue_name'] . ".");
+            $hsWaUrl = "https://wa.me/" . $hsCleanWa . "?text=" . $hsWaMsg;
+        ?>
+        <div class="lg:col-span-5 w-full">
+          <div class="relative bg-slate-900/85 backdrop-blur-xl border border-white/20 p-6 sm:p-7 shadow-2xl transition-transform hover:-translate-y-1 duration-300">
+            
+            <!-- Card Top Header -->
+            <div class="flex items-center justify-between pb-3.5 border-b border-white/10 mb-4">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400">SESI MABAR TERDEKAT</span>
+              </div>
+              <span class="text-xs font-mono font-black text-amber-400 px-2.5 py-1 bg-amber-400/10 border border-amber-400/30">
+                <?= $hsFeeFormatted ?>
+              </span>
+            </div>
 
-        <!-- CTA Buttons -->
-        <div class="pt-3 flex flex-wrap items-center gap-3">
-          <a href="#jadwal" class="px-7 py-4 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider transition-all btn-tactile shadow-xl border border-amber-300">
-            <?= htmlspecialchars(!empty($settings['hero_cta_text']) ? $settings['hero_cta_text'] : 'Pilih Jadwal & Daftar via WhatsApp PIC →') ?>
-          </a>
-          <a href="#cara-ikut" class="px-6 py-4 bg-slate-900/80 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider transition-all border border-slate-700 backdrop-blur-md">
-            Cara Kerja Mabar
-          </a>
+            <!-- Match Venue & Day Details -->
+            <div class="space-y-2 mb-4">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 text-[10px] font-mono font-bold uppercase <?= $hsWInfo['badge_class'] ?>">
+                  <?= htmlspecialchars($hsWInfo['label']) ?>
+                </span>
+                <span class="text-xs font-mono font-bold text-slate-300 uppercase">
+                  <?= htmlspecialchars($heroSpotlight['day_name']) ?><?= !empty($hsDateFormatted) ? ', ' . htmlspecialchars($hsDateFormatted) : '' ?>
+                </span>
+              </div>
+
+              <h3 class="text-xl sm:text-2xl font-black text-white tracking-tight leading-tight">
+                <?= htmlspecialchars($heroSpotlight['venue_name']) ?>
+              </h3>
+
+              <div class="text-xs text-slate-300 font-mono flex items-center gap-2 pt-1">
+                <span class="text-amber-400">Jam Main:</span>
+                <span><?= htmlspecialchars($hsTime) ?></span>
+              </div>
+            </div>
+
+            <!-- Slots Remaining Indicator -->
+            <div class="bg-black/50 border border-white/10 p-3.5 mb-5 flex items-center justify-between">
+              <div>
+                <span class="text-[11px] text-slate-400 uppercase tracking-wider font-mono">Status Slot</span>
+                <div class="text-white font-mono font-bold text-sm">
+                  <?= $hsSlotsLeft > 0 ? $hsSlotsLeft . ' Slot Tersedia' : 'Penuh (Waiting List)' ?>
+                </div>
+              </div>
+              <span class="text-[10px] font-mono font-bold uppercase px-2.5 py-1 <?= $hsSlotsLeft > 0 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40' ?>">
+                <?= $hsSlotsLeft > 0 ? 'Open Booking' : 'Full' ?>
+              </span>
+            </div>
+
+            <!-- Direct Instant WhatsApp Booking Action -->
+            <a href="<?= htmlspecialchars($hsWaUrl) ?>" target="_blank" rel="noopener noreferrer" class="w-full py-3.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider text-center block transition-all btn-tactile shadow-lg border border-amber-300">
+              Daftar Sesi Ini Sekarang via WhatsApp →
+            </a>
+
+            <div class="mt-3.5 text-center">
+              <a href="#jadwal" class="text-[11px] font-mono text-slate-400 hover:text-white transition-colors underline decoration-slate-600 underline-offset-4">
+                Lihat Seluruh <?= count($upcomingSchedules) ?> Jadwal Tersedia ↓
+              </a>
+            </div>
+
+          </div>
         </div>
-
-        <!-- Real-Time Metrics Strip -->
-        <div class="pt-6 border-t border-white/15 grid grid-cols-3 gap-4 sm:gap-8 max-w-lg text-slate-300">
-          <div>
-            <div class="text-xl sm:text-2xl font-black text-white font-mono">4x / Mgg</div>
-            <div class="text-[11px] text-slate-400 font-medium">Sesi Rutin GOR</div>
-          </div>
-          <div>
-            <div class="text-xl sm:text-2xl font-black text-amber-400 font-mono">Fair Play</div>
-            <div class="text-[11px] text-slate-400 font-medium">Rotasi Digital Adil</div>
-          </div>
-          <div>
-            <div class="text-xl sm:text-2xl font-black text-emerald-400 font-mono">Bulu Angsa</div>
-            <div class="text-[11px] text-slate-400 font-medium">Kok Turnamen BWF</div>
-          </div>
-        </div>
+        <?php endif; ?>
 
       </div>
     </div>

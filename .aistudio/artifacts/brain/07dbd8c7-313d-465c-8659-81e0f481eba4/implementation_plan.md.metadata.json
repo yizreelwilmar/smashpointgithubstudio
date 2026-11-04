@@ -1,6 +1,6 @@
 {
-  "summary": "Rencana komprehensif penambahan alur Selesai Sesi Mabar PIC & Linking Akun PIC, integrasi Pencarian GOR Seluruh Indonesia (Auto-Fill Alamat & Google Maps), animasi action jump smash badminton dinamis pada Landing Page, dan query phpMyAdmin.",
-  "updatedAt": "2026-11-04T07:50:41.719429344Z",
+  "summary": "Landing page hero section updated: removed the static 3-metric text strip (4x / Mgg, Sesi Rutin GOR, Fair Play, Rotasi Digital Adil, Bulu Angsa, Kok Turnamen BWF). Upgraded the hero to a modern split-screen layout with an interactive 'Sesi Mabar Terdekat' spotlight glassmorphic card showing live match details, real-time slot availability, and 1-tap WhatsApp booking directly to the session PIC.",
+  "updatedAt": "2026-11-04T09:55:59.257464434Z",
   "requestFeedback": true,
   "userFacing": true
 }
