@@ -1125,106 +1125,94 @@ $waRecapFullText = implode("\n", $waRecapLines);
           </details>
         <?php endif; ?>
 
-        <!-- 5. RIWAYAT PERTANDINGAN SELESAI (ACCORDION DENGAN HIGHLIGHT PEMENANG) -->
+        <!-- 5. RIWAYAT PERTANDINGAN SELESAI (COMPACT LEDGER LIST - NO BULKY CARDS) -->
         <?php if (!empty($completedMatches)): ?>
-          <details <?= $isSessionCompleted ? 'open' : '' ?> class="bg-white border <?= $isSessionCompleted ? 'border-2 border-emerald-400 shadow-md' : 'border-slate-200 shadow-xs' ?> mb-5 rounded-xl overflow-hidden group">
+          <details <?= $isSessionCompleted ? 'open' : '' ?> class="bg-white border <?= $isSessionCompleted ? 'border-2 border-emerald-500 shadow-md' : 'border-slate-200 shadow-xs' ?> mb-5 rounded-xl overflow-hidden group">
             <summary class="p-3.5 cursor-pointer flex items-center justify-between text-xs font-black uppercase tracking-wider font-mono text-slate-800 hover:bg-slate-50 transition-colors select-none">
               <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 <?= $isSessionCompleted ? 'bg-emerald-600 text-white' : 'bg-blue-50 text-blue-800 border border-blue-200' ?> text-[10px] font-black rounded-xs">
-                  <?= $isSessionCompleted ? 'HASIL AKHIR' : 'ARSIP' ?>
+                <span class="px-2 py-0.5 <?= $isSessionCompleted ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-amber-400' ?> text-[10px] font-black rounded">
+                  <?= $isSessionCompleted ? 'HASIL RESMI' : 'SELESAI' ?>
                 </span>
                 <span>Riwayat Pertandingan Selesai (<?= count($completedMatches) ?> Match)</span>
               </div>
-              <span class="text-xs font-mono text-slate-400 font-bold"><?= $isSessionCompleted ? 'TERBUKA' : 'LIHAT' ?></span>
+              <span class="text-[11px] font-mono text-slate-500 font-bold"><?= $isSessionCompleted ? 'TERBUKA' : 'LIHAT' ?></span>
             </summary>
 
-            <div class="p-3.5 sm:p-4 border-t border-slate-100 space-y-3 bg-slate-50/40">
-              <div class="text-[11px] font-mono font-bold text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
-                Tim pemenang ditandai badge hijau [MENANG] dan skor tebal.
+            <div class="border-t border-slate-100 bg-slate-50/50">
+              <div class="px-3.5 py-2 text-[10px] font-mono text-slate-500 flex items-center justify-between bg-white/70 border-b border-slate-100">
+                <span>Daftar skor ringkas • Skor & nama pemenang ditandai hijau</span>
+                <span class="font-bold text-slate-700">Total: <?= count($completedMatches) ?> Game</span>
               </div>
 
-              <?php foreach (array_reverse($completedMatches) as $cm): 
-                $scA = (int)$cm['score_team_a'];
-                $scB = (int)$cm['score_team_b'];
-                $isWinA = ($scA > $scB);
-                $isWinB = ($scB > $scA);
-              ?>
-                <div class="bg-white border rounded-xl p-3 sm:p-3.5 shadow-2xs space-y-2.5 transition-all <?= ($isWinA || $isWinB) ? 'border-slate-300' : 'border-slate-200' ?>">
-                  
-                  <div class="flex items-center justify-between text-[10px] font-mono border-b border-slate-100 pb-2">
-                    <span class="px-2 py-0.5 bg-slate-100 text-slate-700 font-bold border border-slate-200 rounded-xs">
-                      LAPANGAN <?= $cm['court_number'] ?> • GAME #<?= $cm['round_number'] ?>
-                    </span>
-                    <div class="flex items-center gap-2">
-                      <span class="text-[10px] font-mono text-slate-400">
-                        <?= !empty($cm['completed_at']) ? date('H:i', strtotime($cm['completed_at'])) . ' WIB' : 'Selesai' ?>
-                      </span>
-                      <span class="font-black text-xs <?= $isWinA ? 'text-emerald-800' : ($isWinB ? 'text-emerald-800' : 'text-slate-500') ?>">
-                        <?= $isWinA ? 'TIM A MENANG' : ($isWinB ? 'TIM B MENANG' : 'SERI') ?>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <!-- Compact Scoreboard Ledger (Row-by-Row) -->
+              <div class="divide-y divide-slate-100 bg-white">
+                <?php foreach (array_reverse($completedMatches) as $cm): 
+                  $scA = (int)$cm['score_team_a'];
+                  $scB = (int)$cm['score_team_b'];
+                  $isWinA = ($scA > $scB);
+                  $isWinB = ($scB > $scA);
+                ?>
+                  <div class="p-2.5 sm:px-3.5 hover:bg-slate-50 transition-colors flex items-center justify-between gap-2">
                     
-                    <!-- Tim A Card -->
-                    <div class="p-2.5 rounded-lg border transition-all flex flex-col justify-between <?= $isWinA ? 'bg-emerald-50/80 border-2 border-emerald-400 text-emerald-950 font-black shadow-xs' : 'bg-slate-50 border border-slate-200 text-slate-600 opacity-80' ?>">
-                      <div>
-                        <div class="flex items-center justify-between text-[10px] font-mono mb-1.5">
-                          <span class="font-black uppercase tracking-wider <?= $isWinA ? 'text-emerald-900' : 'text-slate-500' ?>">TIM A</span>
-                          <?php if ($isWinA): ?>
-                            <span class="px-1.5 py-0.2 bg-emerald-600 text-white font-mono font-black text-[9px] rounded-xs uppercase tracking-wider">
-                              MENANG
-                            </span>
-                          <?php endif; ?>
-                        </div>
-                        <div class="text-xs truncate font-bold text-slate-900 <?= $isWinA ? 'text-emerald-950 font-black' : '' ?>"><?= htmlspecialchars($cm['team_a_p1_name']) ?></div>
-                        <div class="text-xs truncate font-bold text-slate-900 <?= $isWinA ? 'text-emerald-950 font-black' : '' ?>"><?= htmlspecialchars($cm['team_a_p2_name']) ?></div>
+                    <!-- Meta info: Court & Round Tag -->
+                    <div class="shrink-0 w-16 sm:w-20">
+                      <div class="inline-block px-1.5 py-0.5 bg-slate-100 text-slate-800 text-[10px] font-mono font-bold rounded border border-slate-200">
+                        Lap <?= $cm['court_number'] ?>
                       </div>
-
-                      <div class="mt-2 pt-1.5 border-t <?= $isWinA ? 'border-emerald-200 text-emerald-900' : 'border-slate-200 text-slate-500' ?> flex items-center justify-between text-xs font-mono">
-                        <span class="text-[10px]">Skor:</span>
-                        <span class="font-black text-sm px-2.5 py-0.5 rounded <?= $isWinA ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-200 text-slate-700' ?>">
-                          <?= $scA ?>
-                        </span>
+                      <div class="text-[9px] font-mono text-slate-400 mt-0.5">
+                        Game #<?= $cm['round_number'] ?>
                       </div>
                     </div>
 
-                    <!-- Tim B Card -->
-                    <div class="p-2.5 rounded-lg border transition-all flex flex-col justify-between <?= $isWinB ? 'bg-emerald-50/80 border-2 border-emerald-400 text-emerald-950 font-black shadow-xs' : 'bg-slate-50 border border-slate-200 text-slate-600 opacity-80' ?>">
-                      <div>
-                        <div class="flex items-center justify-between text-[10px] font-mono mb-1.5">
-                          <span class="font-black uppercase tracking-wider <?= $isWinB ? 'text-emerald-900' : 'text-slate-500' ?>">TIM B</span>
-                          <?php if ($isWinB): ?>
-                            <span class="px-1.5 py-0.2 bg-emerald-600 text-white font-mono font-black text-[9px] rounded-xs uppercase tracking-wider">
-                              MENANG
-                            </span>
-                          <?php endif; ?>
+                    <!-- Teams Matchup (Compact 2-Line Left vs Right) -->
+                    <div class="flex-1 min-w-0 grid grid-cols-2 gap-2 text-xs">
+                      <!-- Team A -->
+                      <div class="min-w-0 pr-1 text-right flex flex-col justify-center <?= $isWinA ? 'text-emerald-950 font-bold' : 'text-slate-500' ?>">
+                        <div class="truncate text-[11px] sm:text-xs <?= $isWinA ? 'font-black text-emerald-900' : 'font-medium text-slate-700' ?>">
+                          <?= htmlspecialchars($cm['team_a_p1_name']) ?>
                         </div>
-                        <div class="text-xs truncate font-bold text-slate-900 <?= $isWinB ? 'text-emerald-950 font-black' : '' ?>"><?= htmlspecialchars($cm['team_b_p1_name']) ?></div>
-                        <div class="text-xs truncate font-bold text-slate-900 <?= $isWinB ? 'text-emerald-950 font-black' : '' ?>"><?= htmlspecialchars($cm['team_b_p2_name']) ?></div>
+                        <div class="truncate text-[11px] sm:text-xs <?= $isWinA ? 'font-black text-emerald-900' : 'font-medium text-slate-600' ?>">
+                          <?= htmlspecialchars($cm['team_a_p2_name']) ?>
+                        </div>
+                        <?php if ($isWinA): ?>
+                          <span class="inline-block text-[8px] font-mono uppercase font-black text-emerald-700 tracking-wider">★ MENANG</span>
+                        <?php endif; ?>
                       </div>
 
-                      <div class="mt-2 pt-1.5 border-t <?= $isWinB ? 'border-emerald-200 text-emerald-900' : 'border-slate-200 text-slate-500' ?> flex items-center justify-between text-xs font-mono">
-                        <span class="text-[10px]">Skor:</span>
-                        <span class="font-black text-sm px-2.5 py-0.5 rounded <?= $isWinB ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-200 text-slate-700' ?>">
-                          <?= $scB ?>
-                        </span>
+                      <!-- Team B -->
+                      <div class="min-w-0 pl-1 text-left flex flex-col justify-center <?= $isWinB ? 'text-emerald-950 font-bold' : 'text-slate-500' ?>">
+                        <div class="truncate text-[11px] sm:text-xs <?= $isWinB ? 'font-black text-emerald-900' : 'font-medium text-slate-700' ?>">
+                          <?= htmlspecialchars($cm['team_b_p1_name']) ?>
+                        </div>
+                        <div class="truncate text-[11px] sm:text-xs <?= $isWinB ? 'font-black text-emerald-900' : 'font-medium text-slate-600' ?>">
+                          <?= htmlspecialchars($cm['team_b_p2_name']) ?>
+                        </div>
+                        <?php if ($isWinB): ?>
+                          <span class="inline-block text-[8px] font-mono uppercase font-black text-emerald-700 tracking-wider">★ MENANG</span>
+                        <?php endif; ?>
                       </div>
                     </div>
+
+                    <!-- Center Pill Score -->
+                    <div class="shrink-0 flex items-center justify-center">
+                      <div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md font-mono text-xs font-black border <?= ($isWinA || $isWinB) ? 'bg-slate-900 text-white border-slate-800' : 'bg-slate-100 text-slate-800 border-slate-200' ?>">
+                        <span class="<?= $isWinA ? 'text-emerald-400 font-black' : 'text-slate-300' ?>"><?= $scA ?></span>
+                        <span class="text-slate-500 font-normal">:</span>
+                        <span class="<?= $isWinB ? 'text-emerald-400 font-black' : 'text-slate-300' ?>"><?= $scB ?></span>
+                      </div>
+                    </div>
+
+                    <?php if (!$isSessionCompleted): ?>
+                      <div class="shrink-0">
+                        <button type="button" onclick="confirmDeleteMatch(<?= $cm['id'] ?>, <?= $cm['court_number'] ?>)" class="text-slate-400 hover:text-rose-600 text-xs p-1 hover:bg-rose-50 rounded transition-colors" title="Hapus skor pertandingan ini">
+                          ✕
+                        </button>
+                      </div>
+                    <?php endif; ?>
 
                   </div>
-
-                  <?php if (!$isSessionCompleted): ?>
-                    <div class="flex justify-end pt-1">
-                      <button type="button" onclick="confirmDeleteMatch(<?= $cm['id'] ?>, <?= $cm['court_number'] ?>)" class="text-rose-600 hover:text-rose-800 text-[11px] font-bold px-2 py-1 hover:bg-rose-50 transition-colors rounded">
-                        Hapus Match
-                      </button>
-                    </div>
-                  <?php endif; ?>
-
-                </div>
-              <?php endforeach; ?>
+                <?php endforeach; ?>
+              </div>
             </div>
           </details>
         <?php endif; ?>
@@ -1659,131 +1647,160 @@ $waRecapFullText = implode("\n", $waRecapLines);
           <p class="text-xs text-slate-500 mt-0.5">Akumulasi poin pertandingan mabar di GOR ini.</p>
         </div>
 
-        <!-- Leaderboard Table (Mobile Smooth Horizontal Scroll) -->
-        <div class="bg-white border border-slate-200 overflow-x-auto shadow-xs mb-6">
-          <table class="w-full text-left text-xs font-sans min-w-[340px]">
-            <thead class="bg-[#0b1e36] border-b border-slate-800 text-white uppercase font-mono font-bold text-[10px]">
-              <tr>
-                <th class="py-2.5 px-3">#</th>
-                <th class="py-2.5 px-3">Pemain</th>
-                <th class="py-2.5 px-2 text-center">Main</th>
-                <th class="py-2.5 px-2 text-center">W/L</th>
-                <th class="py-2.5 px-3 text-right text-amber-400">Total Poin</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <?php if (empty($sessionLeaderboard)): ?>
+        <!-- 1. KLASEMEN SESI POINT (CLEAN, POLISHED LEADERBOARD) -->
+        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs mb-6">
+          <div class="p-3.5 sm:p-4 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between gap-2">
+            <div>
+              <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-700">Klasemen Perolehan Poin</div>
+              <h3 class="text-sm font-black text-slate-950">
+                <?= htmlspecialchars($currentSession['venue_name']) ?>
+              </h3>
+            </div>
+            <span class="text-[10px] font-mono font-bold px-2.5 py-1 bg-[#0b1e36] text-amber-400 rounded">
+              <?= count($sessionLeaderboard) ?> Pemain
+            </span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs font-sans min-w-[340px]">
+              <thead class="bg-[#0b1e36] text-white uppercase font-mono font-bold text-[10px]">
                 <tr>
-                  <td colspan="5" class="py-8 text-center text-slate-400 text-xs">
-                    Belum ada pertandingan selesai dicatat untuk sesi ini.
-                  </td>
+                  <th class="py-2.5 px-3 text-center w-12">Rank</th>
+                  <th class="py-2.5 px-3">Nama Pemain</th>
+                  <th class="py-2.5 px-2 text-center w-14">Main</th>
+                  <th class="py-2.5 px-2 text-center w-16">M / K</th>
+                  <th class="py-2.5 px-3.5 text-right w-24 text-amber-400 font-black">Poin Sesi</th>
                 </tr>
-              <?php else: ?>
-                <?php foreach ($sessionLeaderboard as $idx => $row): ?>
-                  <tr class="hover:bg-slate-50">
-                    <td class="py-2.5 px-3 font-black text-slate-900">#<?= $idx + 1 ?></td>
-                    <td class="py-2.5 px-3 font-bold text-slate-900">
-                      <?= htmlspecialchars($row['name']) ?>
-                      <span class="text-[9px] font-mono text-slate-400 font-normal">[<?= htmlspecialchars($row['level']) ?>]</span>
-                    </td>
-                    <td class="py-2.5 px-2 text-center font-mono text-slate-600"><?= $row['total_matches'] ?></td>
-                    <td class="py-2.5 px-2 text-center font-mono">
-                      <span class="text-emerald-700 font-bold"><?= $row['wins'] ?></span>/<span class="text-rose-600"><?= $row['losses'] ?></span>
-                    </td>
-                    <td class="py-2.5 px-3 text-right font-mono font-black text-[#0b1e36] text-sm">
-                      <?= number_format($row['total_points']) ?>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <?php if (empty($sessionLeaderboard)): ?>
+                  <tr>
+                    <td colspan="5" class="py-10 text-center text-slate-400 text-xs">
+                      Belum ada pertandingan selesai dicatat untuk sesi ini.
                     </td>
                   </tr>
-                <?php endforeach; ?>
-              <?php endif; ?>
-            </tbody>
-          </table>
+                <?php else: ?>
+                  <?php foreach ($sessionLeaderboard as $idx => $row): 
+                    $rank = $idx + 1;
+                    $rankBadge = 'bg-slate-100 text-slate-700 border-slate-200';
+                    if ($rank === 1) $rankBadge = 'bg-amber-400 text-slate-950 font-black border-amber-500 shadow-xs';
+                    elseif ($rank === 2) $rankBadge = 'bg-slate-200 text-slate-800 font-bold border-slate-300';
+                    elseif ($rank === 3) $rankBadge = 'bg-amber-700/20 text-amber-900 font-bold border-amber-700/30';
+                  ?>
+                    <tr class="hover:bg-slate-50 transition-colors <?= $rank <= 3 ? 'bg-amber-50/20' : '' ?>">
+                      <td class="py-2.5 px-3 text-center">
+                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-md font-mono text-[11px] border <?= $rankBadge ?>">
+                          <?= $rank ?>
+                        </span>
+                      </td>
+                      <td class="py-2.5 px-3">
+                        <div class="font-bold text-slate-900 leading-tight">
+                          <?= htmlspecialchars($row['name']) ?>
+                        </div>
+                        <div class="text-[10px] font-mono text-slate-400 mt-0.5">
+                          Level: <span class="text-slate-600 font-semibold"><?= htmlspecialchars($row['level']) ?></span>
+                        </div>
+                      </td>
+                      <td class="py-2.5 px-2 text-center font-mono font-bold text-slate-700">
+                        <?= $row['total_matches'] ?>x
+                      </td>
+                      <td class="py-2.5 px-2 text-center font-mono text-xs">
+                        <span class="text-emerald-700 font-black"><?= $row['wins'] ?></span>
+                        <span class="text-slate-400">/</span>
+                        <span class="text-rose-600 font-bold"><?= $row['losses'] ?></span>
+                      </td>
+                      <td class="py-2.5 px-3.5 text-right font-mono font-black text-slate-900 text-sm">
+                        <span class="inline-block px-2 py-0.5 rounded bg-slate-100 border border-slate-200 <?= $rank === 1 ? 'bg-amber-100 border-amber-300 text-amber-950' : '' ?>">
+                          <?= number_format($row['total_points']) ?>
+                        </span>
+                      </td>
+                    </tr>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <!-- History of Completed Matches Tonight -->
-        <div class="space-y-3">
-          <div class="flex items-center justify-between px-1">
-            <h3 class="text-xs font-black uppercase tracking-wider text-slate-800 font-mono">
-              Riwayat Pertandingan Selesai (<?= count($completedMatches) ?>)
+        <!-- 2. RIWAYAT PERTANDINGAN SELESAI (COMPACT SCOREBOARD LEDGER - NO CARDS) -->
+        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+          <div class="p-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <h3 class="text-xs font-black uppercase tracking-wider text-slate-900 font-mono">
+              Riwayat Pertandingan Selesai (<?= count($completedMatches) ?> Match)
             </h3>
-            <span class="text-[10px] font-mono text-slate-500 font-bold">Tim Pemenang Diberi Label [WIN]</span>
+            <span class="text-[10px] font-mono text-slate-500 font-bold">Skor Selesai</span>
           </div>
 
           <?php if (empty($completedMatches)): ?>
-            <div class="p-6 bg-white border border-slate-200 text-center text-xs text-slate-400">
+            <div class="p-8 text-center text-xs text-slate-400">
               Belum ada skor pertandingan yang selesai.
             </div>
           <?php else: ?>
-            <div class="space-y-2.5">
+            <div class="divide-y divide-slate-100">
               <?php foreach (array_reverse($completedMatches) as $cm): 
                 $scA = (int)$cm['score_team_a'];
                 $scB = (int)$cm['score_team_b'];
                 $isWinA = ($scA > $scB);
                 $isWinB = ($scB > $scA);
               ?>
-                <div class="bg-white border rounded-xl p-3 sm:p-3.5 shadow-2xs space-y-2.5 transition-all <?= ($isWinA || $isWinB) ? 'border-slate-300' : 'border-slate-200' ?>">
+                <div class="p-2.5 sm:px-3.5 hover:bg-slate-50 transition-colors flex items-center justify-between gap-2">
                   
-                  <div class="flex items-center justify-between text-[10px] font-mono border-b border-slate-100 pb-2">
-                    <span class="px-2 py-0.5 bg-slate-100 text-slate-700 font-bold border border-slate-200 rounded-xs">
-                      LAPANGAN <?= $cm['court_number'] ?> • GAME #<?= $cm['round_number'] ?>
-                    </span>
-                    <div class="flex items-center gap-2">
-                      <span class="text-[10px] font-mono text-slate-400">
-                        <?= !empty($cm['completed_at']) ? date('H:i', strtotime($cm['completed_at'])) . ' WIB' : 'Selesai' ?>
-                      </span>
-                      <span class="font-black text-xs <?= $isWinA ? 'text-emerald-800' : ($isWinB ? 'text-emerald-800' : 'text-slate-500') ?>">
-                        <?= $isWinA ? 'TIM A MENANG' : ($isWinB ? 'TIM B MENANG' : 'SERI') ?>
-                      </span>
+                  <!-- Lapangan & Game tag -->
+                  <div class="shrink-0 w-16 sm:w-20">
+                    <div class="inline-block px-1.5 py-0.5 bg-slate-100 text-slate-800 text-[10px] font-mono font-bold rounded border border-slate-200">
+                      Lap <?= $cm['court_number'] ?>
+                    </div>
+                    <div class="text-[9px] font-mono text-slate-400 mt-0.5">
+                      Game #<?= $cm['round_number'] ?>
                     </div>
                   </div>
 
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <!-- Teams Matchup (Left vs Right) -->
+                  <div class="flex-1 min-w-0 grid grid-cols-2 gap-2 text-xs">
                     <!-- Team A -->
-                    <div class="p-2.5 rounded-lg border transition-all flex flex-col justify-between <?= $isWinA ? 'bg-emerald-50/80 border-2 border-emerald-400 text-emerald-950 font-black shadow-xs' : 'bg-slate-50 border border-slate-200 text-slate-600 opacity-80' ?>">
-                      <div>
-                        <div class="flex items-center justify-between text-[10px] font-mono mb-1.5">
-                          <span class="font-black uppercase tracking-wider <?= $isWinA ? 'text-emerald-900' : 'text-slate-500' ?>">TIM A</span>
-                          <?php if ($isWinA): ?>
-                            <span class="px-1.5 py-0.2 bg-emerald-600 text-white font-mono font-black text-[9px] rounded-xs uppercase tracking-wider">
-                              MENANG
-                            </span>
-                          <?php endif; ?>
-                        </div>
-                        <div class="text-xs truncate font-bold text-slate-900 <?= $isWinA ? 'text-emerald-950 font-black' : '' ?>"><?= htmlspecialchars($cm['team_a_p1_name']) ?></div>
-                        <div class="text-xs truncate font-bold text-slate-900 <?= $isWinA ? 'text-emerald-950 font-black' : '' ?>"><?= htmlspecialchars($cm['team_a_p2_name']) ?></div>
+                    <div class="min-w-0 pr-1 text-right flex flex-col justify-center <?= $isWinA ? 'text-emerald-950' : 'text-slate-500' ?>">
+                      <div class="truncate text-[11px] sm:text-xs <?= $isWinA ? 'font-black text-emerald-900' : 'font-medium text-slate-700' ?>">
+                        <?= htmlspecialchars($cm['team_a_p1_name']) ?>
                       </div>
-
-                      <div class="mt-2 pt-1.5 border-t <?= $isWinA ? 'border-emerald-200 text-emerald-900' : 'border-slate-200 text-slate-500' ?> flex items-center justify-between text-xs font-mono">
-                        <span class="text-[10px]">Skor:</span>
-                        <span class="font-black text-sm px-2.5 py-0.5 rounded <?= $isWinA ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-200 text-slate-700' ?>">
-                          <?= $scA ?>
-                        </span>
+                      <div class="truncate text-[11px] sm:text-xs <?= $isWinA ? 'font-black text-emerald-900' : 'font-medium text-slate-600' ?>">
+                        <?= htmlspecialchars($cm['team_a_p2_name']) ?>
                       </div>
+                      <?php if ($isWinA): ?>
+                        <span class="inline-block text-[8px] font-mono uppercase font-black text-emerald-700 tracking-wider">★ MENANG</span>
+                      <?php endif; ?>
                     </div>
 
                     <!-- Team B -->
-                    <div class="p-2.5 rounded-lg border transition-all flex flex-col justify-between <?= $isWinB ? 'bg-emerald-50/80 border-2 border-emerald-400 text-emerald-950 font-black shadow-xs' : 'bg-slate-50 border border-slate-200 text-slate-600 opacity-80' ?>">
-                      <div>
-                        <div class="flex items-center justify-between text-[10px] font-mono mb-1.5">
-                          <span class="font-black uppercase tracking-wider <?= $isWinB ? 'text-emerald-900' : 'text-slate-500' ?>">TIM B</span>
-                          <?php if ($isWinB): ?>
-                            <span class="px-1.5 py-0.2 bg-emerald-600 text-white font-mono font-black text-[9px] rounded-xs uppercase tracking-wider">
-                              MENANG
-                            </span>
-                          <?php endif; ?>
-                        </div>
-                        <div class="text-xs truncate font-bold text-slate-900 <?= $isWinB ? 'text-emerald-950 font-black' : '' ?>"><?= htmlspecialchars($cm['team_b_p1_name']) ?></div>
-                        <div class="text-xs truncate font-bold text-slate-900 <?= $isWinB ? 'text-emerald-950 font-black' : '' ?>"><?= htmlspecialchars($cm['team_b_p2_name']) ?></div>
+                    <div class="min-w-0 pl-1 text-left flex flex-col justify-center <?= $isWinB ? 'text-emerald-950' : 'text-slate-500' ?>">
+                      <div class="truncate text-[11px] sm:text-xs <?= $isWinB ? 'font-black text-emerald-900' : 'font-medium text-slate-700' ?>">
+                        <?= htmlspecialchars($cm['team_b_p1_name']) ?>
                       </div>
-
-                      <div class="mt-2 pt-1.5 border-t <?= $isWinB ? 'border-emerald-200 text-emerald-900' : 'border-slate-200 text-slate-500' ?> flex items-center justify-between text-xs font-mono">
-                        <span class="text-[10px]">Skor:</span>
-                        <span class="font-black text-sm px-2.5 py-0.5 rounded <?= $isWinB ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-200 text-slate-700' ?>">
-                          <?= $scB ?>
-                        </span>
+                      <div class="truncate text-[11px] sm:text-xs <?= $isWinB ? 'font-black text-emerald-900' : 'font-medium text-slate-600' ?>">
+                        <?= htmlspecialchars($cm['team_b_p2_name']) ?>
                       </div>
+                      <?php if ($isWinB): ?>
+                        <span class="inline-block text-[8px] font-mono uppercase font-black text-emerald-700 tracking-wider">★ MENANG</span>
+                      <?php endif; ?>
                     </div>
                   </div>
+
+                  <!-- Center Score -->
+                  <div class="shrink-0 flex items-center justify-center">
+                    <div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md font-mono text-xs font-black border <?= ($isWinA || $isWinB) ? 'bg-slate-900 text-white border-slate-800' : 'bg-slate-100 text-slate-800 border-slate-200' ?>">
+                      <span class="<?= $isWinA ? 'text-emerald-400 font-black' : 'text-slate-300' ?>"><?= $scA ?></span>
+                      <span class="text-slate-500 font-normal">:</span>
+                      <span class="<?= $isWinB ? 'text-emerald-400 font-black' : 'text-slate-300' ?>"><?= $scB ?></span>
+                    </div>
+                  </div>
+
+                  <?php if (!$isSessionCompleted): ?>
+                    <div class="shrink-0">
+                      <button type="button" onclick="confirmDeleteMatch(<?= $cm['id'] ?>, <?= $cm['court_number'] ?>)" class="text-slate-400 hover:text-rose-600 text-xs p-1 hover:bg-rose-50 rounded transition-colors" title="Hapus skor pertandingan ini">
+                        ✕
+                      </button>
+                    </div>
+                  <?php endif; ?>
+
                 </div>
               <?php endforeach; ?>
             </div>
@@ -1957,63 +1974,70 @@ $waRecapFullText = implode("\n", $waRecapLines);
     </nav>
   <?php else: ?>
     <nav class="fixed bottom-0 inset-x-0 bg-[#0b1e36] border-t border-slate-800 z-40 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.35)] sm:bottom-3 sm:max-w-xl sm:mx-auto sm:rounded-2xl sm:border sm:border-slate-700/80 sm:shadow-2xl sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-full">
-      <div class="px-2 py-2 flex items-center justify-around gap-1">
+      <div class="px-2 py-1.5 flex items-center justify-around gap-1">
         
-        <!-- Tab 1: Rotasi -->
+        <!-- Tab 1: Rotasi (Court) -->
         <a href="?view=court" class="flex-1 py-1.5 px-1 text-center transition-all duration-200 active:scale-95 flex flex-col items-center justify-center rounded-xl <?= $view === 'court' ? 'bg-amber-400 text-slate-950 font-black shadow-md' : 'text-slate-300 hover:text-white hover:bg-white/5 font-semibold' ?>">
-          <div class="flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full <?= $view === 'court' ? 'bg-slate-950 animate-pulse' : 'bg-transparent' ?>"></span>
-            <span class="text-[11px] uppercase tracking-wider block leading-tight">Rotasi</span>
-          </div>
-          <span class="text-[9px] font-mono leading-none <?= $view === 'court' ? 'text-slate-900 opacity-80' : 'text-slate-400' ?>">Court</span>
+          <svg class="w-5 h-5 mb-0.5 <?= $view === 'court' ? 'text-slate-950 stroke-[2.5]' : 'text-slate-400 stroke-2' ?>" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="12" y1="3" x2="12" y2="21" />
+          </svg>
+          <span class="text-[10px] uppercase tracking-wider block leading-tight">Rotasi</span>
         </a>
 
         <!-- Tab 2: Pemain -->
         <a href="?view=players" class="flex-1 py-1.5 px-1 text-center transition-all duration-200 active:scale-95 flex flex-col items-center justify-center rounded-xl relative <?= $view === 'players' ? 'bg-amber-400 text-slate-950 font-black shadow-md' : 'text-slate-300 hover:text-white hover:bg-white/5 font-semibold' ?>">
-          <div class="flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full <?= $view === 'players' ? 'bg-slate-950 animate-pulse' : 'bg-transparent' ?>"></span>
-            <span class="text-[11px] uppercase tracking-wider block leading-tight">Pemain</span>
+          <div class="relative">
+            <svg class="w-5 h-5 mb-0.5 <?= $view === 'players' ? 'text-slate-950 stroke-[2.5]' : 'text-slate-400 stroke-2' ?>" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <?php if (($paymentSummary['total_present'] ?? 0) > 0): ?>
+              <span class="absolute -top-1 -right-2 px-1 text-[8px] font-mono font-black rounded-full <?= $view === 'players' ? 'bg-slate-950 text-amber-400' : 'bg-amber-400 text-slate-950' ?>">
+                <?= $paymentSummary['total_present'] ?>
+              </span>
+            <?php endif; ?>
           </div>
-          <span class="text-[9px] font-mono leading-none font-bold <?= $view === 'players' ? 'text-slate-950' : 'text-amber-400' ?>">
-            <?= $paymentSummary['total_present'] ?> Hadir
-          </span>
+          <span class="text-[10px] uppercase tracking-wider block leading-tight">Pemain</span>
         </a>
 
         <!-- Tab 3: Kas -->
         <a href="?view=payments" class="flex-1 py-1.5 px-1 text-center transition-all duration-200 active:scale-95 flex flex-col items-center justify-center rounded-xl relative <?= $view === 'payments' ? 'bg-amber-400 text-slate-950 font-black shadow-md' : 'text-slate-300 hover:text-white hover:bg-white/5 font-semibold' ?>">
-          <div class="flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full <?= $view === 'payments' ? 'bg-slate-950 animate-pulse' : 'bg-transparent' ?>"></span>
-            <span class="text-[11px] uppercase tracking-wider block leading-tight">Kas</span>
+          <div class="relative">
+            <svg class="w-5 h-5 mb-0.5 <?= $view === 'payments' ? 'text-slate-950 stroke-[2.5]' : 'text-slate-400 stroke-2' ?>" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <line x1="2" y1="10" x2="22" y2="10" />
+              <circle cx="7" cy="15" r="1" />
+            </svg>
+            <?php if ($paymentSummary['total_unpaid'] > 0): ?>
+              <span class="absolute -top-1 -right-2 px-1 text-[8px] font-mono font-black rounded-full bg-rose-600 text-white animate-pulse">
+                <?= $paymentSummary['total_unpaid'] ?>
+              </span>
+            <?php endif; ?>
           </div>
-          <?php if ($paymentSummary['total_unpaid'] > 0): ?>
-            <span class="text-[9px] font-mono font-black leading-none px-1.5 py-0.5 rounded-full <?= $view === 'payments' ? 'bg-rose-600 text-white' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40' ?>">
-              <?= $paymentSummary['total_unpaid'] ?> Blm
-            </span>
-          <?php else: ?>
-            <span class="text-[9px] font-mono leading-none <?= $view === 'payments' ? 'text-slate-950' : 'text-emerald-400' ?>">
-              Lunas
-            </span>
-          <?php endif; ?>
+          <span class="text-[10px] uppercase tracking-wider block leading-tight">Kas</span>
         </a>
 
         <!-- Tab 4: Foto Dokumentasi -->
         <a href="?view=documentation" class="flex-1 py-1.5 px-1 text-center transition-all duration-200 active:scale-95 flex flex-col items-center justify-center rounded-xl relative <?= $view === 'documentation' ? 'bg-amber-400 text-slate-950 font-black shadow-md' : 'text-slate-300 hover:text-white hover:bg-white/5 font-semibold' ?>">
-          <div class="flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full <?= $view === 'documentation' ? 'bg-slate-950 animate-pulse' : 'bg-transparent' ?>"></span>
-            <span class="text-[11px] uppercase tracking-wider block leading-tight">Foto</span>
-          </div>
-          <span class="text-[9px] font-mono leading-none <?= $view === 'documentation' ? 'text-slate-950' : 'text-slate-400' ?>">
-            <?= !empty($sessionPhotos) ? count($sessionPhotos) . ' File' : 'Galeri' ?>
-          </span>
+          <svg class="w-5 h-5 mb-0.5 <?= $view === 'documentation' ? 'text-slate-950 stroke-[2.5]' : 'text-slate-400 stroke-2' ?>" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+            <circle cx="12" cy="13" r="4" />
+          </svg>
+          <span class="text-[10px] uppercase tracking-wider block leading-tight">Foto</span>
         </a>
 
         <!-- Tab 5: Klasemen -->
         <a href="?view=leaderboard" class="flex-1 py-1.5 px-1 text-center transition-all duration-200 active:scale-95 flex flex-col items-center justify-center rounded-xl <?= $view === 'leaderboard' ? 'bg-amber-400 text-slate-950 font-black shadow-md' : 'text-slate-300 hover:text-white hover:bg-white/5 font-semibold' ?>">
-          <div class="flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full <?= $view === 'leaderboard' ? 'bg-slate-950 animate-pulse' : 'bg-transparent' ?>"></span>
-            <span class="text-[11px] uppercase tracking-wider block leading-tight">Klasemen</span>
-          </div>
-          <span class="text-[9px] font-mono leading-none <?= $view === 'leaderboard' ? 'text-slate-900 opacity-80' : 'text-slate-400' ?>">Rank</span>
+          <svg class="w-5 h-5 mb-0.5 <?= $view === 'leaderboard' ? 'text-slate-950 stroke-[2.5]' : 'text-slate-400 stroke-2' ?>" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          <span class="text-[10px] uppercase tracking-wider block leading-tight">Klasemen</span>
         </a>
 
       </div>
