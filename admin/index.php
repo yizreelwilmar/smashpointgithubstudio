@@ -436,6 +436,58 @@ if ($isLoggedIn && $reqMethod === 'POST' && isset($_POST['form_action'])) {
 
             $roleLabel = ($role === 'pic_foto') ? 'PIC Foto / Dokumentasi' : 'PIC Lapangan';
             $successMsg = "Akun {$roleLabel} '{$name}' (@{$username}) berhasil dibuat!";
+        } elseif ($formAction === 'quick_demo_pic') {
+            $pdo = Database::getConnection();
+            
+            // Find next upcoming schedule or any schedule
+            $targetSch = Schedule::upcoming(1);
+            $targetSchId = !empty($targetSch) ? (int)$targetSch[0]['id'] : null;
+            if (!$targetSchId) {
+                $allSch = Schedule::all();
+                $targetSchId = !empty($allSch) ? (int)$allSch[0]['id'] : null;
+            }
+
+            // Determine unique demo username
+            $demoUsername = 'picdemo';
+            $counter = 1;
+            while (true) {
+                $stmtCheck = $pdo->prepare("SELECT id FROM admins WHERE LOWER(username) = LOWER(?) LIMIT 1");
+                $stmtCheck->execute([$demoUsername]);
+                if (!$stmtCheck->fetch()) {
+                    break;
+                }
+                $counter++;
+                $demoUsername = 'picdemo' . $counter;
+            }
+
+            $demoName = 'Coach Bagas Pratama (PIC Demo)';
+            $demoPhone = !empty($settings['whatsapp_default']) ? $settings['whatsapp_default'] : '081299887766';
+            $demoPassword = 'demo' . rand(1000, 9999);
+            $hash = password_hash($demoPassword, PASSWORD_BCRYPT);
+            
+            $stmt = $pdo->prepare("INSERT INTO admins (username, password_hash, name, phone, role, assigned_session_id) VALUES (?, ?, ?, ?, 'pic', ?)");
+            $stmt->execute([$demoUsername, $hash, $demoName, $demoPhone, $targetSchId]);
+            $newAdminId = (int)$pdo->lastInsertId();
+
+            if ($targetSchId) {
+                try {
+                    $stmtSync = $pdo->prepare("UPDATE schedules SET pic_id = ?, pic_name = ?, host_name = ?, pic_whatsapp = ? WHERE id = ?");
+                    $stmtSync->execute([$newAdminId, $demoName, $demoName, $demoPhone, $targetSchId]);
+                } catch (Exception $e) {
+                    $stmtSync = $pdo->prepare("UPDATE schedules SET pic_name = ?, host_name = ?, pic_whatsapp = ? WHERE id = ?");
+                    $stmtSync->execute([$demoName, $demoName, $demoPhone, $targetSchId]);
+                }
+            }
+
+            $schInfoText = '';
+            if ($targetSchId) {
+                $schData = Schedule::find($targetSchId);
+                if ($schData) {
+                    $schInfoText = " & ditugaskan ke sesi {$schData['venue_name']} ({$schData['day_name']})";
+                }
+            }
+
+            $successMsg = "Akun PIC Demo berhasil dibuat otomatis! Username: [ {$demoUsername} ] | Password: [ {$demoPassword} ]{$schInfoText}. Siap didemokan langsung ke klien.";
         } elseif ($formAction === 'assign_pic_session') {
             $sessionId = (int)$_POST['session_id'];
             $picId = !empty($_POST['pic_id']) ? (int)$_POST['pic_id'] : null;
@@ -943,6 +995,16 @@ if ($isLoggedIn && $tab === 'finance' && isset($_GET['export']) && $_GET['export
                   <svg class="w-4 h-4 shrink-0 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                   <span>Profil & Web Settings</span>
                 </a>
+
+                <a href="?tab=manual_book" class="flex items-center justify-between px-3 py-2 rounded-md text-xs font-semibold transition-colors <?= $tab === 'manual_book' ? 'bg-[#132b4f] text-amber-400 font-bold border-l-4 border-amber-400 shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' ?>">
+                  <div class="flex items-center gap-3">
+                    <svg class="w-4 h-4 shrink-0 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                    <span>Buku Panduan & Demo</span>
+                  </div>
+                  <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-black">
+                    PDF
+                  </span>
+                </a>
               </div>
             </div>
 
@@ -1014,6 +1076,7 @@ if ($isLoggedIn && $tab === 'finance' && isset($_GET['export']) && $_GET['export
                   'players' => 'Leaderboard of the Month',
                   'pic_accounts' => 'Akun Login PIC Sesi',
                   'settings' => 'Profil Komunitas & Web Settings',
+                  'manual_book' => 'Buku Panduan & Demo Playbook (PDF)',
                 ];
                 $activeTabLabel = isset($tabTitles[$tab]) ? $tabTitles[$tab] : 'Dashboard';
               ?>
@@ -1025,6 +1088,10 @@ if ($isLoggedIn && $tab === 'finance' && isset($_GET['export']) && $_GET['export
 
           <!-- Topbar Right Utilities -->
           <div class="flex items-center gap-3">
+            <a href="manual-book-pdf.php" target="_blank" class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-amber-950 bg-amber-300 hover:bg-amber-400 border border-amber-400 transition-colors shadow-2xs">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Download Manual (PDF)</span>
+            </a>
             <a href="<?= $landingUrl ?>" target="_blank" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors">
               <span>Web Depan</span>
               <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
@@ -3672,10 +3739,26 @@ ${listLines.join('\n')}${fullTag}`;
               </p>
             </div>
 
-            <!-- Quick Add PIC Button on Header for Mobile -->
-            <button type="button" onclick="switchPicSubTab('accounts')" class="sm:hidden w-full py-2.5 px-3 bg-[#0b1e36] text-amber-400 font-black text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all">
-              <span>+ Tambah Akun PIC Baru</span>
-            </button>
+            <!-- Quick Actions: 1-Click Generate Demo & PDF Playbook -->
+            <div class="flex flex-wrap items-center gap-2">
+              <form method="POST" action="?tab=pic_accounts" class="inline-block">
+                <input type="hidden" name="form_action" value="quick_demo_pic">
+                <button type="submit" class="w-full sm:w-auto py-2 px-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                  <span>1-Click Generate Akun PIC Demo</span>
+                </button>
+              </form>
+
+              <a href="manual-book-pdf.php" target="_blank" class="w-full sm:w-auto py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-2xs">
+                <svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                <span>Playbook Demo (PDF)</span>
+              </a>
+
+              <!-- Quick Add PIC Button on Header for Mobile -->
+              <button type="button" onclick="switchPicSubTab('accounts')" class="sm:hidden w-full py-2 px-3 bg-[#0b1e36] text-amber-400 font-black text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all">
+                <span>+ Tambah Akun PIC Manual</span>
+              </button>
+            </div>
           </div>
 
           <!-- Segmented Control Bar -->
@@ -4979,6 +5062,229 @@ ${listLines.join('\n')}${fullTag}`;
           });
           evaluateYoastSeo();
         </script>
+
+      <!-- ======================================================== -->
+      <!-- TAB: MANUAL BOOK & DEMO PLAYBOOK (PDF)                  -->
+      <!-- ======================================================== -->
+      <?php elseif ($tab === 'manual_book'): ?>
+        
+        <div class="space-y-6">
+          
+          <!-- Header Banner -->
+          <div class="bg-[#0b1e36] text-white p-5 sm:p-7 rounded-2xl border border-slate-800 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div class="space-y-2 max-w-2xl">
+              <div class="inline-flex items-center gap-2 px-2.5 py-1 bg-amber-400 text-slate-950 text-[10px] font-mono font-black uppercase tracking-wider rounded">
+                <span>FORMAT CETAK RESMI A4</span>
+                <span>•</span>
+                <span>VERSI 2.4</span>
+              </div>
+              <h2 class="text-xl sm:text-3xl font-black tracking-tight text-white">
+                Buku Panduan Operasional & Playbook Demo (PDF)
+              </h2>
+              <p class="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
+                Dokumen komprehensif 5 bab siap unduh/cetak dalam format PDF standar A4 portrait, dilengkapi skrip presentasi 1-by-1 untuk memikat calon customer (pengurus komunitas, pemilik GOR, dan EO).
+              </p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row md:flex-col gap-2.5 shrink-0">
+              <a href="manual-book-pdf.php" target="_blank" class="px-5 py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 text-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                <span>Buka / Cetak PDF (A4)</span>
+              </a>
+
+              <form method="POST" action="?tab=pic_accounts" class="w-full">
+                <input type="hidden" name="form_action" value="quick_demo_pic">
+                <button type="submit" class="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 active:scale-95">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                  <span>1-Click Buat Akun PIC Demo</span>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Section 1: Skrip Presentasi 1-by-1 (6 Langkah Memikat Customer) -->
+          <div class="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 shadow-xs space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+              <div>
+                <span class="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-600 block">
+                  PITCHING SCRIPT & FLOW
+                </span>
+                <h3 class="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                  Alur Demo Step-by-Step (1 by 1) ke Calon Klien
+                </h3>
+              </div>
+              <span class="text-xs text-slate-500 font-mono">Total Waktu: ~15 Menit</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              
+              <!-- Step 1 -->
+              <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between text-[11px] font-mono font-bold text-slate-400 mb-2">
+                    <span class="text-amber-600">LANGKAH 01</span>
+                    <span>2 MENIT</span>
+                  </div>
+                  <h4 class="text-sm font-black text-slate-900 mb-1">Membuka Masalah (Pain Hook)</h4>
+                  <p class="text-xs text-slate-600 leading-relaxed">
+                    Tanyakan kerepotan rekap list WhatsApp, salah hitung kuota, drama pemain berebut lapangan, dan iuran kas yang sering nombok.
+                  </p>
+                </div>
+                <div class="mt-3 pt-2 border-t border-slate-200">
+                  <span class="text-[10px] font-mono text-emerald-700 font-bold block">Fokus: Membangun Empati</span>
+                </div>
+              </div>
+
+              <!-- Step 2 -->
+              <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between text-[11px] font-mono font-bold text-slate-400 mb-2">
+                    <span class="text-amber-600">LANGKAH 02</span>
+                    <span>3 MENIT</span>
+                  </div>
+                  <h4 class="text-sm font-black text-slate-900 mb-1">Showcase Landing Page Publik</h4>
+                  <p class="text-xs text-slate-600 leading-relaxed">
+                    Buka Web Depan. Tunjukkan video background hidup, kartu <i>Sesi Mabar Terdekat</i>, info venue, dan ketersediaan kuota slot transparan.
+                  </p>
+                </div>
+                <div class="mt-3 pt-2 border-t border-slate-200">
+                  <span class="text-[10px] font-mono text-emerald-700 font-bold block">Fokus: First Impression & Citra Klub</span>
+                </div>
+              </div>
+
+              <!-- Step 3 -->
+              <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between text-[11px] font-mono font-bold text-slate-400 mb-2">
+                    <span class="text-amber-600">LANGKAH 03</span>
+                    <span>3 MENIT</span>
+                  </div>
+                  <h4 class="text-sm font-black text-slate-900 mb-1">Admin: 1-Click Buat PIC & Sesi</h4>
+                  <p class="text-xs text-slate-600 leading-relaxed">
+                    Buka <code>admin/?tab=pic_accounts</code>. Klik tombol <i>1-Click Generate Akun PIC Demo</i>. Akun PIC langsung terbit dan tertaut ke sesi dalam 1 detik.
+                  </p>
+                </div>
+                <div class="mt-3 pt-2 border-t border-slate-200">
+                  <span class="text-[10px] font-mono text-emerald-700 font-bold block">Fokus: Kemudahan Tanpa Ribet</span>
+                </div>
+              </div>
+
+              <!-- Step 4 -->
+              <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between text-[11px] font-mono font-bold text-slate-400 mb-2">
+                    <span class="text-amber-600">LANGKAH 04</span>
+                    <span>2 MENIT</span>
+                  </div>
+                  <h4 class="text-sm font-black text-slate-900 mb-1">Player Booking via WhatsApp</h4>
+                  <p class="text-xs text-slate-600 leading-relaxed">
+                    Klik daftar sesi di web. Tunjukkan template pesan WA rapi yang otomatis terisi. Pemain tidak perlu install app atau registrasi rumit.
+                  </p>
+                </div>
+                <div class="mt-3 pt-2 border-t border-slate-200">
+                  <span class="text-[10px] font-mono text-emerald-700 font-bold block">Fokus: Zero Friction Bagi Pemain</span>
+                </div>
+              </div>
+
+              <!-- Step 5 -->
+              <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between text-[11px] font-mono font-bold text-slate-400 mb-2">
+                    <span class="text-amber-600">LANGKAH 05</span>
+                    <span>3 MENIT</span>
+                  </div>
+                  <h4 class="text-sm font-black text-slate-900 mb-1">App Lapangan & Rotasi Otomatis</h4>
+                  <p class="text-xs text-slate-600 leading-relaxed">
+                    Buka <code>/app/</code>. Tunjukkan tombol acak rotasi ganda berkeadilan (*Fair Play*), pencatatan skor, dan klasemen poin pemain bulanan.
+                  </p>
+                </div>
+                <div class="mt-3 pt-2 border-t border-slate-200">
+                  <span class="text-[10px] font-mono text-emerald-700 font-bold block">Fokus: The "Aha!" Moment</span>
+                </div>
+              </div>
+
+              <!-- Step 6 -->
+              <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between text-[11px] font-mono font-bold text-slate-400 mb-2">
+                    <span class="text-amber-600">LANGKAH 06</span>
+                    <span>2 MENIT</span>
+                  </div>
+                  <h4 class="text-sm font-black text-slate-900 mb-1">Closing & Rekap Keuangan Kas</h4>
+                  <p class="text-xs text-slate-600 leading-relaxed">
+                    Buka laporan kas masuk. Jelaskan bahwa pengurus bisa santai ikut main tanpa capek, sesi mabar selalu penuh, dan siap buka cabang baru.
+                  </p>
+                </div>
+                <div class="mt-3 pt-2 border-t border-slate-200">
+                  <span class="text-[10px] font-mono text-emerald-700 font-bold block">Fokus: Closing Deal & ROI</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Section 2: Struktur 5 Bab Buku Panduan PDF -->
+          <div class="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 shadow-xs space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+              <div>
+                <span class="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
+                  DOKUMEN CETAK RESMI
+                </span>
+                <h3 class="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                  Struktur Dokumen Manual Book (Standar A4 Portrait)
+                </h3>
+              </div>
+              <a href="manual-book-pdf.php" target="_blank" class="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1">
+                <span>Buka Versi Cetak</span>
+                <span>&rarr;</span>
+              </a>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+              
+              <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <span class="text-[10px] font-mono text-slate-400 font-bold block">HALAMAN 1</span>
+                <h5 class="font-bold text-slate-900 mt-1">Cover Eksekutif</h5>
+                <p class="text-slate-500 text-[11px] mt-1">Logo resmi, judul dokumen, edisi tahunan, dan metadata komunitas.</p>
+              </div>
+
+              <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <span class="text-[10px] font-mono text-slate-400 font-bold block">HALAMAN 2</span>
+                <h5 class="font-bold text-slate-900 mt-1">Value Proposition</h5>
+                <p class="text-slate-500 text-[11px] mt-1">4 Masalah fatal mabar manual WA & solusi ekosistem digital 3-in-1.</p>
+              </div>
+
+              <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <span class="text-[10px] font-mono text-slate-400 font-bold block">HALAMAN 3</span>
+                <h5 class="font-bold text-slate-900 mt-1">Playbook Demo 1-by-1</h5>
+                <p class="text-slate-500 text-[11px] mt-1">Skrip percakapan 6 langkah dari hook pembuka hingga penutupan deal.</p>
+              </div>
+
+              <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <span class="text-[10px] font-mono text-slate-400 font-bold block">HALAMAN 4</span>
+                <h5 class="font-bold text-slate-900 mt-1">SOP Operasional PIC</h5>
+                <p class="text-slate-500 text-[11px] mt-1">Panduan praktis lapangan H-3, H-1, jam main hari-H, hingga close sesi.</p>
+              </div>
+
+              <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <span class="text-[10px] font-mono text-slate-400 font-bold block">HALAMAN 5</span>
+                <h5 class="font-bold text-slate-900 mt-1">Matriks & FAQ Klien</h5>
+                <p class="text-slate-500 text-[11px] mt-1">Tabel komparasi vs grup WA manual & jawaban atas keberatan klien.</p>
+              </div>
+
+            </div>
+
+            <div class="pt-3 flex items-center justify-between">
+              <span class="text-xs text-slate-500">
+                Gunakan fitur <b>Print / Simpan sebagai PDF</b> di browser untuk mengunduh dokumen secara utuh.
+              </span>
+              <a href="manual-book-pdf.php" target="_blank" class="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors">
+                Pratinjau PDF A4 &rarr;
+              </a>
+            </div>
+          </div>
+
+        </div>
 
       <?php endif; ?>
 
