@@ -89,6 +89,32 @@ class Schedule {
         return $stmt->fetch() ?: null;
     }
 
+    public static function forPic(int $picId) {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("
+            SELECT s.*, 
+                   COALESCE(NULLIF(pic.name, ''), NULLIF(s.pic_name, ''), 'PIC Komunitas') AS pic_name,
+                   COALESCE(NULLIF(pic.phone, ''), NULLIF(s.pic_whatsapp, ''), '') AS pic_whatsapp,
+                   COALESCE(NULLIF(pic.name, ''), NULLIF(s.host_name, ''), 'PIC Lapangan') AS host_name,
+                   COUNT(sp.id) as participant_count,
+                   SUM(CASE WHEN sp.payment_status = 'paid' THEN 1 ELSE 0 END) as paid_count,
+                   SUM(CASE WHEN sp.payment_status = 'unpaid' THEN 1 ELSE 0 END) as unpaid_count
+            FROM `schedules` s
+            LEFT JOIN (
+                SELECT id, assigned_session_id, name, phone
+                FROM admins 
+                WHERE role = 'pic'
+            ) pic ON (pic.assigned_session_id = s.id OR pic.id = :picId)
+            LEFT JOIN `session_participants` sp ON s.id = sp.session_id
+            WHERE (pic.id = :picId OR s.pic_name LIKE (SELECT CONCAT('%', name, '%') FROM admins WHERE id = :picId LIMIT 1))
+            GROUP BY s.id
+            ORDER BY s.schedule_date DESC, s.time_start DESC
+        ");
+        $stmt->execute([':picId' => $picId]);
+        $res = $stmt->fetchAll();
+        return !empty($res) ? $res : self::all();
+    }
+
     public static function create(array $data) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("
@@ -182,12 +208,16 @@ class Schedule {
     public static function updateStatus(int $id, string $status) {
         $pdo = Database::getConnection();
         if ($status === 'completed') {
-            $stmt = $pdo->prepare("UPDATE `schedules` SET `status` = 'completed', `completed_at` = NOW() WHERE `id` = ?");
-        } else {
-            $stmt = $pdo->prepare("UPDATE `schedules` SET `status` = ? WHERE `id` = ?");
-            return $stmt->execute([$status, $id]);
+            try {
+                $stmt = $pdo->prepare("UPDATE `schedules` SET `status` = 'completed', `completed_at` = NOW() WHERE `id` = ?");
+                return $stmt->execute([$id]);
+            } catch (PDOException $e) {
+                $stmt = $pdo->prepare("UPDATE `schedules` SET `status` = 'completed' WHERE `id` = ?");
+                return $stmt->execute([$id]);
+            }
         }
-        return $stmt->execute([$id]);
+        $stmt = $pdo->prepare("UPDATE `schedules` SET `status` = ? WHERE `id` = ?");
+        return $stmt->execute([$status, $id]);
     }
 
     public static function completeSession(int $id) {

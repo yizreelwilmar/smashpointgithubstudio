@@ -1,107 +1,139 @@
-# Penyesuaian Operasional Lapangan Mabar Badminton & Rotasi Adil
+# Alur Selesai Sesi Mabar PIC, Linking Akun PIC, Pencarian GOR Indonesia & Animasi Badminton Hero
 
-Rencana komprehensif untuk menyempurnakan alur kerja aplikasi operasional mabar bulutangkis berbasis PHP: menghilangkan dropdown pencarian (*select-search*) yang menyulitkan di layar smartphone, memastikan impor teks WhatsApp langsung masuk ke Pemain Sesi Utama tanpa kuota otomatis, menyederhanakan tombol aksi kehadiran dan pengaturan level/waiting list lewat modal edit, memperkuat algoritma rotasi berkeadilan, serta menampilkan indikator berapa kali pemain sudah bertanding baik di daftar pemain maupun di papan ronde acak.
+Menyelesaikan sesi mabar dengan rekapitulasi WhatsApp otomatis, linking akun PIC ke sesi lapangan, sistem pencarian GOR seluruh Indonesia berbasis geocoding cerdas tanpa API key, dan peningkatan visual Hero landing page dengan animasi action jump smash bulutangkis yang energetik.
 
----
-
-### User Review & Critical Decisions
+## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> **Keputusan Kunci Sesuai Permintaan Pengguna:**
-> 1. **Anti-Select-Search di HP**: Seluruh kontrol input pemilihan level, status sesi, dan aksi operasional diubah menjadi tombol tap fisik besar (*touch-friendly button groups* min. 44px) yang nyaman ditekan dengan jempol tanpa memicu popup keyboard atau pencarian dropdown yang rumit.
-> 2. **Impor List WhatsApp Murni ke Sesi Utama**: Teks list mabar yang ditempel (*paste*) akan langsung memasukkan seluruh nama bernomor ke **Pemain Sesi Utama** secara transparan tanpa pembatasan kuota otomatis. Hanya jika teks WA secara eksplisit memiliki sub-header "Waiting List:" barulah nama di bawahnya masuk waiting list.
-> 3. **Aksi Kehadiran & Edit**: Baris pemain di Sesi Utama menyediakan tombol **Hadir** dan **Tidak Hadir** langsung dengan indikator warna tegas, serta tombol **Edit** untuk mengatur Nama, No. HP, Level (Beginner / Intermediate / Advance), dan status (Pemain Sesi Utama vs Waiting List).
-> 4. **Pelacakan "Berapa Kali Main"**: Menghitung dan menampilkan secara real-time frekuensi bermain (*games played counter*, misal `2x Main`) di:
->    - **Tab Pemain**: Di samping nama pemain pada daftar Sesi Utama dan Waiting List.
->    - **Tab Rotasi / Lapangan**: Pada kartu pertandingan Tim A & Tim B setelah diacak, serta pada daftar pemain istirahat (*bench queue*).
+> Seluruh fitur dirancang untuk kemudahan operasional langsung di smartphone (Mobile/Android First) tanpa ketergantungan API berbayar.
+> Query SQL untuk phpMyAdmin disiapkan secara aman (`IF NOT EXISTS`) sehingga tidak akan merusak data yang sudah ada di hosting.
+
+- **Keputusan 1 (Alur Selesai Sesi PIC)**: Tombol "Selesaikan Sesi Mabar" dilengkapi konfirmasi keamanan dan modal ringkasan akhir sesi yang langsung menyediakan tombol 1-ketuk "Salin Rekap WhatsApp" untuk dikirim ke grup member.
+- **Keputusan 2 (Linking Akun PIC ke Sesi)**: Form tambah/edit jadwal di Admin CMS menyediakan dropdown pilihan akun PIC terdaftar, yang otomatis mengisi nama dan nomor WhatsApp PIC. Di aplikasi lapangan (`/app/`), PIC dan Admin dapat berganti sesi lewat drawer "Pilih Sesi Mabar" tanpa perlu logout.
+- **Keputusan 3 (Pencarian GOR Seluruh Indonesia)**: Menggunakan engine pencarian hibrida (database terkurasi GOR nasional + live OpenStreetMap Nominatim Indonesia) yang dapat mencari GOR di kota mana pun di Indonesia, mengisi alamat jalan lengkap, kota/cabang, dan link Google Maps secara instan tanpa biaya API.
+- **Keputusan 4 (Animasi Action Badminton Hero)**: Mengintegrasikan ilustrasi vektor dinamis jump smash atlet bulutangkis (terinspirasi dari referensi Pinterest) dengan animasi CSS 60fps (shuttlecock trajectory, net perspective, motion trails) yang dapat diaktifkan atau dialihkan ke foto di Admin CMS.
 
 ---
 
-### 1. Overview & Core Concept
+## 1. Overview & Core Concept
 
-- **What It Does**: Memberikan kapten/PIC lapangan kendali operasional mabar bulutangkis yang cepat, ringan, dan adil langsung dari smartphone di pinggir GOR tanpa hambatan input, dengan visibilitas penuh terhadap keadilan menit bermain setiap peserta.
-- **Target Audience / Persona**: Pengurus klub, kapten sesi, dan PIC lapangan yang mengelola rotasi 12–30 peserta mabar dengan smartphone satu tangan di tengah kebisingan dan dinamika lapangan bulutangkis.
-- **Key Value**: Operasional super cepat tanpa friksi input select-search, transparansi pembagian tim yang seimbang, dan kepastian bahwa semua anggota yang hadir mendapatkan jatah bermain yang setara.
-
----
-
-### 2. User Experience & Visual Design
-
-#### A. Alur Pengguna (User Flows)
-1. **Impor List WhatsApp**:
-   - PIC membuka tab **Pemain** -> tekan tombol **Paste List WA**.
-   - Menempelkan pesan WA -> tekan **Proses & Impor**.
-   - Seluruh peserta bernomor langsung masuk ke **Pemain Sesi Utama** (status kehadiran otomatis default Hadir atau siap ditandai).
-2. **Absensi & Pengaturan Status/Level**:
-   - Setiap baris pemain memiliki tombol cepat: **Hadir** (hijau/navy) dan **Ga Hadir** (merah/slate).
-   - Menekan **Edit** membuka sheet modal bersih berisi:
-     - Input nama pemain.
-     - 3 Tombol Tap Level: `[Beginner]` `[Intermediate]` `[Advance]`.
-     - 2 Tombol Tap Status: `[Pemain Sesi Utama]` `[Waiting List]`.
-     - Input No. WhatsApp (opsional).
-     - Tombol Simpan (min. 44px touch target).
-   - Jika dipindahkan ke Waiting List, pemain otomatis berpindah ke kelompok tabel Waiting List di bawahnya.
-3. **Pengecekan Frekuensi Bermain (Tab Pemain)**:
-   - Setiap kartu pemain menampilkan badge kuantitas main, misal: `2x Main` atau `0x Main (Belum Main)`.
-4. **Acak Ronde Adil & Pengecekan Lapangan (Tab Rotasi)**:
-   - PIC memilih strategi: **Fair Level** (kombinasi seimbang) atau **Kocok Acak Merata**.
-   - Sistem memprioritaskan pemain dengan jumlah main paling sedikit untuk masuk ke lapangan terlebih dahulu.
-   - Pada kartu Lapangan 1, Lapangan 2, dst., di sebelah nama setiap pemain Tim A dan Tim B tertera jelas: misal `Budi [Inter] · 2x Main`.
-   - Pada daftar pemain istirahat (*bench*), PIC dapat melihat berapa kali pemain cadangan tersebut sudah main, sehingga memastikan pergantian di ronde berikutnya tepat sasaran.
-
-#### B. Visual & Ergonomic Polish
-- **Mobile Thumb Zone**: Semua tombol interaktif berukuran tinggi minimal 42–48px dengan respon sentuh halus (`active:scale-95`).
-- **Typography & Clean Metadata**: Mengikuti prinsip anti-AI slop tanpa pill berlebihan. Indikator `2x Main` menggunakan font monospace bersih (`JetBrains Mono`) dengan pemisah tipografis elegan.
-- **Zero Annoying Dropdowns**: Menghindari elemen `<select>` dengan pencarian pihak ketiga yang sering kali *buggy* di keyboard virtual Android/iOS.
+1. **Alur Pasca-Selesai Sesi Mabar (PIC Courtside)**:
+   - Ketika mabar selesai, PIC menekan tombol **"Selesaikan Sesi Mabar Ini"**.
+   - Sistem menandai status sesi menjadi `'completed'`, mengunci pertandingan, dan memunculkan **Kartu Rekap Sesi**:
+     - Total pertandingan selesai & total skor.
+     - Total kas terkumpul, jumlah pemain lunas vs belum lunas.
+     - Top Players / MVP (Menang terbanyak & main terbanyak).
+     - **Tombol "Salin Format Rekap WhatsApp"**: Meng-copy teks rapi siap kirim ke WhatsApp grup mabar.
+     - **Tombol "Pilih Sesi Mabar Lainnya"** untuk berpindah ke sesi berikutnya.
+2. **Menu Linking PIC ke Sesi**:
+   - Di Admin CMS (`tab=schedule_form` dan `tab=pic_accounts`), Admin dapat memilih PIC penanggung jawab untuk setiap sesi.
+   - Di aplikasi lapangan (`/app/index.php`), disediakan tombol switcher **"Pilih Sesi Mabar"** di bagian atas untuk berpindah antar sesi yang ditugaskan.
+3. **Pencarian GOR Seluruh Indonesia**:
+   - Menggantikan batas 10 GOR Jakarta dengan live search geocoding olahraga Indonesia.
+   - Ketik "GOR Djarum", "GOR Bulutangkis Bandung", "Arena Badminton Surabaya", dll., langsung muncul pilihan dengan nama resmi, alamat jalan, kecamatan, kota, dan tautan Google Maps akurat.
+4. **Animasi Action Badminton Hero di Landing Page**:
+   - Ilustrasi dinamis atlet badminton melompat melakukan *jump smash*, jalur laju shuttlecock (*speed trail*), garis perspektif lapangan, dan efek visual benturan raket.
+   - Ringan, tajam, anti-slop, dan responsif di smartphone.
 
 ---
 
-### 3. Key Product Decisions & Trade-Offs
+## 2. User Experience & Visual Design
 
-| Keputusan | Pendekatan Terpilih | Alasan & Manfaat | Alternatif Ditolak |
-| :--- | :--- | :--- | :--- |
-| **Kontrol Level & Status** | Segmented Tap Buttons (Tombol Fisik Touch) | Tidak perlu membuka dropdown virtual, instan 1-tap di layar HP | Dropdown select standar / searchable select2 |
-| **Import WhatsApp Capping** | Semua masuk Sesi Utama kecuali ada sub-header "Waiting List" di teks WA | Menghindari sistem menebak-nebak kuota yang membuat PIC bingung mencari nama peserta | Memotong otomatis peserta ke-17 dst. ke waiting list |
-| **Kalkulasi Frekuensi Main** | Akumulasi dinamis dari seluruh match record ronde dalam sesi aktif | Akurat, real-time, langsung tersinkron saat ronde baru diacak maupun saat ronde dihapus | Menyimpan kolom statis yang rawan tidak sinkron |
-| **Strategi Pembagian Tim** | Workload-first sorting + Level Balancing Engine | Menjamin kesetaraan jatah bermain (yang jarang main diprioritaskan) sekaligus menjaga pertandingan tetap seru | Acak buta murni tanpa memperhatikan riwayat main |
-
----
-
-### 4. Technical Architecture & Data Strategy
+### Key User Flows
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        APLIKASI OPERASIONAL (PHP)                      │
-├───────────────────────────────────┬────────────────────────────────────┤
-│           TAB PEMAIN              │        TAB ROTASI LAPANGAN         │
-│  - Daftar Pemain Sesi Utama       │  - Kartu Lapangan (Tim A vs Tim B) │
-│  - Daftar Waiting List            │    └─ [Nama] [Level] [Main: Nx]   │
-│  - Badge Frekuensi Main (Nx Main) │  - Bench Istirahat (Main: Nx)      │
-│  - Aksi: Hadir / Ga Hadir / Edit  │  - Selector Strategi Rotasi        │
-└─────────────────┬─────────────────┴──────────────────┬─────────────────┘
-                  │                                    │
-                  ▼                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                         CORE & MODELS (PHP)                            │
-├───────────────────────────────────┬────────────────────────────────────┤
-│ Participant::getBySession()       │ RotationEngine::generateRound()    │
-│  └─ Hitung $sessionMatchCounts    │  ├─ Workload priority (fewest play)│
-│ Participant::importFromWhatsapp() │  ├─ Level balance (Adv+Beg vs...)  │
-│  └─ No auto-cap to waiting list   │  └─ Annotate players with playCount│
-└───────────────────────────────────┴────────────────────────────────────┘
+[ADMIN CMS: Tambah/Edit Sesi]
+  │
+  ├─► Ketik Nama GOR di Seluruh Indonesia ──► Auto-Fill Nama, Alamat, Wilayah & Link Google Maps
+  │
+  └─► Pilih Akun PIC dari Dropdown ────────► Auto-Fill Nama & No WA PIC Penanggung Jawab
+                                                     │
+                                                     ▼
+                                          [APLIKASI PIC COURTSIDE]
+                                                     │
+                                                     ├─► PIC Login ──► Memilih Sesi yang Ditugaskan
+                                                     │
+                                                     ├─► Jalankan Pertandingan & Rotasi Lapangan
+                                                     │
+                                                     └─► Klik "Selesaikan Sesi Mabar Ini"
+                                                               │
+                                                               ▼
+                                                  [MODAL REKAP AKHIR SESI]
+                                                  • Ringkasan Kas & Pertandingan
+                                                  • 1-Tap "Salin Rekap WhatsApp"
+                                                  • Pindah ke Sesi Lain / Selesai
 ```
 
-#### Modifikasi File yang Direncanakan:
-1. **`models/Participant.php`**:
-   - Perbaiki `importFromWhatsappList`: Pastikan seluruh nama bernomor masuk ke status `'confirmed'` (Sesi Utama) kecuali baris tersebut berada di bawah header teks eksplisit seperti `Waiting List:` / `Daftar Tunggu:`.
-2. **`core/RotationEngine.php`**:
-   - Pastikan algoritma `generateRound` selalu menyortir pemain hadir berdasarkan jumlah pertandingan paling sedikit (`played asc`) sebelum memasukkan ke slot lapangan.
-   - Sertakan metadata `played_count` di setiap objek pemain dalam match agar langsung siap dirender di view.
-3. **`app/index.php`**:
-   - Hitung frekuensi main per pemain (`$sessionMatchCounts`) untuk sesi aktif.
-   - Tampilkan badge jumlah main (`Nx Main`) di baris pemain pada Tab Pemain.
-   - Ubah label tombol kehadiran menjadi `Hadir` dan `Ga Hadir` yang jelas dan responsif.
-   - Pastikan modal Edit pemain menggunakan tombol segmented tap (Level & Status Sesi Utama/Waiting List) tanpa dropdown search.
-   - Tampilkan badge jumlah main (`Nx Main`) pada kartu pertandingan di Tab Rotasi (Tim A & Tim B) dan di daftar pemain istirahat (*bench*).
-4. **`api/index.php`**:
-   - Pastikan endpoint `edit_player` dan `toggle_attendance` merespons dengan data terbaru secara mulus.
+### Visual Identity
+- **Desain Hero**: Visual siluet aksi atlet *jump smash* bernuansa navy `#0b1e36` dengan aksen emas `#fbbf24` dan putih, dilengkapi garis lapangan bulutangkis dan kok yang melesat halus.
+- **Tipografi**: Plus Jakarta Sans untuk teks instruksional, JetBrains Mono untuk metrik, skor, dan waktu.
+- **Clean Anti-Slop**: Bebas dari icon emoji berantakan, menggunakan badge status teks tegas (`[SELESAI]`, `[KAS LUNAS]`, `[SALIN REKAP]`).
+
+---
+
+## 3. Technical Architecture & Data Strategy
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    SMASHPOINT ARCHITECTURE                  │
+├──────────────────────────────┬──────────────────────────────┤
+│       ADMIN CMS PANEL        │      APP PIC COURTSIDE       │
+│  (admin/index.php)           │  (app/index.php)             │
+│  • GOR Search Indonesia      │  • Multi-Court Rolling       │
+│  • Link PIC to Schedules     │  • Selesaikan Sesi Mabar     │
+│  • Setting Hero Style        │  • Salin Rekap WhatsApp      │
+│  • Mobile Segmented Tabs     │  • Switcher Sesi Mabar       │
+├──────────────────────────────┴──────────────────────────────┤
+│                    CORE LOGIC & API                         │
+│  • core/RotationEngine.php (Single-Court Rolling)            │
+│  • models/Schedule.php (completeSession, findByPic)         │
+│  • models/MatchRecord.php (Session Recap & Stats)           │
+│  • api/index.php (generate_single_court, gor_search)        │
+├─────────────────────────────────────────────────────────────┤
+│                    LANDING PAGE                             │
+│  • views/landing/index.php (Hero Jump Smash Action Animation)│
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Query SQL phpMyAdmin Hosting
+
+Pengguna dapat menyalin dan mengeksekusi query berikut di phpMyAdmin hosting mereka:
+
+```sql
+-- ========================================================
+-- QUERY TAMBAHAN SMASHPOINT (AMAN & TIDAK MENGHAPUS DATA)
+-- Jalankan di menu SQL phpMyAdmin database Anda:
+-- ========================================================
+
+-- 1. Tambah kolom pic_id dan completed_at pada tabel schedules jika belum ada
+ALTER TABLE `schedules` 
+  ADD COLUMN IF NOT EXISTS `pic_id` INT NULL AFTER `pic_whatsapp`,
+  ADD COLUMN IF NOT EXISTS `completed_at` DATETIME NULL AFTER `status`;
+
+-- 2. Pastikan kolom phone dan assigned_session_id tersedia pada tabel admins
+ALTER TABLE `admins` 
+  ADD COLUMN IF NOT EXISTS `phone` VARCHAR(30) NULL AFTER `name`,
+  ADD COLUMN IF NOT EXISTS `assigned_session_id` INT NULL AFTER `role`;
+
+-- 3. Tambahkan kolom hero_animation_enabled pada tabel settings
+ALTER TABLE `settings`
+  ADD COLUMN IF NOT EXISTS `hero_animation_enabled` TINYINT(1) NOT NULL DEFAULT 1 AFTER `hero_image_url`;
+```
+
+---
+
+## 4. Rencana Kerja & File yang Akan Diubah
+
+1. **`models/Schedule.php`**:
+   - Menambahkan method `getPicSchedules($picId)` untuk mengambil daftar sesi yang ditugaskan kepada PIC tertentu.
+   - Memastikan `completeSession($sessionId)` mencatat `completed_at = NOW()` dan `status = 'completed'`.
+2. **`app/index.php`**:
+   - Menambahkan tombol "Selesaikan Sesi Mabar" pada tab Court dan Leaderboard dengan modal konfirmasi aman.
+   - Menambahkan Modal Rekap Akhir Sesi yang otomatis menghitung statistik lengkap (total laga, top win/point, kas masuk) dan tombol "Salin Format Rekap WhatsApp".
+   - Menambahkan Drawer / Modal "Pilih Sesi Mabar" di bar navigasi atas agar PIC/Admin dapat berpindah sesi dengan cepat.
+3. **`admin/index.php`**:
+   - Pada form Jadwal (`tab=schedule_form`), menambahkan dropdown "Pilih Akun PIC Penanggung Jawab" yang otomatis sinkron dengan nama dan No WA PIC.
+   - Memperbarui sistem pencarian GOR dengan engine pencarian seluruh Indonesia (Nominatim OpenStreetMap + curated database nasional).
+   - Menambahkan opsi toggle animasi Hero pada Sub-Tab Tampilan Web.
+4. **`views/landing/index.php`**:
+   - Mengintegrasikan komponen visual aksi atlet jump smash badminton dengan efek animasi CSS kecepatan tinggi (*speed lines*, laju kok, dan *court perspective*).

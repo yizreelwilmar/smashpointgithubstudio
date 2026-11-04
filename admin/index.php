@@ -95,7 +95,24 @@ if ($isLoggedIn && $reqMethod === 'POST' && isset($_POST['form_action'])) {
     try {
         if ($formAction === 'create_schedule') {
             $dayName = trim($_POST['day_name']);
-            Schedule::create([
+            $picAccountId = !empty($_POST['pic_account_id']) ? (int)$_POST['pic_account_id'] : 0;
+            $picName = trim(isset($_POST['pic_name']) ? $_POST['pic_name'] : '');
+            $picWa = trim(isset($_POST['pic_whatsapp']) ? $_POST['pic_whatsapp'] : '');
+
+            $pdo = Database::getConnection();
+            if ($picAccountId > 0) {
+                $stmtPic = $pdo->prepare("SELECT name, phone FROM admins WHERE id = ?");
+                $stmtPic->execute([$picAccountId]);
+                $foundPic = $stmtPic->fetch(PDO::FETCH_ASSOC);
+                if ($foundPic) {
+                    if (empty($picName)) $picName = $foundPic['name'];
+                    if (empty($picWa)) $picWa = $foundPic['phone'];
+                }
+            }
+            if (empty($picName)) $picName = 'PIC ' . $dayName;
+            if (empty($picWa)) $picWa = !empty($settings['whatsapp_default']) ? $settings['whatsapp_default'] : '081299887766';
+
+            $newSchId = Schedule::create([
                 'title' => trim($_POST['venue_name']),
                 'day_name' => $dayName,
                 'branch_area' => trim($_POST['branch_area'] ?: 'Jakarta'),
@@ -109,17 +126,40 @@ if ($isLoggedIn && $reqMethod === 'POST' && isset($_POST['form_action'])) {
                 'max_slots' => (int)(!empty($_POST['max_quota']) ? $_POST['max_quota'] : (!empty($_POST['max_participants']) ? $_POST['max_participants'] : 16)),
                 'fee_per_person' => (int)preg_replace('/[^0-9]/', '', (string)(!empty($_POST['fee']) ? $_POST['fee'] : (!empty($_POST['fee_per_person']) ? $_POST['fee_per_person'] : '35000'))),
                 'facilities' => trim(!empty($_POST['shuttlecock']) ? $_POST['shuttlecock'] : (!empty($_POST['facilities']) ? $_POST['facilities'] : 'Bulu Angsa Berkualitas')),
-                'host_name' => !empty($_POST['host_name']) ? trim($_POST['host_name']) : 'PIC Lapangan',
+                'host_name' => $picName,
                 'bank_info' => !empty($_POST['bank_info']) ? trim($_POST['bank_info']) : 'BCA 1234567890 a.n Bendahara',
                 'cancellation_rules' => !empty($_POST['cancellation_rules']) ? trim($_POST['cancellation_rules']) : 'Konfirmasi pembatalan slot maksimal H-1 atau cari pemain pengganti.',
-                'pic_name' => !empty($_POST['pic_name']) ? trim($_POST['pic_name']) : ('PIC ' . $dayName),
-                'pic_whatsapp' => !empty($_POST['pic_whatsapp']) ? trim($_POST['pic_whatsapp']) : (!empty($settings['whatsapp_default']) ? $settings['whatsapp_default'] : '081299887766'),
+                'pic_name' => $picName,
+                'pic_whatsapp' => $picWa,
                 'status' => 'open',
                 'notes' => !empty($_POST['notes']) ? trim($_POST['notes']) : null
             ]);
-            $successMsg = "Jadwal mabar cabang baru berhasil dibuat!";
+
+            if ($picAccountId > 0 && $newSchId > 0) {
+                $pdo->prepare("UPDATE admins SET assigned_session_id = ? WHERE id = ?")->execute([$newSchId, $picAccountId]);
+            }
+
+            $successMsg = "Jadwal mabar cabang baru berhasil dibuat dan ditugaskan ke PIC!";
         } elseif ($formAction === 'update_schedule') {
             $schId = (int)$_POST['schedule_id'];
+            $picAccountId = !empty($_POST['pic_account_id']) ? (int)$_POST['pic_account_id'] : 0;
+            $picName = trim(isset($_POST['pic_name']) ? $_POST['pic_name'] : '');
+            $picWa = trim(isset($_POST['pic_whatsapp']) ? $_POST['pic_whatsapp'] : '');
+
+            $pdo = Database::getConnection();
+            if ($picAccountId > 0) {
+                $stmtPic = $pdo->prepare("SELECT name, phone FROM admins WHERE id = ?");
+                $stmtPic->execute([$picAccountId]);
+                $foundPic = $stmtPic->fetch(PDO::FETCH_ASSOC);
+                if ($foundPic) {
+                    if (empty($picName)) $picName = $foundPic['name'];
+                    if (empty($picWa)) $picWa = $foundPic['phone'];
+                }
+                $pdo->prepare("UPDATE admins SET assigned_session_id = ? WHERE id = ?")->execute([$schId, $picAccountId]);
+            }
+            if (empty($picName)) $picName = 'PIC ' . trim($_POST['day_name']);
+            if (empty($picWa)) $picWa = !empty($settings['whatsapp_default']) ? $settings['whatsapp_default'] : '081299887766';
+
             Schedule::update($schId, [
                 'title' => trim($_POST['venue_name']),
                 'day_name' => trim($_POST['day_name']),
@@ -134,14 +174,14 @@ if ($isLoggedIn && $reqMethod === 'POST' && isset($_POST['form_action'])) {
                 'max_slots' => (int)(!empty($_POST['max_quota']) ? $_POST['max_quota'] : (!empty($_POST['max_participants']) ? $_POST['max_participants'] : 16)),
                 'fee_per_person' => (int)preg_replace('/[^0-9]/', '', (string)(!empty($_POST['fee']) ? $_POST['fee'] : (!empty($_POST['fee_per_person']) ? $_POST['fee_per_person'] : '35000'))),
                 'facilities' => trim(!empty($_POST['shuttlecock']) ? $_POST['shuttlecock'] : (!empty($_POST['facilities']) ? $_POST['facilities'] : 'Bulu Angsa Berkualitas')),
-                'host_name' => !empty($_POST['host_name']) ? trim($_POST['host_name']) : 'PIC Lapangan',
+                'host_name' => $picName,
                 'bank_info' => !empty($_POST['bank_info']) ? trim($_POST['bank_info']) : 'BCA 1234567890 a.n Bendahara',
                 'cancellation_rules' => !empty($_POST['cancellation_rules']) ? trim($_POST['cancellation_rules']) : 'Konfirmasi pembatalan slot maksimal H-1 atau cari pemain pengganti.',
-                'pic_name' => !empty($_POST['pic_name']) ? trim($_POST['pic_name']) : ('PIC ' . trim($_POST['day_name'])),
-                'pic_whatsapp' => !empty($_POST['pic_whatsapp']) ? trim($_POST['pic_whatsapp']) : (!empty($settings['whatsapp_default']) ? $settings['whatsapp_default'] : '081299887766'),
+                'pic_name' => $picName,
+                'pic_whatsapp' => $picWa,
                 'notes' => !empty($_POST['notes']) ? trim($_POST['notes']) : null
             ]);
-            $successMsg = "Data sesi mabar & kuota berhasil diperbarui!";
+            $successMsg = "Data sesi mabar & penugasan PIC berhasil diperbarui!";
         } elseif ($formAction === 'delete_schedule') {
             Schedule::delete((int)$_POST['id']);
             $successMsg = "Jadwal sesi mabar berhasil dihapus.";
@@ -2685,9 +2725,72 @@ ${listLines.join('\n')}${fullTag}`;
                   <button type="button" onclick="setFeePreset(35000)" class="px-1.5 py-0.5 text-[10px] font-mono bg-slate-100 hover:bg-amber-100 hover:text-amber-900 text-slate-600 rounded border border-slate-200 transition-colors">35.000</button>
                   <button type="button" onclick="setFeePreset(40000)" class="px-1.5 py-0.5 text-[10px] font-mono bg-slate-100 hover:bg-amber-100 hover:text-amber-900 text-slate-600 rounded border border-slate-200 transition-colors">40.000</button>
                   <button type="button" onclick="setFeePreset(45000)" class="px-1.5 py-0.5 text-[10px] font-mono bg-slate-100 hover:bg-amber-100 hover:text-amber-900 text-slate-600 rounded border border-slate-200 transition-colors">45.000</button>
-                  <button type="button" onclick="setFeePreset(50000)" class="px-1.5 py-0.5 text-[10px] font-mono bg-slate-100 hover:bg-amber-100 hover:text-amber-900 text-slate-600 rounded border border-slate-200 transition-colors">50.000</button>
                 </div>
               </div>
+
+              <!-- Penugasan PIC Penanggung Jawab Sesi -->
+              <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-black uppercase tracking-wider font-mono text-[#0b1e36]">
+                    PIC Penanggung Jawab Sesi Mabar
+                  </span>
+                  <span class="text-[10px] text-slate-500 font-mono">Tersambung ke App PIC Lapangan</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                  <div class="sm:col-span-6">
+                    <label class="block text-xs font-bold text-slate-800 mb-1">
+                      Pilih Akun PIC:
+                    </label>
+                    <select name="pic_account_id" id="selectPicAccount" onchange="syncPicAccountSelection(this)" class="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500 shadow-xs">
+                      <option value="">-- Tetapkan / Pilih Akun PIC --</option>
+                      <?php 
+                        $currentAssignedPicId = 0;
+                        if ($editSchedule) {
+                          foreach ($picAccounts as $pa) {
+                            if ((int)$pa['assigned_session_id'] === (int)$editSchedule['id'] || $pa['name'] === $editSchedule['pic_name']) {
+                              $currentAssignedPicId = (int)$pa['id'];
+                              break;
+                            }
+                          }
+                        }
+                      ?>
+                      <?php foreach ($picAccounts as $pa): ?>
+                        <option value="<?= $pa['id'] ?>" 
+                                data-name="<?= htmlspecialchars($pa['name']) ?>" 
+                                data-phone="<?= htmlspecialchars(!empty($pa['phone']) ? $pa['phone'] : '') ?>"
+                                <?= ($currentAssignedPicId === (int)$pa['id']) ? 'selected' : '' ?>>
+                          <?= htmlspecialchars($pa['name']) ?> (@<?= htmlspecialchars($pa['username']) ?>) - <?= htmlspecialchars(!empty($pa['phone']) ? $pa['phone'] : 'No WA -') ?>
+                        </option>
+                      <?php endforeach; ?>
+                    </select>
+                  </div>
+
+                  <div class="sm:col-span-3">
+                    <label class="block text-xs font-bold text-slate-800 mb-1">Nama PIC (Tampil di Web):</label>
+                    <input type="text" name="pic_name" id="inputPicName" value="<?= $editSchedule ? htmlspecialchars($editSchedule['pic_name']) : '' ?>" placeholder="Nama PIC" class="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500 shadow-xs">
+                  </div>
+
+                  <div class="sm:col-span-3">
+                    <label class="block text-xs font-bold text-slate-800 mb-1">No. WhatsApp PIC:</label>
+                    <input type="tel" name="pic_whatsapp" id="inputPicWhatsapp" value="<?= $editSchedule ? htmlspecialchars($editSchedule['pic_whatsapp']) : (!empty($settings['whatsapp_default']) ? htmlspecialchars($settings['whatsapp_default']) : '') ?>" placeholder="08xxxxxxxx" class="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-amber-500 shadow-xs">
+                  </div>
+                </div>
+                <p class="text-[11px] text-slate-500">
+                  Memilih akun PIC akan otomatis menghubungkan sesi mabar ini ke akun PIC tersebut saat mereka login di aplikasi lapangan (<code>/app/</code>) dan mengisi nomor kontak konfirmasi WhatsApp bagi calon pendaftar.
+                </p>
+              </div>
+
+              <script>
+                function syncPicAccountSelection(sel) {
+                  const opt = sel.options[sel.selectedIndex];
+                  if (!opt || !opt.value) return;
+                  const name = opt.getAttribute('data-name');
+                  const phone = opt.getAttribute('data-phone');
+                  if (name) document.getElementById('inputPicName').value = name;
+                  if (phone) document.getElementById('inputPicWhatsapp').value = phone;
+                }
+              </script>
 
               <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
                 <a href="?tab=schedules" class="px-4 py-2 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors">
@@ -4421,14 +4524,6 @@ ${listLines.join('\n')}${fullTag}`;
               el.addEventListener('change', evaluateYoastSeo);
             }
           });
-          document.addEventListener('DOMContentLoaded', evaluateYoastSeo);
-        </script>
-            const el = document.getElementById(id);
-            if (el) {
-              el.addEventListener('input', evaluateYoastSeo);
-              el.addEventListener('change', evaluateYoastSeo);
-            }
-          });
 
           ['community_name', 'base_city', 'tagline'].forEach(name => {
             const el = document.querySelector(`input[name="${name}"]`);
@@ -4509,68 +4604,44 @@ ${listLines.join('\n')}${fullTag}`;
 
   <!-- Google Maps GOR Autocomplete & Clipboard Copy Script -->
   <script>
-    // 1. Curated Database of Popular Badminton GORs in Jakarta
+    // 1. Curated National Database of Famous Badminton Arenas & GORs across Indonesia
     const POPULAR_GORS = [
-      {
-        name: "GOR Badminton Arena Utama",
-        address: "Jl. Olahraga Sport Center No. 12",
-        area: <?= json_encode(!empty($settings['base_city']) ? $settings['base_city'] : 'Jakarta Selatan') ?>,
-        maps: "https://maps.google.com/?q=GOR+Badminton+Arena"
-      },
-      {
-        name: "GOR Bintang Badminton Arena",
-        address: "Jl. Tebet Barat Dalam Raya No. 45, Tebet Barat, Jakarta Selatan",
-        area: "Jakarta Selatan",
-        maps: "https://maps.google.com/?q=GOR+Bintang+Badminton+Arena+Tebet"
-      },
-      {
-        name: "GOR Master Sport Arena",
-        address: "Jl. RS. Fatmawati Raya No. 15, Gandaria Selatan, Cilandak, Jakarta Selatan",
-        area: "Jakarta Selatan",
-        maps: "https://maps.google.com/?q=GOR+Master+Sport+Arena+Fatmawati"
-      },
-      {
-        name: "GOR Cempaka Court",
-        address: "Jl. Cempaka Putih Tengah No. 20, Cempaka Putih / Pancoran, Jakarta",
-        area: "Jakarta Selatan",
-        maps: "https://maps.google.com/?q=GOR+Cempaka+Court+Jakarta"
-      },
-      {
-        name: "Kemang Sport Hub",
-        address: "Jl. Kemang Raya No. 88, Bangka, Mampang Prapatan, Jakarta Selatan",
-        area: "Jakarta Selatan",
-        maps: "https://maps.google.com/?q=Kemang+Sport+Hub+Jakarta"
-      },
-      {
-        name: "GOR Bulungan",
-        address: "Jl. Bulungan No. 1, Kramat Pela, Kebayoran Baru, Jakarta Selatan",
-        area: "Jakarta Selatan",
-        maps: "https://maps.google.com/?q=GOR+Bulungan+Jakarta"
-      },
-      {
-        name: "GOR Otista",
-        address: "Jl. Otto Iskandardinata No. 121, Bidara Cina, Jatinegara, Jakarta Timur",
-        area: "Jakarta Timur",
-        maps: "https://maps.google.com/?q=GOR+Otista+Jatinegara"
-      },
-      {
-        name: "GOR Pulogadung",
-        address: "Jl. Pemuda No. 10, Rawamangun, Pulo Gadung, Jakarta Timur",
-        area: "Jakarta Timur",
-        maps: "https://maps.google.com/?q=GOR+Pulogadung+Rawamangun"
-      },
-      {
-        name: "GOR Tanjung Duren",
-        address: "Jl. Tanjung Duren Barat No. 5, Grogol Petamburan, Jakarta Barat",
-        area: "Jakarta Barat",
-        maps: "https://maps.google.com/?q=GOR+Tanjung+Duren"
-      },
-      {
-        name: "GOR Sunter Arena",
-        address: "Jl. Danau Sunter Selatan No. 1, Sunter Agung, Tanjung Priok, Jakarta Utara",
-        area: "Jakarta Utara",
-        maps: "https://maps.google.com/?q=GOR+Danau+Sunter"
-      }
+      // Jabodetabek
+      { name: "Istora Gelora Bung Karno (GBK)", address: "Jl. Pintu Satu Senayan, Gelora, Tanah Abang, Jakarta Pusat", area: "Jakarta Pusat", maps: "https://www.google.com/maps/search/?api=1&query=Istora+Gelora+Bung+Karno" },
+      { name: "Candra Wijaya International Badminton Centre", address: "Jl. Jelupang Utama Raya No. 15, Serpong Utara, Tangerang Selatan", area: "Tangerang Selatan", maps: "https://www.google.com/maps/search/?api=1&query=Candra+Wijaya+International+Badminton+Centre" },
+      { name: "Taufik Hidayat Arena", address: "Jl. PKP No. 8, Cibubur, Ciracas, Jakarta Timur", area: "Jakarta Timur", maps: "https://www.google.com/maps/search/?api=1&query=Taufik+Hidayat+Arena" },
+      { name: "GOR Bulungan", address: "Jl. Bulungan No. 1, Kramat Pela, Kebayoran Baru, Jakarta Selatan", area: "Jakarta Selatan", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Bulungan+Jakarta" },
+      { name: "GOR Bintang Badminton Arena", address: "Jl. Tebet Barat Dalam Raya No. 45, Tebet Barat, Jakarta Selatan", area: "Jakarta Selatan", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Bintang+Badminton+Arena+Tebet" },
+      { name: "GOR Master Sport Arena Fatmawati", address: "Jl. RS. Fatmawati Raya No. 15, Gandaria Selatan, Cilandak, Jakarta Selatan", area: "Jakarta Selatan", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Master+Sport+Arena+Fatmawati" },
+      { name: "GOR Cempaka Court", address: "Jl. Cempaka Putih Tengah No. 20, Cempaka Putih, Jakarta Pusat", area: "Jakarta Pusat", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Cempaka+Court+Jakarta" },
+      { name: "GOR Otista", address: "Jl. Otto Iskandardinata No. 121, Bidara Cina, Jatinegara, Jakarta Timur", area: "Jakarta Timur", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Otista+Jatinegara" },
+      { name: "GOR Tanjung Duren", address: "Jl. Tanjung Duren Barat No. 5, Grogol Petamburan, Jakarta Barat", area: "Jakarta Barat", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Tanjung+Duren" },
+      { name: "GOR Sunter Arena", address: "Jl. Danau Sunter Selatan No. 1, Sunter Agung, Tanjung Priok, Jakarta Utara", area: "Jakarta Utara", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Danau+Sunter" },
+      { name: "GOR Tangkas Alfamart Sports Center", address: "Komplek Greenville Blok AC No. 1, Duri Kepa, Kebon Jeruk, Jakarta Barat", area: "Jakarta Barat", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Tangkas+Greenville" },
+      { name: "GOR Dimyati Tangerang", address: "Jl. Dimyati No. 1, Sukasari, Kec. Tangerang, Kota Tangerang", area: "Tangerang", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Dimyati+Tangerang" },
+      { name: "GOR Kota Bekasi", address: "Jl. Jend. Ahmad Yani No. 2, Kayuringin Jaya, Bekasi Selatan, Kota Bekasi", area: "Bekasi", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Kota+Bekasi" },
+      { name: "GOR Padjadjaran Bogor", address: "Jl. Pemuda No. 4, Tanah Sareal, Kota Bogor", area: "Bogor", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Padjadjaran+Bogor" },
+      // Jawa Barat
+      { name: "GOR Bikasoga Bandung", address: "Jl. Surya Layang No. 1-3, Buahbatu, Bandung", area: "Bandung", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Bikasoga+Bandung" },
+      { name: "GOR Lodaya Bandung", address: "Jl. Lodaya No. 20, Malabar, Lengkong, Kota Bandung", area: "Bandung", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Lodaya+Bandung" },
+      { name: "GOR Koni Bandung", address: "Jl. Jakarta No. 18, Kebonwaru, Batununggal, Kota Bandung", area: "Bandung", maps: "https://www.google.com/maps/search/?api=1&query=GOR+KONI+Bandung" },
+      // Jawa Tengah & DIY
+      { name: "GOR Djarum Kaliputu Kudus", address: "Jl. Kaliputu No. 34, Kaliputu, Kec. Kota Kudus, Kabupaten Kudus", area: "Kudus", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Djarum+Kaliputu+Kudus" },
+      { name: "GOR Djarum Jati Kudus", address: "Jl. Raya Kudus - Purwodadi KM 3, Getas Pejaten, Jati, Kudus", area: "Kudus", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Djarum+Jati+Kudus" },
+      { name: "GOR Tri Lomba Juang Mugas Semarang", address: "Jl. Mugassari, Semarang Selatan, Kota Semarang", area: "Semarang", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Tri+Lomba+Juang+Semarang" },
+      { name: "GOR Manahan Solo", address: "Jl. Adi Sucipto No. 1, Manahan, Banjarsari, Surakarta", area: "Solo", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Manahan+Solo" },
+      { name: "GOR Among Rogo Yogyakarta", address: "Jl. Kenari No. 1, Semaki, Umbulharjo, Kota Yogyakarta", area: "Yogyakarta", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Among+Rogo+Yogyakarta" },
+      { name: "GOR Lembah UGM Badminton", address: "Jl. Lembah UGM, Karang Malang, Caturtunggal, Sleman, DIY", area: "Sleman", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Lembah+UGM+Badminton" },
+      // Jawa Timur
+      { name: "GOR Sudirman Surabaya", address: "Jl. Kertajaya Indah Timur No. 8, Manyar Sabrangan, Mulyorejo, Surabaya", area: "Surabaya", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Sudirman+Surabaya" },
+      { name: "GOR Kertajaya Surabaya", address: "Jl. Kertajaya Indah Timur IV, Gebang Putih, Sukolilo, Surabaya", area: "Surabaya", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Kertajaya+Surabaya" },
+      { name: "GOR Ken Arok Malang", address: "Jl. Mayjen Sungkono, Buring, Kedungkandang, Kota Malang", area: "Malang", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Ken+Arok+Malang" },
+      // Luar Jawa (Bali, Sumatera, Sulawesi)
+      { name: "GOR Lila Bhuana Denpasar Bali", address: "Jl. Melati No. 1, Dangin Puri Kangin, Denpasar Utara, Kota Denpasar", area: "Denpasar", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Lila+Bhuana+Denpasar" },
+      { name: "GOR PBSI Pancing Medan", address: "Jl. Willem Iskandar, Kenangan Baru, Percut Sei Tuan, Deli Serdang / Medan", area: "Medan", maps: "https://www.google.com/maps/search/?api=1&query=GOR+PBSI+Sumut+Pancing" },
+      { name: "GOR Ranau Jakabaring Palembang", address: "Kawasan Jakabaring Sport City, 15 Ulu, Seberang Ulu I, Kota Palembang", area: "Palembang", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Ranau+Jakabaring+Palembang" },
+      { name: "GOR Mattalatta Mattoanging Makassar", address: "Jl. Mappanyukki, Kunjung Mae, Mariso, Kota Makassar", area: "Makassar", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Mattalatta+Makassar" },
+      { name: "GOR Sudiang Makassar", address: "Jl. Pajjaiang, Sudiang Raya, Biringkanaya, Kota Makassar", area: "Makassar", maps: "https://www.google.com/maps/search/?api=1&query=GOR+Sudiang+Makassar" }
     ];
 
     const vSearch = document.getElementById('venueSearch');
@@ -4806,8 +4877,8 @@ ${listLines.join('\n')}${fullTag}`;
         let photonMatches = [];
 
         try {
-          // 2. Fetch Photon API (OpenStreetMap geocoding with Jakarta bias)
-          const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(rawQuery)}&lat=-6.2088&lon=106.8456&limit=8`;
+          // 2. Fetch Photon & OpenStreetMap API for venues across Indonesia
+          const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(rawQuery)}&limit=10`;
           const res = await fetch(photonUrl);
           if (res.ok) {
             const data = await res.json();
@@ -4826,7 +4897,7 @@ ${listLines.join('\n')}${fullTag}`;
                   if (p.state && p.state !== p.city) parts.push(p.state);
 
                   const fullAddress = parts.length > 0 ? parts.join(', ') : (p.name || rawQuery);
-                  const area = p.district || p.city || 'DKI Jakarta';
+                  const area = p.city || p.district || p.state || 'Indonesia';
                   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(title + ' ' + fullAddress)}`;
 
                   return {
@@ -4835,7 +4906,7 @@ ${listLines.join('\n')}${fullTag}`;
                     area: area,
                     maps: mapsUrl,
                     countrycode: p.countrycode || '',
-                    source: 'Photon API'
+                    source: 'OpenStreetMap Indonesia'
                   };
                 })
                 // Prioritize Indonesian results
@@ -4843,7 +4914,7 @@ ${listLines.join('\n')}${fullTag}`;
             }
           }
         } catch (err) {
-          console.warn('Photon API fetch error:', err);
+          console.warn('Geocoding fetch error:', err);
         } finally {
           if (vSpinner) vSpinner.classList.add('hidden');
         }
@@ -4860,7 +4931,7 @@ ${listLines.join('\n')}${fullTag}`;
           }
         });
 
-        currentItems = combined.slice(0, 8);
+        currentItems = combined.slice(0, 10);
         renderVenueSuggestions(currentItems, rawQuery);
       }
 

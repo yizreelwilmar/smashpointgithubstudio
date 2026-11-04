@@ -196,29 +196,20 @@ if ($isPicFoto) {
 }
 
 // Multi-Session Isolation Logic (Zero URL ID Exposure):
-if ($isPic) {
+$sessStored = isset($_SESSION['courtside_session_id']) ? (int)$_SESSION['courtside_session_id'] : 0;
+if ($sessStored > 0) {
+    $sessionId = $sessStored;
+} elseif ($isPic || $isPicFoto) {
     $assignedId = Auth::assignedSessionId();
-    $sessionId = ($assignedId && $assignedId > 0) ? $assignedId : 0;
-    $_SESSION['courtside_session_id'] = $sessionId;
-} elseif ($isPicFoto) {
-    $assignedId = Auth::assignedSessionId();
-    $sessStored = isset($_SESSION['courtside_session_id']) ? (int)$_SESSION['courtside_session_id'] : 0;
-    if ($sessStored > 0) {
-        $sessionId = $sessStored;
-    } elseif ($assignedId && $assignedId > 0) {
+    if ($assignedId && $assignedId > 0) {
         $sessionId = $assignedId;
     } else {
         $sessionId = !empty($allSchedules) ? (int)$allSchedules[0]['id'] : 0;
     }
     $_SESSION['courtside_session_id'] = $sessionId;
 } else {
-    $sessStored = isset($_SESSION['courtside_session_id']) ? (int)$_SESSION['courtside_session_id'] : 0;
-    if ($sessStored > 0) {
-        $sessionId = $sessStored;
-    } else {
-        $sessionId = !empty($allSchedules) ? (int)$allSchedules[0]['id'] : 0;
-        $_SESSION['courtside_session_id'] = $sessionId;
-    }
+    $sessionId = !empty($allSchedules) ? (int)$allSchedules[0]['id'] : 0;
+    $_SESSION['courtside_session_id'] = $sessionId;
 }
 
 $currentSession = $sessionId > 0 ? Schedule::find($sessionId) : null;
@@ -460,6 +451,33 @@ $confirmedParticipants = array_filter($participants, function($p) {
 $waitingListParticipants = array_filter($participants, function($p) {
     return ($p['status'] ?? 'confirmed') === 'waiting_list';
 });
+
+// Build WhatsApp Final Recap Text for 1-Tap Copy
+$waRecapLines = [];
+if ($currentSession) {
+    $waRecapLines[] = "*REKAPITULASI MABAR " . strtoupper($brandName) . "*";
+    $waRecapLines[] = "Tempat: " . ($currentSession['venue_name'] ?? '-');
+    $waRecapLines[] = "Tanggal: " . ($currentSession['day_name'] ?? '-') . ", " . formatIndoDate($currentSession['schedule_date'] ?? date('Y-m-d'));
+    $tSt = isset($currentSession['time_start']) ? $currentSession['time_start'] : ($currentSession['start_time'] ?? '19:00');
+    $tEn = isset($currentSession['time_end']) ? $currentSession['time_end'] : ($currentSession['end_time'] ?? '22:00');
+    $waRecapLines[] = "Waktu: " . substr($tSt, 0, 5) . " - " . substr($tEn, 0, 5) . " WIB";
+    $waRecapLines[] = "";
+    $waRecapLines[] = "*STATISTIK SESI:*";
+    $waRecapLines[] = "• Total Pertandingan: " . count($completedMatches) . " Match";
+    $waRecapLines[] = "• Total Pemain Hadir: " . ($paymentSummary['total_present'] ?? 0) . " Orang";
+    $waRecapLines[] = "• Kas Terkumpul: Rp " . number_format($paymentSummary['total_cash_collected'] ?? 0, 0, ',', '.') . " (" . ($paymentSummary['total_paid'] ?? 0) . "/" . ($paymentSummary['total_present'] ?? 0) . " Lunas)";
+    if (!empty($sessionLeaderboard)) {
+        $waRecapLines[] = "";
+        $waRecapLines[] = "*TOP PERFORMERS / KLASEMEN SESI:*";
+        foreach (array_slice($sessionLeaderboard, 0, 5) as $rank => $sb) {
+            $rNum = $rank + 1;
+            $waRecapLines[] = "{$rNum}. " . $sb['name'] . " (" . $sb['total_matches'] . "x Main | " . $sb['wins'] . "M-" . $sb['losses'] . "K | " . $sb['total_points'] . " Poin)";
+        }
+    }
+    $waRecapLines[] = "";
+    $waRecapLines[] = "Terima kasih atas kehadiran seluruh pemain! Sampai jumpa di mabar berikutnya!";
+}
+$waRecapFullText = implode("\n", $waRecapLines);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -510,16 +528,16 @@ $waitingListParticipants = array_filter($participants, function($p) {
     <div class="max-w-5xl mx-auto px-3.5 py-2 flex items-center justify-between gap-2 border-b border-slate-800/80">
       <div class="flex items-center gap-2 min-w-0">
         <?php if (!empty($settings['logo_url'])): ?>
-          <img src="<?= htmlspecialchars($settings['logo_url']) ?>" alt="Logo" class="w-7 h-7 object-contain border border-amber-400/40 bg-white p-0.5 shrink-0">
+          <img src="<?= htmlspecialchars($settings['logo_url']) ?>" alt="Logo" class="w-7 h-7 object-contain border border-amber-400/40 bg-white p-0.5 shrink-0 rounded">
         <?php else: ?>
-          <div class="w-7 h-7 bg-[#071324] border border-amber-400/40 flex items-center justify-center text-amber-400 font-black text-xs shrink-0">
+          <div class="w-7 h-7 bg-[#071324] border border-amber-400/40 flex items-center justify-center text-amber-400 font-black text-xs shrink-0 rounded">
             <?= htmlspecialchars($brandInitials) ?>
           </div>
         <?php endif; ?>
         <div class="min-w-0">
           <div class="flex items-center gap-1.5 min-w-0">
             <span class="text-xs font-black tracking-wider text-white uppercase truncate font-mono max-w-[165px] sm:max-w-xs"><?= htmlspecialchars($brandName) ?></span>
-            <span class="px-1.5 py-0.2 <?= $isPicFoto ? 'bg-cyan-400 text-cyan-950' : 'bg-amber-400 text-slate-950' ?> text-[9px] font-black uppercase tracking-wider shrink-0">
+            <span class="px-1.5 py-0.2 <?= $isPicFoto ? 'bg-cyan-400 text-cyan-950' : 'bg-amber-400 text-slate-950' ?> text-[9px] font-black uppercase tracking-wider shrink-0 rounded-xs">
               <?= $isPicFoto ? 'PIC FOTO' : ($isPic ? 'PIC LAPANGAN' : 'ADMIN') ?>
             </span>
           </div>
@@ -530,31 +548,27 @@ $waitingListParticipants = array_filter($participants, function($p) {
         <span class="text-[11px] font-semibold text-slate-300 hidden sm:inline-block max-w-[120px] truncate">
           <?= htmlspecialchars($user['name']) ?>
         </span>
-        <a href="?action=logout" onclick="handleLogoutConfirm(event)" class="px-2.5 py-1 bg-slate-800/90 hover:bg-rose-900 text-slate-200 hover:text-white text-[11px] font-bold transition-colors border border-slate-700 flex items-center gap-1 active:scale-95" title="Keluar">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-          <span>Keluar</span>
+        <a href="?action=logout" onclick="handleLogoutConfirm(event)" class="px-2.5 py-1 bg-slate-800/90 hover:bg-rose-900 text-slate-200 hover:text-white text-[11px] font-black uppercase tracking-wider transition-all border border-slate-700 rounded active:scale-95" title="Keluar">
+          Keluar
         </a>
       </div>
     </div>
 
     <!-- Tier 2: Selected Venue & Session Switcher Bar -->
     <div class="max-w-5xl mx-auto px-3.5 py-1.5 bg-[#071324] flex items-center justify-between gap-2">
-      <div class="flex items-center gap-1.5 min-w-0">
-        <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
-        </svg>
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="w-2 h-2 rounded-full bg-amber-400 inline-block shrink-0 animate-pulse"></span>
         <span class="text-xs font-black text-white truncate leading-tight">
           <?= htmlspecialchars($currentSession ? $currentSession['venue_name'] : 'Tidak Ada Sesi') ?>
         </span>
-        <span class="text-[10px] font-mono font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 border border-amber-400/30 shrink-0">
+        <span class="text-[10px] font-mono font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 border border-amber-400/30 shrink-0 rounded-xs">
           <?= htmlspecialchars($currentSession ? $currentSession['day_name'] : '-') ?> • <?= substr($currentSession ? (isset($currentSession['time_start']) ? $currentSession['time_start'] : $currentSession['start_time']) : '20:00', 0, 5) ?>
         </span>
       </div>
 
-      <?php if ($isAdmin || $isPicFoto): ?>
-        <button type="button" onclick="openSessionSheet()" class="shrink-0 px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-[11px] uppercase tracking-wider rounded shadow-xs flex items-center gap-1 active:scale-95 transition-all">
-          <span>Ganti Sesi</span>
-          <svg class="w-3 h-3 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+      <?php if ($isLoggedIn): ?>
+        <button type="button" onclick="openSessionSheet()" class="shrink-0 px-2.5 py-1 bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-[11px] uppercase tracking-wider rounded shadow-xs transition-all">
+          Ganti Sesi
         </button>
       <?php endif; ?>
     </div>
@@ -563,16 +577,20 @@ $waitingListParticipants = array_filter($participants, function($p) {
   <!-- ========================================== -->
   <!-- MAIN WORKSPACE -->
   <!-- ========================================== -->
-  <main class="max-w-5xl mx-auto px-4 py-3 flex-1 w-full">
+  <main class="max-w-5xl mx-auto px-3.5 sm:px-4 py-3 flex-1 w-full">
+
+    <?php 
+      $isSessionCompleted = ($currentSession && ($currentSession['status'] ?? '') === 'completed');
+    ?>
 
     <?php if (!$currentSession): ?>
-      <div class="p-8 bg-white border border-slate-200 text-center space-y-2 mt-4">
+      <div class="p-8 bg-white border border-slate-200 text-center space-y-2 mt-4 rounded-xl shadow-xs">
         <h3 class="text-sm font-bold text-slate-800">Akun Belum Ditugaskan ke Sesi Mabar</h3>
         <p class="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto">
           Akun PIC ini belum memiliki sesi yang ditentukan oleh Admin. Silakan hubungi Admin CMS untuk menetapkan sesi mabar Anda.
         </p>
         <div class="pt-2">
-          <a href="?action=logout" class="px-4 py-2 bg-slate-900 text-white text-xs font-bold inline-block">
+          <a href="?action=logout" class="px-4 py-2 bg-slate-900 text-white text-xs font-bold inline-block rounded">
             Keluar & Login Ulang
           </a>
         </div>
@@ -580,32 +598,87 @@ $waitingListParticipants = array_filter($participants, function($p) {
     <?php else: ?>
 
       <?php if (!empty($appMessage)): ?>
-        <div class="mb-3 p-3 bg-amber-50 border border-amber-300 text-amber-950 text-xs font-semibold flex items-center justify-between">
+        <div class="mb-3 p-3 bg-amber-50 border border-amber-300 text-amber-950 text-xs font-semibold flex items-center justify-between rounded-lg shadow-2xs">
           <span><?= htmlspecialchars($appMessage) ?></span>
           <button onclick="this.parentElement.remove()" class="text-amber-900 font-bold ml-3 text-xs">&times;</button>
         </div>
       <?php endif; ?>
 
       <?php if (!empty($appError)): ?>
-        <div class="mb-3 p-3 bg-rose-50 border border-rose-300 text-rose-950 text-xs font-semibold flex items-center justify-between">
+        <div class="mb-3 p-3 bg-rose-50 border border-rose-300 text-rose-950 text-xs font-semibold flex items-center justify-between rounded-lg shadow-2xs">
           <span><?= htmlspecialchars($appError) ?></span>
           <button onclick="this.parentElement.remove()" class="text-rose-800 font-bold ml-3 text-xs">&times;</button>
         </div>
       <?php endif; ?>
 
-      <?php if ($currentSession['status'] === 'completed'): ?>
-        <div class="mb-4 p-3.5 bg-emerald-50 border-2 border-emerald-400 text-emerald-950 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span class="text-xs font-black uppercase tracking-wider font-mono text-emerald-900">SESI MABAR INI TELAH SELESAI</span>
+      <?php if ($isSessionCompleted): 
+        // Build WhatsApp Recap Text for 1-Tap Copy
+        $recapWaText = "*REKAP AKHIR SESI MABAR " . strtoupper($brandName) . "*\n";
+        $recapWaText .= "GOR: " . ($currentSession['venue_name'] ?? '-') . "\n";
+        $recapWaText .= "Hari/Tgl: " . ($currentSession['day_name'] ?? '-') . ", " . formatIndoDate($currentSession['schedule_date'] ?? date('Y-m-d')) . "\n";
+        $recapWaText .= "Pukul: " . substr($currentSession['time_start'] ?? '20:00', 0, 5) . " - " . substr($currentSession['time_end'] ?? '23:00', 0, 5) . " WIB\n";
+        $recapWaText .= "Total Hadir: " . $paymentSummary['total_present'] . " Pemain\n";
+        $recapWaText .= "Total Game Selesai: " . count($completedMatches) . " Match\n\n";
+
+        if (!empty($sessionLeaderboard)) {
+            $recapWaText .= "*TOP 5 KLASEMEN POIN:*\n";
+            $top5 = array_slice($sessionLeaderboard, 0, 5);
+            foreach ($top5 as $i => $row) {
+                $recapWaText .= ($i + 1) . ". " . $row['name'] . " - " . $row['wins'] . "W/" . $row['losses'] . "L (" . $row['total_points'] . " Pts)\n";
+            }
+            $recapWaText .= "\n";
+        }
+
+        $recapWaText .= "*REKAPITULASI KAS:*\n";
+        $recapWaText .= "• Kas Iuran Masuk: Rp " . number_format($paymentSummary['total_cash_collected'], 0, ',', '.') . " (" . $paymentSummary['total_paid'] . "/" . $paymentSummary['total_present'] . " Lunas)\n";
+        if ($paymentSummary['total_unpaid'] > 0) {
+            $recapWaText .= "• Belum Lunas (" . $paymentSummary['total_unpaid'] . " Org): Rp " . number_format($paymentSummary['total_cash_pending'], 0, ',', '.') . "\n";
+        }
+        $recapWaText .= "\nTerima kasih semuanya sudah hadir & mabar seru malam ini! Sampai ketemu di sesi mabar berikutnya! 🏸";
+      ?>
+        <textarea id="whatsappRecapContent" class="hidden"><?= htmlspecialchars($recapWaText) ?></textarea>
+
+        <div class="mb-4 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 border-2 border-emerald-400 text-emerald-950 p-4 sm:p-5 rounded-xl shadow-sm space-y-3.5 transition-all">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-emerald-200 pb-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-xs font-black uppercase tracking-wider font-mono text-emerald-900">SESI MABAR TELAH SELESAI & TERKUNCI</span>
+              </div>
+              <div class="text-xs text-emerald-800 mt-1">
+                Ditutup pada <?= !empty($currentSession['completed_at']) ? date('d M Y, H:i', strtotime($currentSession['completed_at'])) . ' WIB' : 'Hari ini' ?>. Seluruh rotasi pertandingan dan pencatatan skor kini dalam mode arsip (terkunci).
+              </div>
             </div>
-            <div class="text-[11px] text-emerald-800 mt-0.5">
-              Ditutup pada <?= !empty($currentSession['completed_at']) ? date('d M Y, H:i', strtotime($currentSession['completed_at'])) . ' WIB' : 'Hari ini' ?>. Rekapitulasi kas dan pertandingan telah dicatat di sistem.
+            
+            <div class="flex items-center gap-2 flex-wrap">
+              <button type="button" onclick="copyWhatsappRecap()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-lg shadow-xs transition-all flex items-center justify-center">
+                Salin Rekap WhatsApp
+              </button>
+              <button type="button" onclick="openSessionSheet()" class="px-3 py-2 bg-[#0b1e36] hover:bg-[#071324] active:scale-95 text-amber-400 font-black text-xs uppercase tracking-wider rounded-lg border border-amber-400/30 transition-all flex items-center justify-center">
+                Ganti Sesi Lain
+              </button>
             </div>
           </div>
-          <div class="text-xs font-mono font-bold text-emerald-900 bg-white px-3 py-1.5 border border-emerald-300 self-start sm:self-center">
-            Kas: Rp <?= number_format($paymentSummary['total_cash_collected'], 0, ',', '.') ?> (<?= $paymentSummary['total_paid'] ?>/<?= $paymentSummary['total_present'] ?> Lunas)
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-0.5 text-xs font-mono">
+            <div class="bg-white/90 border border-emerald-200 p-2.5 rounded-lg">
+              <span class="text-[10px] text-emerald-700 font-bold block uppercase">Game Selesai</span>
+              <span class="text-base font-black text-emerald-950"><?= count($completedMatches) ?> Match</span>
+            </div>
+            <div class="bg-white/90 border border-emerald-200 p-2.5 rounded-lg">
+              <span class="text-[10px] text-emerald-700 font-bold block uppercase">Pemain Hadir</span>
+              <span class="text-base font-black text-emerald-950"><?= $paymentSummary['total_present'] ?> Orang</span>
+            </div>
+            <div class="bg-white/90 border border-emerald-200 p-2.5 rounded-lg">
+              <span class="text-[10px] text-emerald-700 font-bold block uppercase">Kas Masuk</span>
+              <span class="text-base font-black text-emerald-950">Rp <?= number_format($paymentSummary['total_cash_collected'], 0, ',', '.') ?></span>
+            </div>
+            <div class="bg-white/90 border border-emerald-200 p-2.5 rounded-lg">
+              <span class="text-[10px] text-emerald-700 font-bold block uppercase">Status Iuran</span>
+              <span class="text-base font-black <?= $paymentSummary['total_unpaid'] === 0 ? 'text-emerald-700' : 'text-amber-800' ?>">
+                <?= $paymentSummary['total_paid'] ?>/<?= $paymentSummary['total_present'] ?> Lunas
+              </span>
+            </div>
           </div>
         </div>
       <?php endif; ?>
@@ -715,9 +788,13 @@ $waitingListParticipants = array_filter($participants, function($p) {
                   </div>
 
                   <div class="flex items-center gap-2">
-                    <button type="button" onclick="confirmDeleteMatch(<?= $match['id'] ?>, <?= $c ?>)" class="text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 text-xs font-bold px-2 py-1 border border-rose-500/40 transition-colors" title="Batalkan match lapangan ini">
-                      ✕ Batalkan
-                    </button>
+                    <?php if (!$isSessionCompleted): ?>
+                      <button type="button" onclick="confirmDeleteMatch(<?= $match['id'] ?>, <?= $c ?>)" class="text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 text-xs font-bold px-2 py-1 border border-rose-500/40 transition-colors rounded" title="Batalkan match lapangan ini">
+                        Batalkan
+                      </button>
+                    <?php else: ?>
+                      <span class="text-[10px] font-mono font-bold bg-slate-800 text-slate-300 px-2 py-0.5 border border-slate-700 rounded-xs">Terkunci</span>
+                    <?php endif; ?>
                   </div>
                 </div>
 
@@ -727,14 +804,14 @@ $waitingListParticipants = array_filter($participants, function($p) {
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     
                     <!-- Team A -->
-                    <div class="bg-gradient-to-b from-blue-50/60 to-slate-50 p-3.5 border-2 border-blue-200 rounded-sm flex flex-col justify-between">
+                    <div class="bg-gradient-to-b from-blue-50/60 to-slate-50 p-3.5 border-2 border-blue-200 rounded-lg flex flex-col justify-between">
                       <div>
                         <div class="flex items-center justify-between text-xs font-mono font-black text-blue-950 uppercase tracking-wider border-b border-blue-200/80 pb-2 mb-2">
                           <span class="flex items-center gap-1.5">
                             <span class="w-2.5 h-2.5 bg-blue-600 rounded-full"></span>
                             <span>TIM A</span>
                           </span>
-                          <span class="text-blue-900 bg-blue-100/90 px-2 py-0.5 border border-blue-200 text-[10px] font-bold">Rating: <?= $ratingA ?></span>
+                          <span class="text-blue-900 bg-blue-100/90 px-2 py-0.5 border border-blue-200 text-[10px] font-bold rounded-xs">Rating: <?= $ratingA ?></span>
                         </div>
 
                         <!-- Player 1 -->
@@ -745,48 +822,57 @@ $waitingListParticipants = array_filter($participants, function($p) {
                         <div class="flex items-center justify-between gap-1.5 py-1.5 border-b border-slate-200/60">
                           <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
                             <span class="font-extrabold text-xs text-slate-900 truncate block"><?= htmlspecialchars($match['team_a_p1_name']) ?></span>
-                            <span class="text-[9px] font-bold font-mono uppercase text-blue-700 bg-blue-100/50 px-1">[<?= htmlspecialchars($match['team_a_p1_level']) ?>]</span>
-                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2" title="Jumlah main sesi ini"><?= $pA1Played ?>x Main</span>
+                            <span class="text-[9px] font-bold font-mono uppercase text-blue-700 bg-blue-100/50 px-1 rounded-xs">[<?= htmlspecialchars($match['team_a_p1_level']) ?>]</span>
+                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2 rounded-xs" title="Jumlah main sesi ini"><?= $pA1Played ?>x Main</span>
                           </div>
-                          <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_a_p1', '<?= htmlspecialchars(addslashes($match['team_a_p1_name'])) ?>', <?= (int)$match['team_a_p1'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 shadow-2xs" title="Tukar Pemain">Tukar</button>
+                          <?php if (!$isSessionCompleted): ?>
+                            <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_a_p1', '<?= htmlspecialchars(addslashes($match['team_a_p1_name'])) ?>', <?= (int)$match['team_a_p1'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 rounded shadow-2xs" title="Tukar Pemain">Tukar</button>
+                          <?php endif; ?>
                         </div>
 
                         <!-- Player 2 -->
                         <div class="flex items-center justify-between gap-1.5 py-1.5">
                           <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
                             <span class="font-extrabold text-xs text-slate-900 truncate block"><?= htmlspecialchars($match['team_a_p2_name']) ?></span>
-                            <span class="text-[9px] font-bold font-mono uppercase text-blue-700 bg-blue-100/50 px-1">[<?= htmlspecialchars($match['team_a_p2_level']) ?>]</span>
-                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2" title="Jumlah main sesi ini"><?= $pA2Played ?>x Main</span>
+                            <span class="text-[9px] font-bold font-mono uppercase text-blue-700 bg-blue-100/50 px-1 rounded-xs">[<?= htmlspecialchars($match['team_a_p2_level']) ?>]</span>
+                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2 rounded-xs" title="Jumlah main sesi ini"><?= $pA2Played ?>x Main</span>
                           </div>
-                          <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_a_p2', '<?= htmlspecialchars(addslashes($match['team_a_p2_name'])) ?>', <?= (int)$match['team_a_p2'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 shadow-2xs" title="Tukar Pemain">Tukar</button>
+                          <?php if (!$isSessionCompleted): ?>
+                            <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_a_p2', '<?= htmlspecialchars(addslashes($match['team_a_p2_name'])) ?>', <?= (int)$match['team_a_p2'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 rounded shadow-2xs" title="Tukar Pemain">Tukar</button>
+                          <?php endif; ?>
                         </div>
                       </div>
 
                       <!-- Stepper Controller Score A -->
-                      <div class="flex items-center justify-center gap-2 mt-3 pt-2.5 border-t border-blue-200/60 bg-white p-2 shadow-inner">
+                      <div class="flex items-center justify-center gap-2 mt-3 pt-2.5 border-t border-blue-200/60 bg-white p-2 rounded shadow-inner">
                         <span class="text-xs font-mono font-bold text-slate-600 mr-1">Skor:</span>
-                        <button type="button" onclick="decrementScore('a', <?= $match['id'] ?>)" class="w-12 h-11 bg-slate-100 hover:bg-slate-200 active:scale-90 text-slate-900 font-black text-2xl flex items-center justify-center select-none border border-slate-300 transition-transform">-</button>
+                        <?php if (!$isSessionCompleted): ?>
+                          <button type="button" onclick="decrementScore('a', <?= $match['id'] ?>)" class="w-12 h-11 bg-slate-100 hover:bg-slate-200 active:scale-90 text-slate-900 font-black text-2xl flex items-center justify-center select-none border border-slate-300 rounded transition-transform">-</button>
+                        <?php endif; ?>
                         <input type="number" 
                                id="score_a_<?= $match['id'] ?>" 
                                value="<?= (int)$match['score_team_a'] ?>" 
+                               <?= $isSessionCompleted ? 'disabled' : '' ?>
                                onclick="this.select()"
                                onfocus="if(this.value==='0') this.value='';" 
                                onblur="if(this.value==='') this.value='0';" 
                                oninput="if(this.value.length > 1 && this.value.startsWith('0')) this.value = parseInt(this.value, 10);"
-                               class="w-16 h-11 text-center bg-white border-2 border-slate-400 font-mono font-black text-2xl text-slate-900 focus:outline-none focus:border-[#0b1e36] shadow-xs">
-                        <button type="button" onclick="incrementScore('a', <?= $match['id'] ?>)" class="w-12 h-11 bg-[#0b1e36] hover:bg-[#071324] active:scale-90 text-amber-400 font-black text-2xl flex items-center justify-center select-none border border-amber-400/40 transition-transform">+</button>
+                               class="w-16 h-11 text-center bg-white border-2 border-slate-400 font-mono font-black text-2xl text-slate-900 focus:outline-none focus:border-[#0b1e36] rounded shadow-xs <?= $isSessionCompleted ? 'opacity-80 bg-slate-100' : '' ?>">
+                        <?php if (!$isSessionCompleted): ?>
+                          <button type="button" onclick="incrementScore('a', <?= $match['id'] ?>)" class="w-12 h-11 bg-[#0b1e36] hover:bg-[#071324] active:scale-90 text-amber-400 font-black text-2xl flex items-center justify-center select-none border border-amber-400/40 rounded transition-transform">+</button>
+                        <?php endif; ?>
                       </div>
                     </div>
 
                     <!-- Team B -->
-                    <div class="bg-gradient-to-b from-rose-50/60 to-slate-50 p-3.5 border-2 border-rose-200 rounded-sm flex flex-col justify-between">
+                    <div class="bg-gradient-to-b from-rose-50/60 to-slate-50 p-3.5 border-2 border-rose-200 rounded-lg flex flex-col justify-between">
                       <div>
                         <div class="flex items-center justify-between text-xs font-mono font-black text-rose-950 uppercase tracking-wider border-b border-rose-200/80 pb-2 mb-2">
                           <span class="flex items-center gap-1.5">
                             <span class="w-2.5 h-2.5 bg-rose-600 rounded-full"></span>
                             <span>TIM B</span>
                           </span>
-                          <span class="text-rose-900 bg-rose-100/90 px-2 py-0.5 border border-rose-200 text-[10px] font-bold">Rating: <?= $ratingB ?></span>
+                          <span class="text-rose-900 bg-rose-100/90 px-2 py-0.5 border border-rose-200 text-[10px] font-bold rounded-xs">Rating: <?= $ratingB ?></span>
                         </div>
 
                         <!-- Player 1 -->
@@ -797,59 +883,74 @@ $waitingListParticipants = array_filter($participants, function($p) {
                         <div class="flex items-center justify-between gap-1.5 py-1.5 border-b border-slate-200/60">
                           <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
                             <span class="font-extrabold text-xs text-slate-900 truncate block"><?= htmlspecialchars($match['team_b_p1_name']) ?></span>
-                            <span class="text-[9px] font-bold font-mono uppercase text-rose-700 bg-rose-100/50 px-1">[<?= htmlspecialchars($match['team_b_p1_level']) ?>]</span>
-                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2" title="Jumlah main sesi ini"><?= $pB1Played ?>x Main</span>
+                            <span class="text-[9px] font-bold font-mono uppercase text-rose-700 bg-rose-100/50 px-1 rounded-xs">[<?= htmlspecialchars($match['team_b_p1_level']) ?>]</span>
+                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2 rounded-xs" title="Jumlah main sesi ini"><?= $pB1Played ?>x Main</span>
                           </div>
-                          <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_b_p1', '<?= htmlspecialchars(addslashes($match['team_b_p1_name'])) ?>', <?= (int)$match['team_b_p1'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 shadow-2xs" title="Tukar Pemain">Tukar</button>
+                          <?php if (!$isSessionCompleted): ?>
+                            <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_b_p1', '<?= htmlspecialchars(addslashes($match['team_b_p1_name'])) ?>', <?= (int)$match['team_b_p1'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 rounded shadow-2xs" title="Tukar Pemain">Tukar</button>
+                          <?php endif; ?>
                         </div>
 
                         <!-- Player 2 -->
                         <div class="flex items-center justify-between gap-1.5 py-1.5">
                           <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
                             <span class="font-extrabold text-xs text-slate-900 truncate block"><?= htmlspecialchars($match['team_b_p2_name']) ?></span>
-                            <span class="text-[9px] font-bold font-mono uppercase text-rose-700 bg-rose-100/50 px-1">[<?= htmlspecialchars($match['team_b_p2_level']) ?>]</span>
-                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2" title="Jumlah main sesi ini"><?= $pB2Played ?>x Main</span>
+                            <span class="text-[9px] font-bold font-mono uppercase text-rose-700 bg-rose-100/50 px-1 rounded-xs">[<?= htmlspecialchars($match['team_b_p2_level']) ?>]</span>
+                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2 rounded-xs" title="Jumlah main sesi ini"><?= $pB2Played ?>x Main</span>
                           </div>
-                          <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_b_p2', '<?= htmlspecialchars(addslashes($match['team_b_p2_name'])) ?>', <?= (int)$match['team_b_p2'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 shadow-2xs" title="Tukar Pemain">Tukar</button>
+                          <?php if (!$isSessionCompleted): ?>
+                            <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_b_p2', '<?= htmlspecialchars(addslashes($match['team_b_p2_name'])) ?>', <?= (int)$match['team_b_p2'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 rounded shadow-2xs" title="Tukar Pemain">Tukar</button>
+                          <?php endif; ?>
                         </div>
                       </div>
 
                       <!-- Stepper Controller Score B -->
-                      <div class="flex items-center justify-center gap-2 mt-3 pt-2.5 border-t border-rose-200/60 bg-white p-2 shadow-inner">
+                      <div class="flex items-center justify-center gap-2 mt-3 pt-2.5 border-t border-rose-200/60 bg-white p-2 rounded shadow-inner">
                         <span class="text-xs font-mono font-bold text-slate-600 mr-1">Skor:</span>
-                        <button type="button" onclick="decrementScore('b', <?= $match['id'] ?>)" class="w-12 h-11 bg-slate-100 hover:bg-slate-200 active:scale-90 text-slate-900 font-black text-2xl flex items-center justify-center select-none border border-slate-300 transition-transform">-</button>
+                        <?php if (!$isSessionCompleted): ?>
+                          <button type="button" onclick="decrementScore('b', <?= $match['id'] ?>)" class="w-12 h-11 bg-slate-100 hover:bg-slate-200 active:scale-90 text-slate-900 font-black text-2xl flex items-center justify-center select-none border border-slate-300 rounded transition-transform">-</button>
+                        <?php endif; ?>
                         <input type="number" 
                                id="score_b_<?= $match['id'] ?>" 
                                value="<?= (int)$match['score_team_b'] ?>" 
+                               <?= $isSessionCompleted ? 'disabled' : '' ?>
                                onclick="this.select()"
                                onfocus="if(this.value==='0') this.value='';" 
                                onblur="if(this.value==='') this.value='0';" 
                                oninput="if(this.value.length > 1 && this.value.startsWith('0')) this.value = parseInt(this.value, 10);"
-                               class="w-16 h-11 text-center bg-white border-2 border-slate-400 font-mono font-black text-2xl text-slate-900 focus:outline-none focus:border-[#0b1e36] shadow-xs">
-                        <button type="button" onclick="incrementScore('b', <?= $match['id'] ?>)" class="w-12 h-11 bg-[#0b1e36] hover:bg-[#071324] active:scale-90 text-amber-400 font-black text-2xl flex items-center justify-center select-none border border-amber-400/40 transition-transform">+</button>
+                               class="w-16 h-11 text-center bg-white border-2 border-slate-400 font-mono font-black text-2xl text-slate-900 focus:outline-none focus:border-[#0b1e36] rounded shadow-xs <?= $isSessionCompleted ? 'opacity-80 bg-slate-100' : '' ?>">
+                        <?php if (!$isSessionCompleted): ?>
+                          <button type="button" onclick="incrementScore('b', <?= $match['id'] ?>)" class="w-12 h-11 bg-[#0b1e36] hover:bg-[#071324] active:scale-90 text-amber-400 font-black text-2xl flex items-center justify-center select-none border border-amber-400/40 rounded transition-transform">+</button>
+                        <?php endif; ?>
                       </div>
                     </div>
 
                   </div>
 
                   <!-- Save Score Button -->
-                  <button type="submit" class="w-full min-h-[48px] py-3 bg-[#0b1e36] hover:bg-[#071324] text-amber-400 hover:text-amber-300 font-black text-xs uppercase tracking-wider transition-all border border-amber-400/30 active:scale-[0.99] flex items-center justify-center gap-2 shadow-sm">
-                    <span>Simpan Skor & Selesaikan Lapangan <?= $c ?></span>
-                  </button>
+                  <?php if (!$isSessionCompleted): ?>
+                    <button type="submit" class="w-full min-h-[48px] py-3 bg-[#0b1e36] hover:bg-[#071324] text-amber-400 hover:text-amber-300 font-black text-xs uppercase tracking-wider transition-all border border-amber-400/30 active:scale-[0.99] flex items-center justify-center gap-2 rounded-lg shadow-sm">
+                      <span>Simpan Skor & Selesaikan Lapangan <?= $c ?></span>
+                    </button>
+                  <?php else: ?>
+                    <div class="w-full py-2.5 bg-slate-100 text-slate-500 font-mono text-xs font-bold text-center border border-slate-200 rounded-lg">
+                      Sesi Mabar Telah Ditutup • Pertandingan Ini Telah Diarsipkan
+                    </div>
+                  <?php endif; ?>
                 </form>
 
               </div>
             <?php else: ?>
               <!-- LAPANGAN KOSONG / SIAP ROTASI BERGULIR -->
-              <div class="bg-white border-2 border-dashed border-emerald-300 shadow-xs p-4 sm:p-5 space-y-4">
+              <div class="bg-white border-2 border-dashed border-emerald-300 shadow-xs p-4 sm:p-5 space-y-4 rounded-xl">
                 
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
                   <div class="flex items-center gap-2">
-                    <span class="px-2.5 py-1 bg-[#0b1e36] text-amber-400 font-mono font-black text-xs uppercase tracking-wider">
+                    <span class="px-2.5 py-1 bg-[#0b1e36] text-amber-400 font-mono font-black text-xs uppercase tracking-wider rounded">
                       LAPANGAN <?= $c ?>
                     </span>
-                    <span class="px-2.5 py-0.5 text-[10px] font-mono font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300">
-                      [KOSONG / SIAP ROTASI]
+                    <span class="px-2.5 py-0.5 text-[10px] font-mono font-black uppercase tracking-wider <?= $isSessionCompleted ? 'bg-slate-100 text-slate-600 border border-slate-300' : 'bg-emerald-50 text-emerald-800 border border-emerald-300' ?> rounded-xs">
+                      <?= $isSessionCompleted ? '[SELESAI / TERKUNCI]' : '[KOSONG / SIAP ROTASI]' ?>
                     </span>
                   </div>
 
@@ -860,44 +961,51 @@ $waitingListParticipants = array_filter($participants, function($p) {
                   <?php endif; ?>
                 </div>
 
-                <!-- Callout explanation & Priority Queue Preview -->
-                <div class="bg-emerald-50/60 border border-emerald-200 p-3.5 space-y-2.5">
-                  <div class="text-xs font-bold text-emerald-950 flex items-center justify-between">
-                    <span>Lapangan <?= $c ?> Siap Digunakan!</span>
-                    <span class="font-mono text-[11px] text-emerald-800"><?= $idleCount ?> pemain menganggur</span>
+                <?php if ($isSessionCompleted): ?>
+                  <div class="p-4 bg-slate-50 border border-slate-200 text-center space-y-1 rounded-lg">
+                    <span class="text-xs font-bold text-slate-700 block">Lapangan <?= $c ?> Selesai</span>
+                    <span class="text-[11px] text-slate-400 font-mono">Sesi mabar telah ditutup & rotasi lapangan dikunci.</span>
                   </div>
+                <?php else: ?>
+                  <!-- Callout explanation & Priority Queue Preview -->
+                  <div class="bg-emerald-50/60 border border-emerald-200 p-3.5 space-y-2.5 rounded-lg">
+                    <div class="text-xs font-bold text-emerald-950 flex items-center justify-between">
+                      <span>Lapangan <?= $c ?> Siap Digunakan!</span>
+                      <span class="font-mono text-[11px] text-emerald-800"><?= $idleCount ?> pemain menganggur</span>
+                    </div>
 
-                  <?php 
-                    $preview4 = array_slice($idlePresentPlayers, 0, 4);
-                  ?>
+                    <?php 
+                      $preview4 = array_slice($idlePresentPlayers, 0, 4);
+                    ?>
 
-                  <?php if (count($preview4) >= 4): ?>
-                    <div>
-                      <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-900 block mb-1">
-                        4 Pemain Prioritas Utama Antrean (Paling Sedikit Main):
-                      </span>
-                      <div class="flex flex-wrap gap-1.5">
-                        <?php foreach ($preview4 as $pIdx => $pItem): ?>
-                          <span class="px-2 py-1 bg-white border border-emerald-300 text-slate-900 text-xs font-bold inline-flex items-center gap-1 shadow-2xs">
-                            <span class="font-mono text-emerald-800 text-[10px] font-black">#<?= $pIdx + 1 ?></span>
-                            <span><?= htmlspecialchars($pItem['name']) ?></span>
-                            <span class="text-[9px] font-mono text-slate-500">[<?= htmlspecialchars($pItem['level'] ?: 'Int') ?>]</span>
-                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 px-1"><?= $pItem['play_count'] ?>x</span>
-                          </span>
-                        <?php endforeach; ?>
+                    <?php if (count($preview4) >= 4): ?>
+                      <div>
+                        <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-900 block mb-1">
+                          4 Pemain Prioritas Utama Antrean (Paling Sedikit Main):
+                        </span>
+                        <div class="flex flex-wrap gap-1.5">
+                          <?php foreach ($preview4 as $pIdx => $pItem): ?>
+                            <span class="px-2 py-1 bg-white border border-emerald-300 text-slate-900 text-xs font-bold inline-flex items-center gap-1 shadow-2xs rounded">
+                              <span class="font-mono text-emerald-800 text-[10px] font-black">#<?= $pIdx + 1 ?></span>
+                              <span><?= htmlspecialchars($pItem['name']) ?></span>
+                              <span class="text-[9px] font-mono text-slate-500">[<?= htmlspecialchars($pItem['level'] ?: 'Int') ?>]</span>
+                              <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 px-1 rounded-xs"><?= $pItem['play_count'] ?>x</span>
+                            </span>
+                          <?php endforeach; ?>
+                        </div>
                       </div>
-                    </div>
 
-                    <!-- Rolling Dispatch Action Button -->
-                    <button type="button" onclick="generateSingleCourt(<?= $sessionId ?>, <?= $c ?>)" class="w-full min-h-[48px] py-3 bg-[#0b1e36] hover:bg-[#071324] text-amber-400 hover:text-amber-300 font-black text-xs uppercase tracking-wider transition-all border border-amber-400/40 active:scale-[0.99] flex items-center justify-center gap-2 shadow-md">
-                      <span>+ Panggil 4 Pemain Berikutnya ke Lapangan <?= $c ?></span>
-                    </button>
-                  <?php else: ?>
-                    <div class="text-xs text-amber-900 leading-relaxed">
-                      Saat ini hanya tersisa <strong><?= count($preview4) ?> pemain bebas</strong> di antrean istirahat. Butuh minimal <strong>4 pemain bebas</strong> untuk mengisi Lapangan <?= $c ?>. Pemain dari lapangan lain akan otomatis masuk antrean segera setelah pertandingannya selesai dicatat skornya.
-                    </div>
-                  <?php endif; ?>
-                </div>
+                      <!-- Rolling Dispatch Action Button -->
+                      <button type="button" onclick="generateSingleCourt(<?= $sessionId ?>, <?= $c ?>)" class="w-full min-h-[48px] py-3 bg-[#0b1e36] hover:bg-[#071324] text-amber-400 hover:text-amber-300 font-black text-xs uppercase tracking-wider transition-all border border-amber-400/40 active:scale-[0.99] flex items-center justify-center gap-2 rounded-lg shadow-md">
+                        <span>+ Panggil 4 Pemain Berikutnya ke Lapangan <?= $c ?></span>
+                      </button>
+                    <?php else: ?>
+                      <div class="text-xs text-amber-900 leading-relaxed">
+                        Saat ini hanya tersisa <strong><?= count($preview4) ?> pemain bebas</strong> di antrean istirahat. Butuh minimal <strong>4 pemain bebas</strong> untuk mengisi Lapangan <?= $c ?>. Pemain dari lapangan lain akan otomatis masuk antrean segera setelah pertandingannya selesai dicatat skornya.
+                      </div>
+                    <?php endif; ?>
+                  </div>
+                <?php endif; ?>
 
               </div>
             <?php endif; ?>
@@ -905,7 +1013,7 @@ $waitingListParticipants = array_filter($participants, function($p) {
         </div>
 
         <!-- 3. LIVE ANTREAN ISTIRAHAT (QUEUE PANEL) -->
-        <div class="bg-white border border-slate-200 p-4 mb-5 shadow-xs space-y-3">
+        <div class="bg-white border border-slate-200 p-4 mb-5 shadow-xs space-y-3 rounded-xl">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-100 pb-2.5">
             <div>
               <h3 class="text-xs font-black uppercase tracking-wider font-mono text-slate-900">
@@ -921,7 +1029,7 @@ $waitingListParticipants = array_filter($participants, function($p) {
           </div>
 
           <?php if (empty($idlePresentPlayers)): ?>
-            <div class="p-6 text-center text-xs text-slate-500 bg-slate-50 border border-slate-200">
+            <div class="p-6 text-center text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg">
               Seluruh pemain yang hadir saat ini sedang berada di lapangan bertanding.
             </div>
           <?php else: ?>
@@ -929,9 +1037,9 @@ $waitingListParticipants = array_filter($participants, function($p) {
               <?php foreach ($idlePresentPlayers as $idx => $rp): 
                 $isNextUp = ($idx < 4);
               ?>
-                <div class="p-2.5 border <?= $isNextUp ? 'bg-amber-50/60 border-amber-300 shadow-2xs' : 'bg-slate-50 border-slate-200' ?> flex items-center justify-between gap-2">
+                <div class="p-2.5 border <?= $isNextUp ? 'bg-amber-50/60 border-amber-300 shadow-2xs' : 'bg-slate-50 border-slate-200' ?> flex items-center justify-between gap-2 rounded-lg transition-all">
                   <div class="flex items-center gap-2 min-w-0">
-                    <span class="w-6 h-6 flex items-center justify-center font-mono font-black text-xs <?= $isNextUp ? 'bg-[#0b1e36] text-amber-400' : 'bg-slate-200 text-slate-700' ?> shrink-0">
+                    <span class="w-6 h-6 flex items-center justify-center font-mono font-black text-xs <?= $isNextUp ? 'bg-[#0b1e36] text-amber-400' : 'bg-slate-200 text-slate-700' ?> shrink-0 rounded">
                       <?= $idx + 1 ?>
                     </span>
                     <div class="min-w-0">
@@ -944,7 +1052,7 @@ $waitingListParticipants = array_filter($participants, function($p) {
                   </div>
 
                   <?php if ($isNextUp): ?>
-                    <span class="text-[9px] font-mono font-black uppercase tracking-wider px-1.5 py-0.5 bg-amber-400 text-slate-950 shrink-0">
+                    <span class="text-[9px] font-mono font-black uppercase tracking-wider px-1.5 py-0.5 bg-amber-400 text-slate-950 shrink-0 rounded-xs">
                       NEXT
                     </span>
                   <?php endif; ?>
@@ -955,90 +1063,166 @@ $waitingListParticipants = array_filter($participants, function($p) {
         </div>
 
         <!-- 4. PENGATURAN ROTASI SERENTAK (BATCH GENERATE SEMUA LAPANGAN) -->
-        <details class="bg-white border border-slate-200 shadow-xs mb-4 group">
-          <summary class="p-3.5 cursor-pointer flex items-center justify-between text-xs font-black uppercase tracking-wider font-mono text-slate-800 hover:bg-slate-50 transition-colors select-none">
-            <div class="flex items-center gap-2">
-              <span class="px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-300 text-[10px]">OPSI LAIN</span>
-              <span>Acak Semua Lapangan Sekaligus (Rotasi Serentak Ronde)</span>
-            </div>
-            <span class="text-xs text-slate-400 group-open:rotate-180 transition-transform">▼</span>
-          </summary>
-
-          <div class="p-4 border-t border-slate-100 bg-slate-50/50 space-y-3">
-            <p class="text-xs text-slate-600 leading-relaxed">
-              Gunakan opsi ini hanya jika ingin memulai ronde serentak untuk semua lapangan sekaligus (misalnya di awal pembukaan sesi mabar).
-            </p>
-
-            <form id="generateRoundForm" class="pt-1">
-              <input type="hidden" name="session_id" value="<?= $sessionId ?>">
-              
-              <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                <div class="md:col-span-4">
-                  <label for="courtCountSelect" class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1 font-mono">
-                    Pilih Jumlah Lapangan:
-                  </label>
-                  <select name="court_count" id="courtCountSelect" data-no-search class="w-full bg-white border border-slate-300 px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none min-h-[44px]">
-                    <?php for ($c = 1; $c <= $sessionCourts; $c++): 
-                      $reqP = $c * 4;
-                      $canPlay = ($presentCount >= $reqP);
-                    ?>
-                      <option value="<?= $c ?>" <?= ($c === min($sessionCourts, max(1, $maxPossibleCourts))) ? 'selected' : '' ?>>
-                        <?= $c ?> Lapangan <?= $canPlay ? "(Cukup - {$reqP} Pemain)" : "(Kurang Pemain - Butuh {$reqP})" ?>
-                      </option>
-                    <?php endfor; ?>
-                  </select>
-                </div>
-
-                <div class="md:col-span-4">
-                  <label for="algorithmSelect" class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1 font-mono">
-                    Strategi Pembagian Tim:
-                  </label>
-                  <select name="algorithm" id="algorithmSelect" data-no-search class="w-full bg-white border border-slate-300 px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none min-h-[44px]">
-                    <option value="balanced_level" selected>Fair Level (Kombinasi Seimbang)</option>
-                    <option value="tiered_level">Selevel (Pure Tier Mahir/Pemula)</option>
-                    <option value="fair_social">Kocok Campur Merata</option>
-                  </select>
-                </div>
-
-                <div class="md:col-span-4 flex items-center gap-2">
-                  <button type="submit" id="btnGenerate" class="flex-1 py-2.5 px-4 bg-[#0b1e36] hover:bg-[#071324] text-amber-400 font-black text-xs uppercase tracking-wider transition-all border border-amber-400/30 active:scale-95 whitespace-nowrap min-h-[44px] flex items-center justify-center gap-2 shadow-xs">
-                    <span>Acak Semua Lapangan</span>
-                  </button>
-                  <?php if (!empty($activeRoundMatches)): ?>
-                    <button type="button" onclick="confirmDeleteRound(<?= $sessionId ?>, <?= $latestRound ?>)" class="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 active:scale-95 min-h-[44px] shrink-0" title="Hapus dan reset ronde ini">
-                      Reset
-                    </button>
-                  <?php endif; ?>
-                </div>
-              </div>
-            </form>
-          </div>
-        </details>
-
-        <!-- 5. RIWAYAT PERTANDINGAN SELESAI (ACCORDION) -->
-        <?php if (!empty($completedMatches)): ?>
-          <details class="bg-white border border-slate-200 shadow-xs mb-5 group">
+        <?php if (!$isSessionCompleted): ?>
+          <details class="bg-white border border-slate-200 shadow-xs mb-4 group rounded-xl overflow-hidden">
             <summary class="p-3.5 cursor-pointer flex items-center justify-between text-xs font-black uppercase tracking-wider font-mono text-slate-800 hover:bg-slate-50 transition-colors select-none">
               <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-bold">ARSIP</span>
-                <span>Riwayat Pertandingan Selesai (<?= count($completedMatches) ?> Match)</span>
+                <span class="px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-300 text-[10px] rounded-xs">OPSI LAIN</span>
+                <span>Acak Semua Lapangan Sekaligus (Rotasi Serentak Ronde)</span>
               </div>
-              <span class="text-xs text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+              <span class="text-xs text-slate-400 font-mono">PILIH</span>
             </summary>
 
-            <div class="p-4 border-t border-slate-100 space-y-2.5 divide-y divide-slate-100">
-              <?php foreach (array_reverse($completedMatches) as $cm): ?>
-                <div class="pt-2.5 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div class="text-xs">
-                    <span class="font-mono font-bold text-slate-500 mr-2">Lap. <?= $cm['court_number'] ?> • Game #<?= $cm['round_number'] ?></span>
-                    <span class="font-bold text-slate-900"><?= htmlspecialchars($cm['team_a_p1_name']) ?> & <?= htmlspecialchars($cm['team_a_p2_name']) ?></span>
-                    <span class="font-mono font-black text-blue-900 bg-blue-100 px-1.5 py-0.5 mx-1.5"><?= $cm['score_team_a'] ?> - <?= $cm['score_team_b'] ?></span>
-                    <span class="font-bold text-slate-900"><?= htmlspecialchars($cm['team_b_p1_name']) ?> & <?= htmlspecialchars($cm['team_b_p2_name']) ?></span>
+            <div class="p-4 border-t border-slate-100 bg-slate-50/50 space-y-3">
+              <p class="text-xs text-slate-600 leading-relaxed">
+                Gunakan opsi ini hanya jika ingin memulai ronde serentak untuk semua lapangan sekaligus (misalnya di awal pembukaan sesi mabar).
+              </p>
+
+              <form id="generateRoundForm" class="pt-1">
+                <input type="hidden" name="session_id" value="<?= $sessionId ?>">
+                
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                  <div class="md:col-span-4">
+                    <label for="courtCountSelect" class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1 font-mono">
+                      Pilih Jumlah Lapangan:
+                    </label>
+                    <select name="court_count" id="courtCountSelect" data-no-search class="w-full bg-white border border-slate-300 px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none min-h-[44px] rounded-lg">
+                      <?php for ($c = 1; $c <= $sessionCourts; $c++): 
+                        $reqP = $c * 4;
+                        $canPlay = ($presentCount >= $reqP);
+                      ?>
+                        <option value="<?= $c ?>" <?= ($c === min($sessionCourts, max(1, $maxPossibleCourts))) ? 'selected' : '' ?>>
+                          <?= $c ?> Lapangan <?= $canPlay ? "(Cukup - {$reqP} Pemain)" : "(Kurang Pemain - Butuh {$reqP})" ?>
+                        </option>
+                      <?php endfor; ?>
+                    </select>
                   </div>
-                  <div class="flex items-center gap-2 self-end sm:self-center">
-                    <span class="text-[10px] font-mono text-slate-400"><?= !empty($cm['completed_at']) ? date('H:i', strtotime($cm['completed_at'])) . ' WIB' : 'Selesai' ?></span>
-                    <button type="button" onclick="confirmDeleteMatch(<?= $cm['id'] ?>, <?= $cm['court_number'] ?>)" class="text-rose-600 hover:text-rose-800 text-[11px] font-bold px-1.5 py-0.5 hover:bg-rose-50 transition-colors">Hapus</button>
+
+                  <div class="md:col-span-4">
+                    <label for="algorithmSelect" class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1 font-mono">
+                      Strategi Pembagian Tim:
+                    </label>
+                    <select name="algorithm" id="algorithmSelect" data-no-search class="w-full bg-white border border-slate-300 px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none min-h-[44px] rounded-lg">
+                      <option value="balanced_level" selected>Fair Level (Kombinasi Seimbang)</option>
+                      <option value="tiered_level">Selevel (Pure Tier Mahir/Pemula)</option>
+                      <option value="fair_social">Kocok Campur Merata</option>
+                    </select>
                   </div>
+
+                  <div class="md:col-span-4 flex items-center gap-2">
+                    <button type="submit" id="btnGenerate" class="flex-1 py-2.5 px-4 bg-[#0b1e36] hover:bg-[#071324] text-amber-400 font-black text-xs uppercase tracking-wider transition-all border border-amber-400/30 active:scale-95 whitespace-nowrap min-h-[44px] flex items-center justify-center gap-2 shadow-xs rounded-lg">
+                      <span>Acak Semua Lapangan</span>
+                    </button>
+                    <?php if (!empty($activeRoundMatches)): ?>
+                      <button type="button" onclick="confirmDeleteRound(<?= $sessionId ?>, <?= $latestRound ?>)" class="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 active:scale-95 min-h-[44px] shrink-0 rounded-lg" title="Hapus dan reset ronde ini">
+                        Reset
+                      </button>
+                    <?php endif; ?>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </details>
+        <?php endif; ?>
+
+        <!-- 5. RIWAYAT PERTANDINGAN SELESAI (ACCORDION DENGAN HIGHLIGHT PEMENANG) -->
+        <?php if (!empty($completedMatches)): ?>
+          <details <?= $isSessionCompleted ? 'open' : '' ?> class="bg-white border <?= $isSessionCompleted ? 'border-2 border-emerald-400 shadow-md' : 'border-slate-200 shadow-xs' ?> mb-5 rounded-xl overflow-hidden group">
+            <summary class="p-3.5 cursor-pointer flex items-center justify-between text-xs font-black uppercase tracking-wider font-mono text-slate-800 hover:bg-slate-50 transition-colors select-none">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 <?= $isSessionCompleted ? 'bg-emerald-600 text-white' : 'bg-blue-50 text-blue-800 border border-blue-200' ?> text-[10px] font-black rounded-xs">
+                  <?= $isSessionCompleted ? 'HASIL AKHIR' : 'ARSIP' ?>
+                </span>
+                <span>Riwayat Pertandingan Selesai (<?= count($completedMatches) ?> Match)</span>
+              </div>
+              <span class="text-xs font-mono text-slate-400 font-bold"><?= $isSessionCompleted ? 'TERBUKA' : 'LIHAT' ?></span>
+            </summary>
+
+            <div class="p-3.5 sm:p-4 border-t border-slate-100 space-y-3 bg-slate-50/40">
+              <div class="text-[11px] font-mono font-bold text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
+                Tim pemenang ditandai badge hijau [MENANG] dan skor tebal.
+              </div>
+
+              <?php foreach (array_reverse($completedMatches) as $cm): 
+                $scA = (int)$cm['score_team_a'];
+                $scB = (int)$cm['score_team_b'];
+                $isWinA = ($scA > $scB);
+                $isWinB = ($scB > $scA);
+              ?>
+                <div class="bg-white border rounded-xl p-3 sm:p-3.5 shadow-2xs space-y-2.5 transition-all <?= ($isWinA || $isWinB) ? 'border-slate-300' : 'border-slate-200' ?>">
+                  
+                  <div class="flex items-center justify-between text-[10px] font-mono border-b border-slate-100 pb-2">
+                    <span class="px-2 py-0.5 bg-slate-100 text-slate-700 font-bold border border-slate-200 rounded-xs">
+                      LAPANGAN <?= $cm['court_number'] ?> • GAME #<?= $cm['round_number'] ?>
+                    </span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[10px] font-mono text-slate-400">
+                        <?= !empty($cm['completed_at']) ? date('H:i', strtotime($cm['completed_at'])) . ' WIB' : 'Selesai' ?>
+                      </span>
+                      <span class="font-black text-xs <?= $isWinA ? 'text-emerald-800' : ($isWinB ? 'text-emerald-800' : 'text-slate-500') ?>">
+                        <?= $isWinA ? 'TIM A MENANG' : ($isWinB ? 'TIM B MENANG' : 'SERI') ?>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    
+                    <!-- Tim A Card -->
+                    <div class="p-2.5 rounded-lg border transition-all flex flex-col justify-between <?= $isWinA ? 'bg-emerald-50/80 border-2 border-emerald-400 text-emerald-950 font-black shadow-xs' : 'bg-slate-50 border border-slate-200 text-slate-600 opacity-80' ?>">
+                      <div>
+                        <div class="flex items-center justify-between text-[10px] font-mono mb-1.5">
+                          <span class="font-black uppercase tracking-wider <?= $isWinA ? 'text-emerald-900' : 'text-slate-500' ?>">TIM A</span>
+                          <?php if ($isWinA): ?>
+                            <span class="px-1.5 py-0.2 bg-emerald-600 text-white font-mono font-black text-[9px] rounded-xs uppercase tracking-wider">
+                              MENANG
+                            </span>
+                          <?php endif; ?>
+                        </div>
+                        <div class="text-xs truncate font-bold text-slate-900 <?= $isWinA ? 'text-emerald-950 font-black' : '' ?>"><?= htmlspecialchars($cm['team_a_p1_name']) ?></div>
+                        <div class="text-xs truncate font-bold text-slate-900 <?= $isWinA ? 'text-emerald-950 font-black' : '' ?>"><?= htmlspecialchars($cm['team_a_p2_name']) ?></div>
+                      </div>
+
+                      <div class="mt-2 pt-1.5 border-t <?= $isWinA ? 'border-emerald-200 text-emerald-900' : 'border-slate-200 text-slate-500' ?> flex items-center justify-between text-xs font-mono">
+                        <span class="text-[10px]">Skor:</span>
+                        <span class="font-black text-sm px-2.5 py-0.5 rounded <?= $isWinA ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-200 text-slate-700' ?>">
+                          <?= $scA ?>
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Tim B Card -->
+                    <div class="p-2.5 rounded-lg border transition-all flex flex-col justify-between <?= $isWinB ? 'bg-emerald-50/80 border-2 border-emerald-400 text-emerald-950 font-black shadow-xs' : 'bg-slate-50 border border-slate-200 text-slate-600 opacity-80' ?>">
+                      <div>
+                        <div class="flex items-center justify-between text-[10px] font-mono mb-1.5">
+                          <span class="font-black uppercase tracking-wider <?= $isWinB ? 'text-emerald-900' : 'text-slate-500' ?>">TIM B</span>
+                          <?php if ($isWinB): ?>
+                            <span class="px-1.5 py-0.2 bg-emerald-600 text-white font-mono font-black text-[9px] rounded-xs uppercase tracking-wider">
+                              MENANG
+                            </span>
+                          <?php endif; ?>
+                        </div>
+                        <div class="text-xs truncate font-bold text-slate-900 <?= $isWinB ? 'text-emerald-950 font-black' : '' ?>"><?= htmlspecialchars($cm['team_b_p1_name']) ?></div>
+                        <div class="text-xs truncate font-bold text-slate-900 <?= $isWinB ? 'text-emerald-950 font-black' : '' ?>"><?= htmlspecialchars($cm['team_b_p2_name']) ?></div>
+                      </div>
+
+                      <div class="mt-2 pt-1.5 border-t <?= $isWinB ? 'border-emerald-200 text-emerald-900' : 'border-slate-200 text-slate-500' ?> flex items-center justify-between text-xs font-mono">
+                        <span class="text-[10px]">Skor:</span>
+                        <span class="font-black text-sm px-2.5 py-0.5 rounded <?= $isWinB ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-200 text-slate-700' ?>">
+                          <?= $scB ?>
+                        </span>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  <?php if (!$isSessionCompleted): ?>
+                    <div class="flex justify-end pt-1">
+                      <button type="button" onclick="confirmDeleteMatch(<?= $cm['id'] ?>, <?= $cm['court_number'] ?>)" class="text-rose-600 hover:text-rose-800 text-[11px] font-bold px-2 py-1 hover:bg-rose-50 transition-colors rounded">
+                        Hapus Match
+                      </button>
+                    </div>
+                  <?php endif; ?>
+
                 </div>
               <?php endforeach; ?>
             </div>
@@ -1063,26 +1247,27 @@ $waitingListParticipants = array_filter($participants, function($p) {
             </div>
             
             <div class="flex items-center gap-2 w-full sm:w-auto">
-              <!-- Paste WA Template Button -->
-              <button onclick="document.getElementById('whatsappModal').classList.remove('hidden')" class="flex-1 sm:flex-initial px-3.5 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider active:scale-95 border border-amber-400 flex items-center justify-center gap-1.5 shadow-xs min-h-[44px]">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                <span>Paste List WA</span>
-              </button>
-              
-              <!-- Quick Add Walk-In Button -->
-              <button onclick="document.getElementById('quickAddModal').classList.remove('hidden')" class="flex-1 sm:flex-initial px-3.5 py-2.5 bg-[#0b1e36] hover:bg-[#071324] text-amber-400 hover:text-amber-300 font-black text-xs uppercase tracking-wider active:scale-95 border border-amber-400/30 flex items-center justify-center gap-1.5 shadow-xs min-h-[44px]">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
-                <span>+ Walk-In</span>
-              </button>
+              <?php if (!$isSessionCompleted): ?>
+                <!-- Paste WA Template Button -->
+                <button onclick="document.getElementById('whatsappModal').classList.remove('hidden')" class="flex-1 sm:flex-initial px-3.5 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider active:scale-95 border border-amber-400 flex items-center justify-center rounded-lg shadow-xs min-h-[44px]">
+                  <span>Paste List WA</span>
+                </button>
+                
+                <!-- Quick Add Walk-In Button -->
+                <button onclick="document.getElementById('quickAddModal').classList.remove('hidden')" class="flex-1 sm:flex-initial px-3.5 py-2.5 bg-[#0b1e36] hover:bg-[#071324] text-amber-400 hover:text-amber-300 font-black text-xs uppercase tracking-wider active:scale-95 border border-amber-400/30 flex items-center justify-center rounded-lg shadow-xs min-h-[44px]">
+                  <span>+ Tambah Walk-In</span>
+                </button>
+              <?php else: ?>
+                <span class="px-3.5 py-2.5 bg-slate-100 text-slate-500 font-mono font-bold text-xs uppercase tracking-wider border border-slate-200 rounded-lg">
+                  Sesi Selesai (Data Dikunci)
+                </span>
+              <?php endif; ?>
             </div>
           </div>
 
-          <!-- Filter Search with Icon -->
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            </span>
-            <input type="text" id="filterPlayerInput" onkeyup="filterParticipants()" placeholder="Cari nama pemain..." class="w-full bg-slate-50 border border-slate-300 pl-9 pr-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 min-h-[44px]">
+          <!-- Filter Search (No Icons) -->
+          <div>
+            <input type="text" id="filterPlayerInput" onkeyup="filterParticipants()" placeholder="Ketik untuk cari nama pemain..." class="w-full bg-slate-50 border border-slate-300 px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 min-h-[44px] rounded-lg">
           </div>
         </div>
 
@@ -1092,12 +1277,12 @@ $waitingListParticipants = array_filter($participants, function($p) {
             <h3 class="text-xs font-mono font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
               <span>Pemain Sesi Utama (<?= count($confirmedParticipants) ?>)</span>
             </h3>
-            <span class="text-[11px] font-mono text-slate-500">Klik Edit untuk ubah Level / Waiting List</span>
+            <span class="text-[11px] font-mono text-slate-500"><?= $isSessionCompleted ? 'Mode Terkunci' : 'Klik Edit untuk ubah Level / Waiting List' ?></span>
           </div>
 
           <?php if (empty($confirmedParticipants)): ?>
             <div class="p-6 bg-white border border-slate-200 rounded-lg text-center text-xs text-slate-400">
-              Belum ada pemain di Sesi Utama. Gunakan tombol <strong>Paste List WA</strong> atau <strong>+ Walk-In</strong> di atas.
+              Belum ada pemain di Sesi Utama.
             </div>
           <?php else: ?>
             <div class="space-y-2.5">
@@ -1126,26 +1311,32 @@ $waitingListParticipants = array_filter($participants, function($p) {
                         </div>
                       </div>
                     </div>
-                    <span id="att_badge_<?= $pid ?>" class=" shrink-0 px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase <?= $isPresent ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200' ?>">
+                    <span id="att_badge_<?= $pid ?>" class="shrink-0 px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase <?= $isPresent ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200' ?>">
                       <?= $isPresent ? 'Hadir' : 'Tidak Hadir' ?>
                     </span>
                   </div>
 
                   <div class="grid grid-cols-3 sm:flex items-center gap-1.5 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-slate-100 shrink-0">
-                    <!-- Single Unified Attendance Toggle Button -->
-                    <button type="button" id="btn_att_<?= $pid ?>" onclick="promptToggleAttendance(<?= $sessionId ?>, <?= $pid ?>, '<?= htmlspecialchars(addslashes($p['name'])) ?>', <?= $isPresent ? 1 : 0 ?>)" class="min-h-[40px] px-3 rounded-lg text-[11px] sm:text-xs font-black uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center <?= $isPresent ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300' ?>" title="Ubah status kehadiran">
-                      <?= $isPresent ? 'Hadir' : 'Tidak Hadir' ?>
-                    </button>
+                    <?php if (!$isSessionCompleted): ?>
+                      <!-- Single Unified Attendance Toggle Button -->
+                      <button type="button" id="btn_att_<?= $pid ?>" onclick="promptToggleAttendance(<?= $sessionId ?>, <?= $pid ?>, '<?= htmlspecialchars(addslashes($p['name'])) ?>', <?= $isPresent ? 1 : 0 ?>)" class="min-h-[40px] px-3 rounded-lg text-[11px] sm:text-xs font-black uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center <?= $isPresent ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300' ?>" title="Ubah status kehadiran">
+                        <?= $isPresent ? 'Hadir' : 'Tidak Hadir' ?>
+                      </button>
 
-                    <!-- Edit Player Button (Level & Waiting List) -->
-                    <button type="button" onclick="openEditPlayerModal(<?= $pid ?>, '<?= htmlspecialchars(addslashes($p['name'])) ?>', '<?= htmlspecialchars($lvl) ?>', '<?= htmlspecialchars($p['phone'] ?: '') ?>', 'confirmed')" class="min-h-[40px] px-2.5 rounded-lg text-[11px] sm:text-xs font-bold text-slate-700 hover:text-slate-900 border border-slate-300 bg-slate-50 active:scale-95 flex items-center justify-center" title="Ubah Level / Pindahkan ke Waiting List">
-                      Edit
-                    </button>
+                      <!-- Edit Player Button (Level & Waiting List) -->
+                      <button type="button" onclick="openEditPlayerModal(<?= $pid ?>, '<?= htmlspecialchars(addslashes($p['name'])) ?>', '<?= htmlspecialchars($lvl) ?>', '<?= htmlspecialchars($p['phone'] ?: '') ?>', 'confirmed')" class="min-h-[40px] px-2.5 rounded-lg text-[11px] sm:text-xs font-bold text-slate-700 hover:text-slate-900 border border-slate-300 bg-slate-50 active:scale-95 flex items-center justify-center" title="Ubah Level / Pindahkan ke Waiting List">
+                        Edit
+                      </button>
 
-                    <!-- Remove Player Button -->
-                    <button type="button" onclick="confirmRemoveParticipant(<?= $sessionId ?>, <?= $pid ?>, '<?= htmlspecialchars(addslashes($p['name'])) ?>')" class="min-h-[40px] px-2.5 rounded-lg text-[11px] sm:text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 bg-white active:scale-95 flex items-center justify-center" title="Keluarkan dari sesi">
-                      Hapus
-                    </button>
+                      <!-- Remove Player Button -->
+                      <button type="button" onclick="confirmRemoveParticipant(<?= $sessionId ?>, <?= $pid ?>, '<?= htmlspecialchars(addslashes($p['name'])) ?>')" class="min-h-[40px] px-2.5 rounded-lg text-[11px] sm:text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 bg-white active:scale-95 flex items-center justify-center" title="Keluarkan dari sesi">
+                        Hapus
+                      </button>
+                    <?php else: ?>
+                      <span class="col-span-3 min-h-[38px] px-3 rounded-lg text-[11px] font-mono font-bold uppercase flex items-center justify-center bg-slate-100 text-slate-500 border border-slate-200">
+                        Status: <?= $isPresent ? 'Hadir' : 'Tidak Hadir' ?>
+                      </span>
+                    <?php endif; ?>
                   </div>
 
                 </div>
@@ -1161,7 +1352,7 @@ $waitingListParticipants = array_filter($participants, function($p) {
             <h3 class="text-xs font-mono font-bold uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
               <span>Waiting List (<?= count($waitingListParticipants) ?>)</span>
             </h3>
-            <span class="text-[11px] font-mono text-amber-800">Ubah ke Sesi Utama lewat tombol Edit</span>
+            <span class="text-[11px] font-mono text-amber-800"><?= $isSessionCompleted ? 'Mode Terkunci' : 'Ubah ke Sesi Utama lewat tombol Edit' ?></span>
           </div>
 
           <div class="space-y-2.5">
@@ -1197,20 +1388,26 @@ $waitingListParticipants = array_filter($participants, function($p) {
                 </div>
 
                 <div class="grid grid-cols-3 sm:flex items-center gap-1.5 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-amber-200/60 shrink-0">
-                  <!-- Single Unified Attendance Toggle Button -->
-                  <button type="button" id="btn_att_<?= $pid ?>" onclick="promptToggleAttendance(<?= $sessionId ?>, <?= $pid ?>, '<?= htmlspecialchars(addslashes($wp['name'])) ?>', <?= $isPresent ? 1 : 0 ?>)" class="min-h-[40px] px-3 rounded-lg text-[11px] sm:text-xs font-black uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center <?= $isPresent ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 shadow-xs' : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-300' ?>" title="Ubah status kehadiran">
-                    <?= $isPresent ? 'Hadir' : 'Tidak Hadir' ?>
-                  </button>
+                  <?php if (!$isSessionCompleted): ?>
+                    <!-- Single Unified Attendance Toggle Button -->
+                    <button type="button" id="btn_att_<?= $pid ?>" onclick="promptToggleAttendance(<?= $sessionId ?>, <?= $pid ?>, '<?= htmlspecialchars(addslashes($wp['name'])) ?>', <?= $isPresent ? 1 : 0 ?>)" class="min-h-[40px] px-3 rounded-lg text-[11px] sm:text-xs font-black uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center <?= $isPresent ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 shadow-xs' : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-300' ?>" title="Ubah status kehadiran">
+                      <?= $isPresent ? 'Hadir' : 'Tidak Hadir' ?>
+                    </button>
 
-                  <!-- Edit Player Button -->
-                  <button type="button" onclick="openEditPlayerModal(<?= $pid ?>, '<?= htmlspecialchars(addslashes($wp['name'])) ?>', '<?= htmlspecialchars($lvl) ?>', '<?= htmlspecialchars($wp['phone'] ?: '') ?>', 'waiting_list')" class="min-h-[40px] px-2.5 rounded-lg text-[11px] sm:text-xs font-bold text-slate-700 border border-slate-300 bg-white active:scale-95 flex items-center justify-center">
-                    Edit
-                  </button>
+                    <!-- Edit Player Button -->
+                    <button type="button" onclick="openEditPlayerModal(<?= $pid ?>, '<?= htmlspecialchars(addslashes($wp['name'])) ?>', '<?= htmlspecialchars($lvl) ?>', '<?= htmlspecialchars($wp['phone'] ?: '') ?>', 'waiting_list')" class="min-h-[40px] px-2.5 rounded-lg text-[11px] sm:text-xs font-bold text-slate-700 border border-slate-300 bg-white active:scale-95 flex items-center justify-center">
+                      Edit
+                    </button>
 
-                  <!-- Remove Player Button -->
-                  <button type="button" onclick="confirmRemoveParticipant(<?= $sessionId ?>, <?= $pid ?>, '<?= htmlspecialchars(addslashes($wp['name'])) ?>')" class="min-h-[40px] px-2.5 rounded-lg text-[11px] sm:text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 bg-white active:scale-95 flex items-center justify-center">
-                    Hapus
-                  </button>
+                    <!-- Remove Player Button -->
+                    <button type="button" onclick="confirmRemoveParticipant(<?= $sessionId ?>, <?= $pid ?>, '<?= htmlspecialchars(addslashes($wp['name'])) ?>')" class="min-h-[40px] px-2.5 rounded-lg text-[11px] sm:text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 bg-white active:scale-95 flex items-center justify-center">
+                      Hapus
+                    </button>
+                  <?php else: ?>
+                    <span class="col-span-3 min-h-[38px] px-3 rounded-lg text-[11px] font-mono font-bold uppercase flex items-center justify-center bg-slate-100 text-slate-500 border border-slate-200">
+                      Status: <?= $isPresent ? 'Hadir' : 'Tidak Hadir' ?>
+                    </span>
+                  <?php endif; ?>
                 </div>
 
               </div>
@@ -1505,26 +1702,91 @@ $waitingListParticipants = array_filter($participants, function($p) {
 
         <!-- History of Completed Matches Tonight -->
         <div class="space-y-3">
-          <h3 class="text-xs font-black uppercase tracking-wider text-slate-700 font-mono px-1">
-            Riwayat Pertandingan Selesai (<?= count($completedMatches) ?>)
-          </h3>
+          <div class="flex items-center justify-between px-1">
+            <h3 class="text-xs font-black uppercase tracking-wider text-slate-800 font-mono">
+              Riwayat Pertandingan Selesai (<?= count($completedMatches) ?>)
+            </h3>
+            <span class="text-[10px] font-mono text-slate-500 font-bold">Tim Pemenang Diberi Label [WIN]</span>
+          </div>
+
           <?php if (empty($completedMatches)): ?>
             <div class="p-6 bg-white border border-slate-200 text-center text-xs text-slate-400">
               Belum ada skor pertandingan yang selesai.
             </div>
           <?php else: ?>
-            <?php foreach (array_reverse($completedMatches) as $cm): ?>
-              <div class="bg-white border border-slate-200 p-3 text-xs flex items-center justify-between gap-2 shadow-xs">
-                <span class="px-2 py-0.5 bg-slate-100 text-slate-700 font-mono font-bold text-[10px] border border-slate-200">
-                  R#<?= $cm['round_number'] ?> • Lap <?= $cm['court_number'] ?>
-                </span>
-                <div class="flex-1 text-center font-bold text-slate-800 truncate">
-                  <span><?= htmlspecialchars($cm['team_a_p1_name']) ?> & <?= htmlspecialchars($cm['team_a_p2_name']) ?></span>
-                  <span class="mx-2 text-[#0b1e36] font-mono font-black text-sm"><?= $cm['score_team_a'] ?> - <?= $cm['score_team_b'] ?></span>
-                  <span><?= htmlspecialchars($cm['team_b_p1_name']) ?> & <?= htmlspecialchars($cm['team_b_p2_name']) ?></span>
+            <div class="space-y-2.5">
+              <?php foreach (array_reverse($completedMatches) as $cm): 
+                $scA = (int)$cm['score_team_a'];
+                $scB = (int)$cm['score_team_b'];
+                $isWinA = ($scA > $scB);
+                $isWinB = ($scB > $scA);
+              ?>
+                <div class="bg-white border rounded-xl p-3 sm:p-3.5 shadow-2xs space-y-2.5 transition-all <?= ($isWinA || $isWinB) ? 'border-slate-300' : 'border-slate-200' ?>">
+                  
+                  <div class="flex items-center justify-between text-[10px] font-mono border-b border-slate-100 pb-2">
+                    <span class="px-2 py-0.5 bg-slate-100 text-slate-700 font-bold border border-slate-200 rounded-xs">
+                      LAPANGAN <?= $cm['court_number'] ?> • GAME #<?= $cm['round_number'] ?>
+                    </span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[10px] font-mono text-slate-400">
+                        <?= !empty($cm['completed_at']) ? date('H:i', strtotime($cm['completed_at'])) . ' WIB' : 'Selesai' ?>
+                      </span>
+                      <span class="font-black text-xs <?= $isWinA ? 'text-emerald-800' : ($isWinB ? 'text-emerald-800' : 'text-slate-500') ?>">
+                        <?= $isWinA ? 'TIM A MENANG' : ($isWinB ? 'TIM B MENANG' : 'SERI') ?>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <!-- Team A -->
+                    <div class="p-2.5 rounded-lg border transition-all flex flex-col justify-between <?= $isWinA ? 'bg-emerald-50/80 border-2 border-emerald-400 text-emerald-950 font-black shadow-xs' : 'bg-slate-50 border border-slate-200 text-slate-600 opacity-80' ?>">
+                      <div>
+                        <div class="flex items-center justify-between text-[10px] font-mono mb-1.5">
+                          <span class="font-black uppercase tracking-wider <?= $isWinA ? 'text-emerald-900' : 'text-slate-500' ?>">TIM A</span>
+                          <?php if ($isWinA): ?>
+                            <span class="px-1.5 py-0.2 bg-emerald-600 text-white font-mono font-black text-[9px] rounded-xs uppercase tracking-wider">
+                              MENANG
+                            </span>
+                          <?php endif; ?>
+                        </div>
+                        <div class="text-xs truncate font-bold text-slate-900 <?= $isWinA ? 'text-emerald-950 font-black' : '' ?>"><?= htmlspecialchars($cm['team_a_p1_name']) ?></div>
+                        <div class="text-xs truncate font-bold text-slate-900 <?= $isWinA ? 'text-emerald-950 font-black' : '' ?>"><?= htmlspecialchars($cm['team_a_p2_name']) ?></div>
+                      </div>
+
+                      <div class="mt-2 pt-1.5 border-t <?= $isWinA ? 'border-emerald-200 text-emerald-900' : 'border-slate-200 text-slate-500' ?> flex items-center justify-between text-xs font-mono">
+                        <span class="text-[10px]">Skor:</span>
+                        <span class="font-black text-sm px-2.5 py-0.5 rounded <?= $isWinA ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-200 text-slate-700' ?>">
+                          <?= $scA ?>
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Team B -->
+                    <div class="p-2.5 rounded-lg border transition-all flex flex-col justify-between <?= $isWinB ? 'bg-emerald-50/80 border-2 border-emerald-400 text-emerald-950 font-black shadow-xs' : 'bg-slate-50 border border-slate-200 text-slate-600 opacity-80' ?>">
+                      <div>
+                        <div class="flex items-center justify-between text-[10px] font-mono mb-1.5">
+                          <span class="font-black uppercase tracking-wider <?= $isWinB ? 'text-emerald-900' : 'text-slate-500' ?>">TIM B</span>
+                          <?php if ($isWinB): ?>
+                            <span class="px-1.5 py-0.2 bg-emerald-600 text-white font-mono font-black text-[9px] rounded-xs uppercase tracking-wider">
+                              MENANG
+                            </span>
+                          <?php endif; ?>
+                        </div>
+                        <div class="text-xs truncate font-bold text-slate-900 <?= $isWinB ? 'text-emerald-950 font-black' : '' ?>"><?= htmlspecialchars($cm['team_b_p1_name']) ?></div>
+                        <div class="text-xs truncate font-bold text-slate-900 <?= $isWinB ? 'text-emerald-950 font-black' : '' ?>"><?= htmlspecialchars($cm['team_b_p2_name']) ?></div>
+                      </div>
+
+                      <div class="mt-2 pt-1.5 border-t <?= $isWinB ? 'border-emerald-200 text-emerald-900' : 'border-slate-200 text-slate-500' ?> flex items-center justify-between text-xs font-mono">
+                        <span class="text-[10px]">Skor:</span>
+                        <span class="font-black text-sm px-2.5 py-0.5 rounded <?= $isWinB ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-200 text-slate-700' ?>">
+                          <?= $scB ?>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            <?php endforeach; ?>
+              <?php endforeach; ?>
+            </div>
           <?php endif; ?>
         </div>
 
@@ -1694,71 +1956,64 @@ $waitingListParticipants = array_filter($participants, function($p) {
       </div>
     </nav>
   <?php else: ?>
-    <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 z-40 pb-safe shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
-      <div class="max-w-5xl mx-auto px-1 flex items-center justify-around">
+    <nav class="fixed bottom-0 inset-x-0 bg-[#0b1e36] border-t border-slate-800 z-40 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.35)] sm:bottom-3 sm:max-w-xl sm:mx-auto sm:rounded-2xl sm:border sm:border-slate-700/80 sm:shadow-2xl sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-full">
+      <div class="px-2 py-2 flex items-center justify-around gap-1">
         
         <!-- Tab 1: Rotasi -->
-        <a href="?view=court" class="flex-1 py-2 px-1 text-center transition-all flex flex-col items-center justify-center border-t-2 <?= $view === 'court' ? 'border-amber-400 text-[#0b1e36]' : 'border-transparent text-slate-500 hover:text-slate-800' ?>">
-          <svg class="w-5 h-5 mb-0.5 <?= $view === 'court' ? 'text-[#0b1e36]' : 'text-slate-400' ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <rect x="3" y="4" width="18" height="16" rx="1.5" stroke-width="2"/>
-            <line x1="3" y1="12" x2="21" y2="12" stroke-width="2"/>
-            <line x1="12" y1="4" x2="12" y2="20" stroke-width="1.5" stroke-dasharray="2 2"/>
-          </svg>
-          <span class="text-[10px] tracking-wide block leading-none <?= $view === 'court' ? 'font-black text-[#0b1e36]' : 'font-semibold' ?>">Rotasi</span>
+        <a href="?view=court" class="flex-1 py-1.5 px-1 text-center transition-all duration-200 active:scale-95 flex flex-col items-center justify-center rounded-xl <?= $view === 'court' ? 'bg-amber-400 text-slate-950 font-black shadow-md' : 'text-slate-300 hover:text-white hover:bg-white/5 font-semibold' ?>">
+          <div class="flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full <?= $view === 'court' ? 'bg-slate-950 animate-pulse' : 'bg-transparent' ?>"></span>
+            <span class="text-[11px] uppercase tracking-wider block leading-tight">Rotasi</span>
+          </div>
+          <span class="text-[9px] font-mono leading-none <?= $view === 'court' ? 'text-slate-900 opacity-80' : 'text-slate-400' ?>">Court</span>
         </a>
 
         <!-- Tab 2: Pemain -->
-        <a href="?view=players" class="flex-1 py-2 px-1 text-center transition-all relative flex flex-col items-center justify-center border-t-2 <?= $view === 'players' ? 'border-amber-400 text-[#0b1e36]' : 'border-transparent text-slate-500 hover:text-slate-800' ?>">
-          <div class="relative">
-            <svg class="w-5 h-5 mb-0.5 <?= $view === 'players' ? 'text-[#0b1e36]' : 'text-slate-400' ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <?php if ($paymentSummary['total_present'] > 0): ?>
-              <span class="absolute -top-1 -right-2.5 px-1 py-0.2 bg-amber-400 text-slate-950 font-black text-[9px] font-mono leading-none rounded-full min-w-[14px]">
-                <?= $paymentSummary['total_present'] ?>
-              </span>
-            <?php endif; ?>
+        <a href="?view=players" class="flex-1 py-1.5 px-1 text-center transition-all duration-200 active:scale-95 flex flex-col items-center justify-center rounded-xl relative <?= $view === 'players' ? 'bg-amber-400 text-slate-950 font-black shadow-md' : 'text-slate-300 hover:text-white hover:bg-white/5 font-semibold' ?>">
+          <div class="flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full <?= $view === 'players' ? 'bg-slate-950 animate-pulse' : 'bg-transparent' ?>"></span>
+            <span class="text-[11px] uppercase tracking-wider block leading-tight">Pemain</span>
           </div>
-          <span class="text-[10px] tracking-wide block leading-none <?= $view === 'players' ? 'font-black text-[#0b1e36]' : 'font-semibold' ?>">Pemain</span>
+          <span class="text-[9px] font-mono leading-none font-bold <?= $view === 'players' ? 'text-slate-950' : 'text-amber-400' ?>">
+            <?= $paymentSummary['total_present'] ?> Hadir
+          </span>
         </a>
 
         <!-- Tab 3: Kas -->
-        <a href="?view=payments" class="flex-1 py-2 px-1 text-center transition-all relative flex flex-col items-center justify-center border-t-2 <?= $view === 'payments' ? 'border-amber-400 text-[#0b1e36]' : 'border-transparent text-slate-500 hover:text-slate-800' ?>">
-          <div class="relative">
-            <svg class="w-5 h-5 mb-0.5 <?= $view === 'payments' ? 'text-[#0b1e36]' : 'text-slate-400' ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-            </svg>
-            <?php if ($paymentSummary['total_unpaid'] > 0): ?>
-              <span class="absolute -top-1 -right-2.5 px-1 py-0.2 bg-rose-600 text-white font-black text-[9px] font-mono leading-none rounded-full min-w-[14px]">
-                <?= $paymentSummary['total_unpaid'] ?>
-              </span>
-            <?php endif; ?>
+        <a href="?view=payments" class="flex-1 py-1.5 px-1 text-center transition-all duration-200 active:scale-95 flex flex-col items-center justify-center rounded-xl relative <?= $view === 'payments' ? 'bg-amber-400 text-slate-950 font-black shadow-md' : 'text-slate-300 hover:text-white hover:bg-white/5 font-semibold' ?>">
+          <div class="flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full <?= $view === 'payments' ? 'bg-slate-950 animate-pulse' : 'bg-transparent' ?>"></span>
+            <span class="text-[11px] uppercase tracking-wider block leading-tight">Kas</span>
           </div>
-          <span class="text-[10px] tracking-wide block leading-none <?= $view === 'payments' ? 'font-black text-[#0b1e36]' : 'font-semibold' ?>">Kas</span>
+          <?php if ($paymentSummary['total_unpaid'] > 0): ?>
+            <span class="text-[9px] font-mono font-black leading-none px-1.5 py-0.5 rounded-full <?= $view === 'payments' ? 'bg-rose-600 text-white' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40' ?>">
+              <?= $paymentSummary['total_unpaid'] ?> Blm
+            </span>
+          <?php else: ?>
+            <span class="text-[9px] font-mono leading-none <?= $view === 'payments' ? 'text-slate-950' : 'text-emerald-400' ?>">
+              Lunas
+            </span>
+          <?php endif; ?>
         </a>
 
         <!-- Tab 4: Foto Dokumentasi -->
-        <a href="?view=documentation" class="flex-1 py-2 px-1 text-center transition-all relative flex flex-col items-center justify-center border-t-2 <?= $view === 'documentation' ? 'border-amber-400 text-[#0b1e36]' : 'border-transparent text-slate-500 hover:text-slate-800' ?>">
-          <div class="relative">
-            <svg class="w-5 h-5 mb-0.5 <?= $view === 'documentation' ? 'text-[#0b1e36]' : 'text-slate-400' ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <?php if (!empty($sessionPhotos)): ?>
-              <span class="absolute -top-1 -right-2.5 px-1 py-0.2 bg-slate-700 text-white font-black text-[9px] font-mono leading-none rounded-full min-w-[14px]">
-                <?= count($sessionPhotos) ?>
-              </span>
-            <?php endif; ?>
+        <a href="?view=documentation" class="flex-1 py-1.5 px-1 text-center transition-all duration-200 active:scale-95 flex flex-col items-center justify-center rounded-xl relative <?= $view === 'documentation' ? 'bg-amber-400 text-slate-950 font-black shadow-md' : 'text-slate-300 hover:text-white hover:bg-white/5 font-semibold' ?>">
+          <div class="flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full <?= $view === 'documentation' ? 'bg-slate-950 animate-pulse' : 'bg-transparent' ?>"></span>
+            <span class="text-[11px] uppercase tracking-wider block leading-tight">Foto</span>
           </div>
-          <span class="text-[10px] tracking-wide block leading-none <?= $view === 'documentation' ? 'font-black text-[#0b1e36]' : 'font-semibold' ?>">Foto</span>
+          <span class="text-[9px] font-mono leading-none <?= $view === 'documentation' ? 'text-slate-950' : 'text-slate-400' ?>">
+            <?= !empty($sessionPhotos) ? count($sessionPhotos) . ' File' : 'Galeri' ?>
+          </span>
         </a>
 
         <!-- Tab 5: Klasemen -->
-        <a href="?view=leaderboard" class="flex-1 py-2 px-1 text-center transition-all flex flex-col items-center justify-center border-t-2 <?= $view === 'leaderboard' ? 'border-amber-400 text-[#0b1e36]' : 'border-transparent text-slate-500 hover:text-slate-800' ?>">
-          <svg class="w-5 h-5 mb-0.5 <?= $view === 'leaderboard' ? 'text-[#0b1e36]' : 'text-slate-400' ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          <span class="text-[10px] tracking-wide block leading-none <?= $view === 'leaderboard' ? 'font-black text-[#0b1e36]' : 'font-semibold' ?>">Klasemen</span>
+        <a href="?view=leaderboard" class="flex-1 py-1.5 px-1 text-center transition-all duration-200 active:scale-95 flex flex-col items-center justify-center rounded-xl <?= $view === 'leaderboard' ? 'bg-amber-400 text-slate-950 font-black shadow-md' : 'text-slate-300 hover:text-white hover:bg-white/5 font-semibold' ?>">
+          <div class="flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full <?= $view === 'leaderboard' ? 'bg-slate-950 animate-pulse' : 'bg-transparent' ?>"></span>
+            <span class="text-[11px] uppercase tracking-wider block leading-tight">Klasemen</span>
+          </div>
+          <span class="text-[9px] font-mono leading-none <?= $view === 'leaderboard' ? 'text-slate-900 opacity-80' : 'text-slate-400' ?>">Rank</span>
         </a>
 
       </div>
@@ -1826,9 +2081,8 @@ $waitingListParticipants = array_filter($participants, function($p) {
                 </div>
               </div>
 
-              <div class="text-amber-400 text-xs font-black shrink-0 flex items-center gap-1 group-hover:translate-x-1 transition-transform pl-2">
-                <span>Pindah</span>
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+              <div class="text-amber-400 text-xs font-black shrink-0 px-2 py-1 rounded bg-amber-400/10 border border-amber-400/20 group-hover:bg-amber-400 group-hover:text-slate-950 transition-all font-mono">
+                Pindah &rarr;
               </div>
             </a>
           <?php endforeach; ?>
@@ -2236,6 +2490,51 @@ $waitingListParticipants = array_filter($participants, function($p) {
     function closeSessionSheet() {
       const el = document.getElementById('sessionBottomSheet');
       if (el) el.classList.add('hidden');
+    }
+
+    function copyWhatsappRecap() {
+      const sessionVenue = <?= json_encode($currentSession['venue_name'] ?? 'Badminton Court') ?>;
+      const sessionDay = <?= json_encode($currentSession['day_name'] ?? '') ?>;
+      const matchCount = <?= (int)count($completedMatches) ?>;
+      const presentCount = <?= (int)$paymentSummary['total_present'] ?>;
+      const cashCollected = <?= (int)$paymentSummary['total_cash_collected'] ?>;
+      const unpaidCount = <?= (int)$paymentSummary['total_unpaid'] ?>;
+      
+      let text = `*REKAP SESI MABAR - ${sessionVenue.toUpperCase()}*\n`;
+      text += `*Hari/Sesi:* ${sessionDay}\n`;
+      text += `*Total Pemain Hadir:* ${presentCount} orang\n`;
+      text += `*Pertandingan Selesai:* ${matchCount} match\n`;
+      text += `*Total Kas Terkumpul:* Rp ${cashCollected.toLocaleString('id-ID')}\n`;
+      if (unpaidCount > 0) {
+        text += `*Catatan Iuran Belum Bayar:* ${unpaidCount} orang\n`;
+      }
+      text += `\nTerima kasih kepada seluruh teman-teman yang telah hadir dan meramaikan sesi mabar hari ini! Sampai jumpa di sesi berikutnya!`;
+      
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('Rekap WhatsApp berhasil disalin ke clipboard!', true);
+        }).catch(() => {
+          fallbackCopyText(text);
+        });
+      } else {
+        fallbackCopyText(text);
+      }
+    }
+
+    function fallbackCopyText(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast('Rekap WhatsApp berhasil disalin ke clipboard!', true);
+      } catch (err) {
+        showToast('Gagal menyalin rekap.', false);
+      }
+      document.body.removeChild(ta);
     }
 
     function showToast(msg, isSuccess = true) {

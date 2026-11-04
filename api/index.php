@@ -23,6 +23,35 @@ if (!empty($rawInput)) {
     }
 }
 
+// Helper: Validate that session is active and not completed
+function checkSessionActive(?int $sessionId): array {
+    if (!$sessionId || $sessionId <= 0) {
+        throw new RuntimeException("Sesi mabar tidak valid.");
+    }
+    $session = Schedule::find($sessionId);
+    if (!$session) {
+        throw new RuntimeException("Sesi mabar tidak ditemukan.");
+    }
+    if (($session['status'] ?? '') === 'completed') {
+        throw new RuntimeException("Sesi mabar ini telah selesai dan dikunci. Pertandingan, pemain, dan rotasi tidak dapat diubah lagi.");
+    }
+    return $session;
+}
+
+function checkMatchSessionActive(int $matchId): array {
+    if ($matchId <= 0) throw new RuntimeException("ID pertandingan tidak valid.");
+    $match = MatchRecord::find($matchId);
+    if (!$match) throw new RuntimeException("Data pertandingan tidak ditemukan.");
+    $sessId = (int)($match['session_id'] ?? 0);
+    if ($sessId > 0) {
+        $session = Schedule::find($sessId);
+        if ($session && ($session['status'] ?? '') === 'completed') {
+            throw new RuntimeException("Sesi mabar ini telah selesai dan dikunci. Pertandingan tidak dapat diubah lagi.");
+        }
+    }
+    return $match;
+}
+
 try {
     switch ($action) {
         case 'get_leaderboard':
@@ -48,8 +77,7 @@ try {
             $algorithm = isset($_POST['algorithm']) ? $_POST['algorithm'] : 'balanced_level';
             $courtCount = (int)(isset($_POST['court_count']) ? $_POST['court_count'] : 0);
 
-            $session = Schedule::find($sessionId);
-            if (!$session) throw new RuntimeException("Sesi mabar tidak ditemukan.");
+            $session = checkSessionActive($sessionId);
             if ($courtCount <= 0) $courtCount = (int)$session['court_count'];
 
             $participants = Participant::getBySession($sessionId);
@@ -86,8 +114,7 @@ try {
             $courtNumber = (int)(isset($_POST['court_number']) ? $_POST['court_number'] : 1);
             $algorithm = isset($_POST['algorithm']) ? $_POST['algorithm'] : 'balanced_level';
 
-            $session = Schedule::find($sessionId);
-            if (!$session) throw new RuntimeException("Sesi mabar tidak ditemukan.");
+            $session = checkSessionActive($sessionId);
 
             $pastMatches = MatchRecord::getBySession($sessionId);
 
@@ -159,6 +186,8 @@ try {
                 throw new RuntimeException("Masukkan angka skor yang valid.");
             }
 
+            checkMatchSessionActive($matchId);
+
             $saved = MatchRecord::saveScore($matchId, $scoreA, $scoreB);
             if (!$saved) throw new RuntimeException("Gagal menyimpan skor pertandingan.");
 
@@ -170,7 +199,7 @@ try {
 
         case 'delete_match':
             $matchId = (int)(isset($_POST['match_id']) ? $_POST['match_id'] : 0);
-            if ($matchId <= 0) throw new RuntimeException("ID pertandingan tidak valid.");
+            checkMatchSessionActive($matchId);
 
             MatchRecord::deleteMatch($matchId);
             echo json_encode([
@@ -183,9 +212,11 @@ try {
             $sessionId = (int)(isset($_POST['session_id']) ? $_POST['session_id'] : 0);
             $roundNumber = (int)(isset($_POST['round_number']) ? $_POST['round_number'] : 0);
 
-            if ($sessionId <= 0 || $roundNumber <= 0) {
-                throw new RuntimeException("Parameter sesi atau ronde tidak valid.");
+            if ($roundNumber <= 0) {
+                throw new RuntimeException("Nomor ronde tidak valid.");
             }
+
+            checkSessionActive($sessionId);
 
             MatchRecord::deleteRound($sessionId, $roundNumber);
             echo json_encode([
@@ -199,9 +230,11 @@ try {
             $slot = trim(isset($_POST['slot']) ? $_POST['slot'] : '');
             $newPlayerId = (int)(isset($_POST['new_player_id']) ? $_POST['new_player_id'] : 0);
 
-            if ($matchId <= 0 || empty($slot) || $newPlayerId <= 0) {
+            if (empty($slot) || $newPlayerId <= 0) {
                 throw new RuntimeException("Data penukaran pemain tidak lengkap.");
             }
+
+            checkMatchSessionActive($matchId);
 
             MatchRecord::swapPlayer($matchId, $slot, $newPlayerId);
             echo json_encode([
@@ -222,6 +255,10 @@ try {
                 throw new RuntimeException("Nama pemain wajib diisi.");
             }
 
+            if ($sessionId > 0) {
+                checkSessionActive($sessionId);
+            }
+
             Player::update($playerId, $name, $phone, $level);
 
             if ($sessionId > 0 && in_array($status, ['confirmed', 'waiting_list'])) {
@@ -238,9 +275,11 @@ try {
             $sessionId = (int)(isset($_POST['session_id']) ? $_POST['session_id'] : 0);
             $playerId = (int)(isset($_POST['player_id']) ? $_POST['player_id'] : 0);
 
-            if ($sessionId <= 0 || $playerId <= 0) {
-                throw new RuntimeException("Data sesi atau pemain tidak valid.");
+            if ($playerId <= 0) {
+                throw new RuntimeException("Data pemain tidak valid.");
             }
+
+            checkSessionActive($sessionId);
 
             Participant::promoteWaitingList($sessionId, $playerId);
             echo json_encode([
@@ -253,9 +292,11 @@ try {
             $sessionId = (int)(isset($_POST['session_id']) ? $_POST['session_id'] : 0);
             $playerId = (int)(isset($_POST['player_id']) ? $_POST['player_id'] : 0);
 
-            if ($sessionId <= 0 || $playerId <= 0) {
-                throw new RuntimeException("Data sesi atau pemain tidak valid.");
+            if ($playerId <= 0) {
+                throw new RuntimeException("Data pemain tidak valid.");
             }
+
+            checkSessionActive($sessionId);
 
             Participant::remove($sessionId, $playerId);
             echo json_encode([
@@ -267,7 +308,7 @@ try {
         case 'import_whatsapp':
             $sessionId = (int)(isset($_POST['session_id']) ? $_POST['session_id'] : 0);
             $rawText = trim(isset($_POST['raw_text']) ? $_POST['raw_text'] : '');
-            $sess = Schedule::find($sessionId);
+            $sess = checkSessionActive($sessionId);
             $fee = $sess ? (int)$sess['fee_per_person'] : 35000;
 
             if (empty($rawText)) {
@@ -293,6 +334,8 @@ try {
             $sessionId = (int)(isset($_POST['session_id']) ? $_POST['session_id'] : 0);
             $playerId = (int)(isset($_POST['player_id']) ? $_POST['player_id'] : 0);
 
+            checkSessionActive($sessionId);
+
             Participant::togglePayment($sessionId, $playerId);
             $summary = Participant::getPaymentSummary($sessionId);
 
@@ -307,6 +350,8 @@ try {
             $sessionId = (int)(isset($_POST['session_id']) ? $_POST['session_id'] : 0);
             $playerId = (int)(isset($_POST['player_id']) ? $_POST['player_id'] : 0);
             $forceState = isset($_POST['is_present']) && $_POST['is_present'] !== '' ? (int)$_POST['is_present'] : null;
+
+            checkSessionActive($sessionId);
 
             Participant::toggleAttendance($sessionId, $playerId, $forceState);
             $summary = Participant::getPaymentSummary($sessionId);
@@ -326,8 +371,8 @@ try {
 
             if (empty($name)) throw new RuntimeException("Nama pemain wajib diisi.");
 
+            $sess = checkSessionActive($sessionId);
             $playerId = Player::create($name, $phone, $level);
-            $sess = Schedule::find($sessionId);
             $fee = $sess ? (int)$sess['fee_per_person'] : 35000;
 
             Participant::add($sessionId, $playerId, 'unpaid', $fee, $status);
