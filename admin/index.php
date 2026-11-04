@@ -125,7 +125,8 @@ if ($isLoggedIn && $reqMethod === 'POST' && isset($_POST['form_action'])) {
                 'court_count' => (int)$_POST['court_count'],
                 'max_slots' => (int)(!empty($_POST['max_quota']) ? $_POST['max_quota'] : (!empty($_POST['max_participants']) ? $_POST['max_participants'] : 16)),
                 'fee_per_person' => (int)preg_replace('/[^0-9]/', '', (string)(!empty($_POST['fee']) ? $_POST['fee'] : (!empty($_POST['fee_per_person']) ? $_POST['fee_per_person'] : '35000'))),
-                'facilities' => trim(!empty($_POST['shuttlecock']) ? $_POST['shuttlecock'] : (!empty($_POST['facilities']) ? $_POST['facilities'] : 'Bulu Angsa Berkualitas')),
+                'facilities' => trim(!empty($_POST['facilities']) ? $_POST['facilities'] : (!empty($_POST['shuttlecock']) ? $_POST['shuttlecock'] : 'Karpet Vinyl BWF, Kok Bulu Angsa Berkualitas, Lampu LED Anti-Silau, Toilet & Kantin')),
+                'pic_id' => ($picAccountId > 0 ? $picAccountId : null),
                 'host_name' => $picName,
                 'bank_info' => !empty($_POST['bank_info']) ? trim($_POST['bank_info']) : 'BCA 1234567890 a.n Bendahara',
                 'cancellation_rules' => !empty($_POST['cancellation_rules']) ? trim($_POST['cancellation_rules']) : 'Konfirmasi pembatalan slot maksimal H-1 atau cari pemain pengganti.',
@@ -173,7 +174,8 @@ if ($isLoggedIn && $reqMethod === 'POST' && isset($_POST['form_action'])) {
                 'court_count' => (int)$_POST['court_count'],
                 'max_slots' => (int)(!empty($_POST['max_quota']) ? $_POST['max_quota'] : (!empty($_POST['max_participants']) ? $_POST['max_participants'] : 16)),
                 'fee_per_person' => (int)preg_replace('/[^0-9]/', '', (string)(!empty($_POST['fee']) ? $_POST['fee'] : (!empty($_POST['fee_per_person']) ? $_POST['fee_per_person'] : '35000'))),
-                'facilities' => trim(!empty($_POST['shuttlecock']) ? $_POST['shuttlecock'] : (!empty($_POST['facilities']) ? $_POST['facilities'] : 'Bulu Angsa Berkualitas')),
+                'facilities' => trim(!empty($_POST['facilities']) ? $_POST['facilities'] : (!empty($_POST['shuttlecock']) ? $_POST['shuttlecock'] : 'Karpet Vinyl BWF, Kok Bulu Angsa Berkualitas, Lampu LED Anti-Silau, Toilet & Kantin')),
+                'pic_id' => ($picAccountId > 0 ? $picAccountId : null),
                 'host_name' => $picName,
                 'bank_info' => !empty($_POST['bank_info']) ? trim($_POST['bank_info']) : 'BCA 1234567890 a.n Bendahara',
                 'cancellation_rules' => !empty($_POST['cancellation_rules']) ? trim($_POST['cancellation_rules']) : 'Konfirmasi pembatalan slot maksimal H-1 atau cari pemain pengganti.',
@@ -401,13 +403,11 @@ if ($isLoggedIn && $reqMethod === 'POST' && isset($_POST['form_action'])) {
             $phone = trim($_POST['phone']);
             $username = trim($_POST['username']);
             $password = $_POST['password'];
-            $assignedSessionId = (int)$_POST['assigned_session_id'];
+            $assignedSessionId = !empty($_POST['assigned_session_id']) ? (int)$_POST['assigned_session_id'] : null;
+            if ($assignedSessionId && $assignedSessionId <= 0) $assignedSessionId = null;
 
             if (empty($name) || empty($username) || empty($password)) {
                 throw new Exception("Nama, Username, dan Password wajib diisi.");
-            }
-            if ($assignedSessionId <= 0) {
-                throw new Exception("Pilih sesi mabar yang akan ditugaskan ke PIC ini.");
             }
 
             $pdo = Database::getConnection();
@@ -421,15 +421,37 @@ if ($isLoggedIn && $reqMethod === 'POST' && isset($_POST['form_action'])) {
             $hash = password_hash($password, PASSWORD_BCRYPT);
             $stmt = $pdo->prepare("INSERT INTO admins (username, password_hash, name, phone, role, assigned_session_id) VALUES (?, ?, ?, ?, ?, ?)");
             $stmt->execute([$username, $hash, $name, $phone, $role, $assignedSessionId]);
+            $newAdminId = (int)$pdo->lastInsertId();
 
-            // Sync assigned session's PIC contact and host name in schedules table
-            if ($role === 'pic' && $assignedSessionId > 0) {
-                $stmtSync = $pdo->prepare("UPDATE schedules SET pic_name = ?, host_name = ?, pic_whatsapp = ? WHERE id = ?");
-                $stmtSync->execute([$name, $name, $phone, $assignedSessionId]);
+            // Sync assigned session's PIC contact and host name in schedules table if selected
+            if ($assignedSessionId && $assignedSessionId > 0) {
+                try {
+                    $stmtSync = $pdo->prepare("UPDATE schedules SET pic_id = ?, pic_name = ?, host_name = ?, pic_whatsapp = ? WHERE id = ?");
+                    $stmtSync->execute([$newAdminId, $name, $name, $phone, $assignedSessionId]);
+                } catch (Exception $e) {
+                    $stmtSync = $pdo->prepare("UPDATE schedules SET pic_name = ?, host_name = ?, pic_whatsapp = ? WHERE id = ?");
+                    $stmtSync->execute([$name, $name, $phone, $assignedSessionId]);
+                }
             }
 
             $roleLabel = ($role === 'pic_foto') ? 'PIC Foto / Dokumentasi' : 'PIC Lapangan';
             $successMsg = "Akun {$roleLabel} '{$name}' (@{$username}) berhasil dibuat!";
+        } elseif ($formAction === 'assign_pic_session') {
+            $sessionId = (int)$_POST['session_id'];
+            $picId = !empty($_POST['pic_id']) ? (int)$_POST['pic_id'] : null;
+            if ($sessionId <= 0) {
+                throw new Exception("Pilih sesi mabar yang valid.");
+            }
+            Schedule::assignPic($sessionId, $picId);
+            $pdo = Database::getConnection();
+            if ($picId && $picId > 0) {
+                $stmtP = $pdo->prepare("SELECT name FROM admins WHERE id = ?");
+                $stmtP->execute([$picId]);
+                $pName = $stmtP->fetchColumn() ?: 'PIC';
+                $successMsg = "Sesi mabar berhasil ditugaskan kepada PIC {$pName}!";
+            } else {
+                $successMsg = "Penugasan PIC pada sesi mabar berhasil dilepas (Unassigned).";
+            }
         } elseif ($formAction === 'delete_pic_account') {
             $adminId = (int)$_POST['admin_id'];
             if ($adminId <= 1) {
@@ -438,6 +460,10 @@ if ($isLoggedIn && $reqMethod === 'POST' && isset($_POST['form_action'])) {
             $pdo = Database::getConnection();
             $stmt = $pdo->prepare("DELETE FROM admins WHERE id = ? AND role IN ('pic', 'pic_foto')");
             $stmt->execute([$adminId]);
+            // Also unassign from schedules
+            try {
+                $pdo->prepare("UPDATE schedules SET pic_id = NULL WHERE pic_id = ?")->execute([$adminId]);
+            } catch (Exception $e) {}
             $successMsg = "Akun PIC berhasil dihapus dari sistem.";
         } elseif ($formAction === 'generate_next_session') {
             $sourceId = (int)$_POST['session_id'];
@@ -522,9 +548,25 @@ $allSchedules = Schedule::all();
 $players = Player::all(false);
 $user = Auth::user();
 
-// Fetch PIC & Media accounts
+// Fetch PIC & Media accounts with full session assignments
 $pdo = Database::getConnection();
 $picAccounts = $pdo->query("SELECT a.*, s.venue_name, s.day_name, s.court_count, s.time_start FROM admins a LEFT JOIN schedules s ON a.assigned_session_id = s.id WHERE a.role IN ('pic', 'pic_foto') ORDER BY a.id DESC")->fetchAll(PDO::FETCH_ASSOC);
+
+foreach ($picAccounts as &$pa) {
+    try {
+        $stmtS = $pdo->prepare("
+            SELECT id, title, day_name, schedule_date, time_start, time_end, venue_name, branch_area, status, court_count 
+            FROM schedules 
+            WHERE pic_id = ? OR id = ? OR pic_name = ?
+            ORDER BY schedule_date DESC, time_start ASC
+        ");
+        $stmtS->execute([$pa['id'], $pa['assigned_session_id'] ?? 0, $pa['name']]);
+        $pa['assigned_schedules'] = $stmtS->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        $pa['assigned_schedules'] = [];
+    }
+}
+unset($pa);
 
 // Roster Filter state (Supports Hash Token)
 $rawRosterSession = isset($_GET['roster_session']) ? (string)$_GET['roster_session'] : '';
@@ -2609,6 +2651,63 @@ ${listLines.join('\n')}${fullTag}`;
                 <input type="url" id="formMapsUrl" name="maps_url" value="<?= $editSchedule ? htmlspecialchars($editSchedule['venue_maps_url']) : '' ?>" placeholder="https://maps.app.goo.gl/... (otomatis terisi jika pilih GOR di atas)" class="w-full bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-md px-3 py-2 text-xs text-slate-900 font-mono focus:outline-none shadow-xs">
               </div>
 
+              <!-- Fasilitas Venue & Sarana GOR (Tampil di Landing Page) -->
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-xs font-bold text-slate-800">
+                    Fasilitas Venue & Sarana GOR:
+                  </label>
+                  <span class="text-[10px] text-amber-700 font-mono font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                    Tampil di Landing Page 🏸
+                  </span>
+                </div>
+                <input type="text" id="formFacilitiesInput" name="facilities" 
+                       value="<?= $editSchedule ? htmlspecialchars(!empty($editSchedule['facilities']) ? $editSchedule['facilities'] : 'Karpet Vinyl BWF, Kok Bulu Angsa Berkualitas, Lampu LED Anti-Silau, Toilet & Kantin') : 'Karpet Vinyl BWF, Kok Bulu Angsa Berkualitas, Lampu LED Anti-Silau, Toilet & Kantin' ?>" 
+                       placeholder="Contoh: Karpet Standar BWF, Kok Bulu Angsa Resmi, Parkir Luas..." 
+                       class="w-full bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-md px-3 py-2 text-xs text-slate-900 font-semibold focus:outline-none shadow-xs">
+                
+                <!-- Quick Facility Chips (1-tap to toggle) -->
+                <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span class="text-[10px] text-slate-400 font-mono">Pilih Cepat:</span>
+                  <?php 
+                    $facChips = [
+                      'Karpet Standar BWF / Vinyl',
+                      'Kok Bulu Angsa Resmi',
+                      'Lampu LED Anti-Silau',
+                      'Parkir Luas (Mobil & Motor)',
+                      'Kantin & Minuman Dingin',
+                      'Toilet / Kamar Mandi Bersih',
+                      'Ruang Istirahat / AC',
+                      'Musholla',
+                      'Tribun Penonton / Loker'
+                    ];
+                    foreach ($facChips as $chip):
+                  ?>
+                    <button type="button" onclick="toggleFacilityChip('<?= addslashes($chip) ?>')" class="fac-chip px-2 py-1 text-[10px] font-mono rounded border border-slate-200 bg-slate-50 hover:bg-amber-100 hover:text-amber-900 text-slate-700 transition-colors">
+                      + <?= htmlspecialchars($chip) ?>
+                    </button>
+                  <?php endforeach; ?>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-1.5">
+                  Klik tag di atas untuk menambah/menghapus fasilitas dengan cepat, atau ketik manual dengan pemisah koma.
+                </p>
+              </div>
+
+              <script>
+                function toggleFacilityChip(chip) {
+                  const input = document.getElementById('formFacilitiesInput');
+                  if (!input) return;
+                  let current = input.value.split(',').map(s => s.trim()).filter(Boolean);
+                  const idx = current.indexOf(chip);
+                  if (idx >= 0) {
+                    current.splice(idx, 1);
+                  } else {
+                    current.push(chip);
+                  }
+                  input.value = current.join(', ');
+                }
+              </script>
+
               <?php
                 $valStart = $editSchedule ? substr($editSchedule['time_start'], 0, 5) : '19:00';
                 $valStartHour = substr($valStart, 0, 2);
@@ -3556,186 +3655,543 @@ ${listLines.join('\n')}${fullTag}`;
         </div>
 
 
-      <!-- TAB: AKUN PIC SESI (ISOLATED SESSION AUTH) -->
+      <!-- ======================================================== -->
+      <!-- TAB: MANAJEMEN AKUN PIC, PENUGASAN SESI & REPORTING CABANG -->
+      <!-- ======================================================== -->
       <?php elseif ($tab === 'pic_accounts'): ?>
         
-        <div class="mb-8">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="px-2.5 py-0.5 rounded bg-amber-100 text-blue-900 text-[10px] font-bold uppercase tracking-wider">Akses Lapangan PIC</span>
-            <span class="text-xs text-slate-400 font-mono">• Session Isolation System</span>
+        <div class="mb-6">
+          <div class="flex items-center gap-2 mb-1.5">
+            <span class="px-2.5 py-0.5 rounded bg-amber-100 text-blue-900 text-[10px] font-black uppercase tracking-wider font-mono">Manajemen PIC & Reporting Cabang</span>
+            <span class="text-xs text-slate-400 font-mono">• Multi-Branch Management</span>
           </div>
-          <h2 class="text-2xl font-black text-slate-900 tracking-tight">
-            Manajemen Akun Login PIC Sesi
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-sans">
+            Manajemen Akun PIC & Penugasan Sesi Mabar
           </h2>
-          <p class="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
-            Setiap PIC hanya memiliki akses ke <strong>1 sesi mabar yang ditugaskan</strong>. Saat PIC login di HP mereka pada Aplikasi Lapangan (<code>/app/</code>), sesi mereka otomatis terkunci sehingga tidak akan terjadi tabrakan atau kesalahan input skor dengan sesi lain yang berlangsung di jam yang sama.
+          <p class="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
+            Kelola penugasan PIC penanggung jawab per cabang mabar dan tanggal pertandingan, pantau reporting jadwal sesi yang dipegang masing-masing PIC, serta daftarkan akun login operasional lapangan.
           </p>
+
+          <!-- Sub-Tab Navigation Switcher -->
+          <div class="flex items-center gap-2 mt-5 border-b border-slate-200 pb-3">
+            <button type="button" id="btnPicSubAssignments" onclick="switchPicSubTab('assignments')" class="px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all bg-[#0b1e36] text-amber-400 border border-amber-400/40 shadow-xs">
+              1. Penugasan PIC & Laporan Cabang
+            </button>
+            <button type="button" id="btnPicSubAccounts" onclick="switchPicSubTab('accounts')" class="px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all bg-white text-slate-700 border border-slate-300 hover:bg-slate-100">
+              2. Kelola & Tambah Akun PIC Baru (<?= count($picAccounts) ?>)
+            </button>
+          </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          <!-- Form Buat Akun PIC Baru -->
-          <div class="lg:col-span-5">
-            <div class="bg-white rounded-lg border border-slate-200 p-6 sm:p-7 shadow-sm sticky top-24">
-              <h3 class="text-base font-black text-slate-900 mb-1">
-                + Tambah Akun PIC Baru
-              </h3>
-              <p class="text-xs text-slate-500 mb-5">
-                Akun ini digunakan oleh PIC untuk login ke App Operasional Lapangan di HP.
-              </p>
+        <!-- ======================================================== -->
+        <!-- SUB-TAB 1: PENUGASAN PIC & REPORTING CABANG MABAR        -->
+        <!-- ======================================================== -->
+        <div id="secPicAssignments" class="space-y-6">
 
-              <form method="POST" action="?tab=pic_accounts" class="space-y-4">
-                <input type="hidden" name="form_action" value="create_pic_account">
+          <!-- KPI Summary Bar -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-xs">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-mono">Total Akun PIC</span>
+              <span class="text-2xl font-black text-slate-900 font-mono"><?= count($picAccounts) ?></span>
+              <span class="text-[10px] text-slate-500 block mt-0.5">PIC Lapangan & Media</span>
+            </div>
 
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Nama Lengkap PIC:</label>
-                  <input type="text" name="name" required placeholder="Nama lengkap PIC (Contoh: Budi Santoso)" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-700">
-                </div>
+            <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-xs">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-mono">Total Sesi Mabar</span>
+              <span class="text-2xl font-black text-slate-900 font-mono"><?= count($allSchedules) ?></span>
+              <span class="text-[10px] text-slate-500 block mt-0.5">Semua cabang venue GOR</span>
+            </div>
 
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">No. WhatsApp PIC:</label>
-                  <input type="text" name="phone" required placeholder="Contoh: 081234567890" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-700">
-                  <span class="text-[10px] text-slate-400 mt-0.5 block">PIC dapat login menggunakan Username ATAU No. WhatsApp.</span>
-                </div>
+            <?php
+              $assignedCount = 0;
+              $unassignedCount = 0;
+              foreach ($allSchedules as $s) {
+                if (!empty($s['pic_id']) || !empty($s['pic_name'])) {
+                  $assignedCount++;
+                } else {
+                  $unassignedCount++;
+                }
+              }
+            ?>
+            <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-xs">
+              <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block font-mono">Sesi Ada PIC</span>
+              <span class="text-2xl font-black text-emerald-700 font-mono"><?= $assignedCount ?></span>
+              <span class="text-[10px] text-emerald-600 block mt-0.5">Siap beroperasi</span>
+            </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Username Login:</label>
-                    <input type="text" name="username" required placeholder="Contoh: pic_lapangan1" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-700 font-mono">
-                  </div>
-                  <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Password:</label>
-                    <input type="password" name="password" required placeholder="Minimal 6 karakter" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-700">
-                  </div>
-                </div>
-
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Tipe Penugasan / Peran Akun:</label>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <label class="border border-slate-300 rounded-md p-2.5 flex items-start gap-2.5 cursor-pointer hover:bg-slate-50 transition-colors">
-                      <input type="radio" name="role" value="pic" checked class="mt-0.5 text-[#0b1e36]">
-                      <div>
-                        <div class="text-xs font-black text-slate-900">PIC Lapangan</div>
-                        <div class="text-[10px] text-slate-500 leading-tight">Operasional rotasi, papan skor, kas, dan pemain.</div>
-                      </div>
-                    </label>
-                    <label class="border border-slate-300 rounded-md p-2.5 flex items-start gap-2.5 cursor-pointer hover:bg-slate-50 transition-colors">
-                      <input type="radio" name="role" value="pic_foto" class="mt-0.5 text-[#0b1e36]">
-                      <div>
-                        <div class="text-xs font-black text-slate-900">PIC Foto / Media</div>
-                        <div class="text-[10px] text-slate-500 leading-tight">Khusus upload foto dokumentasi & galeri mabar.</div>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Tugaskan ke Sesi Mabar:</label>
-                  <select name="assigned_session_id" required class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-700">
-                    <option value="">-- Pilih Sesi Mabar yang Ditugaskan --</option>
-                    <?php foreach ($allSchedules as $sch): ?>
-                      <?php 
-                        $tS = isset($sch['time_start']) ? $sch['time_start'] : (isset($sch['start_time']) ? $sch['start_time'] : '20:00:00');
-                      ?>
-                      <option value="<?= $sch['id'] ?>">
-                        <?= htmlspecialchars($sch['day_name']) ?> — <?= htmlspecialchars($sch['venue_name']) ?> (<?= substr($tS, 0, 5) ?> WIB)
-                      </option>
-                    <?php endforeach; ?>
-                  </select>
-                  <span class="text-[10px] text-blue-700 mt-1 block font-medium">
-                    Akun ini otomatis terhubung khusus untuk sesi ini pada App PIC.
-                  </span>
-                </div>
-
-                <button type="submit" class="w-full py-3 rounded-md bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider transition-all btn-tactile shadow-sm mt-2">
-                  Daftarkan Akun PIC Sesi →
-                </button>
-              </form>
+            <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-xs">
+              <span class="text-[10px] font-bold <?= $unassignedCount > 0 ? 'text-rose-600' : 'text-slate-400' ?> uppercase tracking-wider block font-mono">Belum Ada PIC</span>
+              <span class="text-2xl font-black <?= $unassignedCount > 0 ? 'text-rose-600' : 'text-slate-900' ?> font-mono"><?= $unassignedCount ?></span>
+              <span class="text-[10px] text-slate-500 block mt-0.5">Perlu penugasan PIC</span>
             </div>
           </div>
 
-          <!-- Daftar Akun PIC Terdaftar -->
-          <div class="lg:col-span-7">
-            <div class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-              <div class="p-6 border-b border-slate-200 flex items-center justify-between">
-                <div>
-                  <h3 class="text-base font-black text-slate-900">
-                    Daftar Akun PIC Lapangan (<?= count($picAccounts) ?>)
-                  </h3>
-                  <p class="text-xs text-slate-500 mt-0.5">PIC yang bertugas memandu rotasi, absensi, dan skor di GOR.</p>
-                </div>
+          <!-- TABEL 1: MATRIKS PENUGASAN PIC PER SESI MABAR -->
+          <div class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-xs">
+            <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50">
+              <div>
+                <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider font-mono">
+                  Matriks Penugasan PIC ke Sesi Mabar
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  Tentukan PIC penanggung jawab untuk masing-masing sesi mabar di setiap cabang GOR.
+                </p>
               </div>
+              <span class="text-[11px] font-mono text-slate-500 bg-white px-2.5 py-1 rounded border border-slate-200">
+                Pilih PIC lalu klik Simpan atau ganti langsung
+              </span>
+            </div>
 
-              <?php if (empty($picAccounts)): ?>
-                <div class="p-12 text-center">
-                  <div class="w-12 h-12 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center mx-auto text-xl font-bold mb-3">
-                    
-                  </div>
-                  <h4 class="text-sm font-bold text-slate-800">Belum Ada Akun PIC</h4>
-                  <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-                    Silakan daftarkan akun PIC di form sebelah kiri untuk memberikan akses operasional lapangan pada PIC di masing-masing GOR.
-                  </p>
-                </div>
-              <?php else: ?>
-                <div class="divide-y divide-slate-100">
-                  <?php foreach ($picAccounts as $pic): ?>
-                    <div class="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/80 transition-colors">
-                      <div class="flex items-start gap-3.5">
-                        <div class="w-11 h-11 rounded-lg bg-amber-100 text-blue-900 flex items-center justify-center font-black text-sm shrink-0 border border-blue-200">
+            <?php if (empty($allSchedules)): ?>
+              <div class="p-8 text-center text-xs text-slate-500">
+                Belum ada jadwal sesi mabar. Silakan buat jadwal baru terlebih dahulu di menu <strong>Jadwal & Kuota Sesi</strong>.
+              </div>
+            <?php else: ?>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr class="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider text-[10px] font-mono border-b border-slate-200">
+                      <th class="py-3 px-4">Tanggal & Jam Sesi</th>
+                      <th class="py-3 px-4">Cabang / Venue GOR</th>
+                      <th class="py-3 px-4">Status Sesi</th>
+                      <th class="py-3 px-4">PIC Bertugas Saat Ini</th>
+                      <th class="py-3 px-4 text-right">Aksi Hubungkan PIC</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    <?php foreach ($allSchedules as $sch): 
+                      $tS = isset($sch['time_start']) ? $sch['time_start'] : (isset($sch['start_time']) ? $sch['start_time'] : '20:00:00');
+                      $tE = isset($sch['time_end']) ? $sch['time_end'] : (isset($sch['end_time']) ? $sch['end_time'] : '22:00:00');
+                      $isCompleted = ($sch['status'] ?? '') === 'completed';
+                      
+                      // Find assigned PIC admin if any
+                      $assignedPicObj = null;
+                      foreach ($picAccounts as $pa) {
+                        if ((!empty($sch['pic_id']) && (int)$sch['pic_id'] === (int)$pa['id']) || 
+                            (!empty($pa['assigned_session_id']) && (int)$pa['assigned_session_id'] === (int)$sch['id']) ||
+                            ($sch['pic_name'] === $pa['name'])) {
+                          $assignedPicObj = $pa;
+                          break;
+                        }
+                      }
+                    ?>
+                      <tr class="hover:bg-slate-50/80 transition-colors">
+                        <!-- Tanggal & Jam -->
+                        <td class="py-3.5 px-4 font-mono">
+                          <div class="font-black text-slate-900">
+                            <?= htmlspecialchars($sch['day_name']) ?>
+                          </div>
+                          <div class="text-[11px] text-slate-500 mt-0.5">
+                            <?= date('d M Y', strtotime($sch['schedule_date'])) ?>
+                          </div>
+                          <div class="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 inline-block mt-1">
+                            <?= substr($tS, 0, 5) ?> - <?= substr($tE, 0, 5) ?> WIB
+                          </div>
+                        </td>
+
+                        <!-- Venue & Cabang -->
+                        <td class="py-3.5 px-4">
+                          <div class="font-extrabold text-slate-900 text-sm">
+                            <?= htmlspecialchars($sch['venue_name']) ?>
+                          </div>
+                          <div class="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                            <span>Cabang: <strong><?= htmlspecialchars($sch['branch_area'] ?: 'Pusat') ?></strong></span>
+                            <span>•</span>
+                            <span><?= $sch['court_count'] ?> Lapangan</span>
+                          </div>
+                          <?php if (!empty($sch['venue_address'])): ?>
+                            <div class="text-[10px] text-slate-400 truncate max-w-xs mt-0.5" title="<?= htmlspecialchars($sch['venue_address']) ?>">
+                              <?= htmlspecialchars($sch['venue_address']) ?>
+                            </div>
+                          <?php endif; ?>
+                        </td>
+
+                        <!-- Status Sesi -->
+                        <td class="py-3.5 px-4">
+                          <?php if ($isCompleted): ?>
+                            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-300">
+                              [SELESAI]
+                            </span>
+                          <?php else: ?>
+                            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300">
+                              [AKTIF]
+                            </span>
+                          <?php endif; ?>
+                        </td>
+
+                        <!-- PIC Bertugas Saat Ini -->
+                        <td class="py-3.5 px-4">
+                          <?php if ($assignedPicObj): ?>
+                            <div class="flex items-center gap-2">
+                              <div class="w-7 h-7 rounded-full bg-[#0b1e36] text-amber-400 flex items-center justify-center font-black text-xs shrink-0">
+                                <?= strtoupper(substr($assignedPicObj['name'], 0, 2)) ?>
+                              </div>
+                              <div>
+                                <div class="font-bold text-slate-900 text-xs">
+                                  <?= htmlspecialchars($assignedPicObj['name']) ?>
+                                </div>
+                                <div class="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                                  <span>@<?= htmlspecialchars($assignedPicObj['username']) ?></span>
+                                  <?php if (!empty($assignedPicObj['phone'])): ?>
+                                    <span>•</span>
+                                    <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $assignedPicObj['phone']) ?>" target="_blank" class="text-blue-700 hover:underline">
+                                      WA
+                                    </a>
+                                  <?php endif; ?>
+                                </div>
+                              </div>
+                            </div>
+                          <?php elseif (!empty($sch['pic_name']) && $sch['pic_name'] !== 'PIC Komunitas'): ?>
+                            <div>
+                              <span class="font-bold text-slate-900"><?= htmlspecialchars($sch['pic_name']) ?></span>
+                              <span class="text-[10px] text-slate-500 block font-mono"><?= htmlspecialchars($sch['pic_whatsapp']) ?></span>
+                            </div>
+                          <?php else: ?>
+                            <span class="text-[11px] font-mono text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-300">
+                              Belum Ditugaskan
+                            </span>
+                          <?php endif; ?>
+                        </td>
+
+                        <!-- Form Hubungkan / Ganti PIC -->
+                        <td class="py-3.5 px-4 text-right">
+                          <form method="POST" action="?tab=pic_accounts" class="inline-flex items-center gap-1.5 justify-end">
+                            <input type="hidden" name="form_action" value="assign_pic_session">
+                            <input type="hidden" name="session_id" value="<?= $sch['id'] ?>">
+                            <select name="pic_id" class="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 shadow-xs max-w-[170px]">
+                              <option value="">-- Lepas PIC --</option>
+                              <?php foreach ($picAccounts as $p): 
+                                $isSelected = ($assignedPicObj && (int)$assignedPicObj['id'] === (int)$p['id']);
+                              ?>
+                                <option value="<?= $p['id'] ?>" <?= $isSelected ? 'selected' : '' ?>>
+                                  <?= htmlspecialchars($p['name']) ?> (<?= htmlspecialchars($p['username']) ?>)
+                                </option>
+                              <?php endforeach; ?>
+                            </select>
+                            <button type="submit" class="px-2.5 py-1 bg-[#0b1e36] hover:bg-[#132b4f] text-amber-400 font-bold text-xs uppercase tracking-wider rounded border border-amber-400/30 transition-colors shadow-xs">
+                              Tugaskan
+                            </button>
+                          </form>
+                        </td>
+                      </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+            <?php endif; ?>
+          </div>
+
+
+          <!-- TABEL 2: REPORTING DETAIL PER AKUN PIC (CABANG MANA SAJA & TANGGAL BERAPA) -->
+          <div class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-xs">
+            <div class="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <div>
+                <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider font-mono">
+                  Laporan Riwayat & Cabang Mabar yang Dipegang PIC
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  Rekapitulasi beban tugas operasional setiap PIC untuk monitoring dan reporting manajemen komunitas.
+                </p>
+              </div>
+              <span class="text-xs font-mono font-bold text-slate-600 bg-white px-2.5 py-1 rounded border border-slate-200">
+                <?= count($picAccounts) ?> PIC Terdaftar
+              </span>
+            </div>
+
+            <?php if (empty($picAccounts)): ?>
+              <div class="p-8 text-center text-xs text-slate-500">
+                Belum ada akun PIC yang terdaftar. Buat akun baru di tab "Kelola & Tambah Akun PIC Baru".
+              </div>
+            <?php else: ?>
+              <div class="divide-y divide-slate-100">
+                <?php foreach ($picAccounts as $pic): 
+                  $assignedSchedules = !empty($pic['assigned_schedules']) ? $pic['assigned_schedules'] : [];
+                ?>
+                  <div class="p-5 hover:bg-slate-50/60 transition-colors">
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-amber-100 text-blue-900 border border-blue-200 flex items-center justify-center font-black text-sm shrink-0">
                           <?= strtoupper(substr($pic['name'], 0, 2)) ?>
                         </div>
                         <div>
                           <div class="flex items-center gap-2 flex-wrap">
-                            <span class="font-extrabold text-sm text-slate-900"><?= htmlspecialchars($pic['name']) ?></span>
+                            <span class="font-black text-sm text-slate-900"><?= htmlspecialchars($pic['name']) ?></span>
                             <span class="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">@<?= htmlspecialchars($pic['username']) ?></span>
                             <span class="text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider <?= (isset($pic['role']) && $pic['role'] === 'pic_foto') ? 'bg-cyan-100 text-cyan-900 border border-cyan-300' : 'bg-[#0b1e36] text-amber-400' ?>">
                               <?= (isset($pic['role']) && $pic['role'] === 'pic_foto') ? 'PIC Foto / Media' : 'PIC Lapangan' ?>
                             </span>
                           </div>
-                          
-                          <div class="text-xs text-slate-600 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                            <span class="text-blue-700 font-bold"> <?= htmlspecialchars($pic['phone'] ?: 'Tidak ada No WA') ?></span>
-                            <span>•</span>
-                            <span class="font-semibold text-slate-700">
-                              Sesi GOR: <?= htmlspecialchars($pic['day_name'] ?: 'Semua') ?> (<?= htmlspecialchars($pic['venue_name'] ?: 'Belum di-assign') ?>)
-                            </span>
+                          <div class="text-xs text-slate-600 mt-0.5 flex items-center gap-2 font-mono">
+                            <span>No. WhatsApp: <strong><?= htmlspecialchars($pic['phone'] ?: '-') ?></strong></span>
+                            <?php if (!empty($pic['phone'])): ?>
+                              <span>•</span>
+                              <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $pic['phone']) ?>" target="_blank" class="text-blue-700 hover:underline">
+                                Hubungi PIC
+                              </a>
+                            <?php endif; ?>
                           </div>
                         </div>
                       </div>
 
-                      <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
-                        <form method="POST" action="?tab=pic_accounts" onsubmit="handleAdminFormConfirm(event, this, 'Hapus Akun PIC?', 'Akun PIC ini tidak akan dapat login lagi ke aplikasi lapangan.'); return false;">
-                          <input type="hidden" name="form_action" value="delete_pic_account">
-                          <input type="hidden" name="admin_id" value="<?= $pic['id'] ?>">
-                          <button type="submit" class="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 text-xs font-bold transition-colors">
-                            Hapus Akun
-                          </button>
-                        </form>
+                      <div class="text-right">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded bg-slate-100 text-slate-800 font-mono text-xs font-bold border border-slate-200">
+                          Memegang: <?= count($assignedSchedules) ?> Sesi Mabar
+                        </span>
                       </div>
                     </div>
-                  <?php endforeach; ?>
-                </div>
-              <?php endif; ?>
 
+                    <!-- Breakdown Sesi Mabar yang Dipegang PIC Ini -->
+                    <div>
+                      <span class="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                        Daftar Cabang Venue & Tanggal Mabar yang Ditugaskan:
+                      </span>
+                      <?php if (empty($assignedSchedules)): ?>
+                        <div class="p-3 bg-slate-50 border border-dashed border-slate-200 rounded text-slate-400 text-xs italic">
+                          Saat ini belum ada sesi mabar yang ditugaskan ke PIC ini.
+                        </div>
+                      <?php else: ?>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                          <?php foreach ($assignedSchedules as $as): 
+                            $isDone = ($as['status'] ?? '') === 'completed';
+                            $tS = isset($as['time_start']) ? substr($as['time_start'], 0, 5) : '20:00';
+                          ?>
+                            <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg hover:border-slate-300 transition-colors">
+                              <div class="flex items-center justify-between gap-1 mb-1">
+                                <span class="font-extrabold text-xs text-slate-900 truncate">
+                                  <?= htmlspecialchars($as['venue_name']) ?>
+                                </span>
+                                <?php if ($isDone): ?>
+                                  <span class="text-[9px] font-mono font-black px-1.5 py-0.2 rounded bg-slate-200 text-slate-700">
+                                    SELESAI
+                                  </span>
+                                <?php else: ?>
+                                  <span class="text-[9px] font-mono font-black px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">
+                                    AKTIF
+                                  </span>
+                                <?php endif; ?>
+                              </div>
+                              <div class="text-[11px] text-slate-600 font-mono">
+                                <span><?= htmlspecialchars($as['day_name']) ?>, <?= date('d M Y', strtotime($as['schedule_date'])) ?></span>
+                              </div>
+                              <div class="text-[10px] text-slate-500 font-mono mt-0.5 flex items-center justify-between">
+                                <span>Cabang <?= htmlspecialchars($as['branch_area'] ?: 'Pusat') ?></span>
+                                <span class="font-bold text-amber-800"><?= $tS ?> WIB</span>
+                              </div>
+                            </div>
+                          <?php endforeach; ?>
+                        </div>
+                      <?php endif; ?>
+                    </div>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+          </div>
+
+        </div>
+
+
+        <!-- ======================================================== -->
+        <!-- SUB-TAB 2: KELOLA & TAMBAH AKUN PIC BARU                 -->
+        <!-- ======================================================== -->
+        <div id="secPicAccounts" class="hidden space-y-6">
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Form Buat Akun PIC Baru -->
+            <div class="lg:col-span-5">
+              <div class="bg-white rounded-lg border border-slate-200 p-6 sm:p-7 shadow-sm sticky top-24">
+                <h3 class="text-base font-black text-slate-900 mb-1 font-sans">
+                  + Tambah Akun PIC Baru
+                </h3>
+                <p class="text-xs text-slate-500 mb-5 leading-relaxed">
+                  Daftarkan akun login untuk PIC Lapangan atau PIC Media Dokumentasi.
+                </p>
+
+                <form method="POST" action="?tab=pic_accounts" class="space-y-4">
+                  <input type="hidden" name="form_action" value="create_pic_account">
+
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Nama Lengkap PIC: <span class="text-red-500">*</span></label>
+                    <input type="text" name="name" required placeholder="Nama lengkap PIC (Contoh: Budi Santoso)" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">No. WhatsApp PIC: <span class="text-red-500">*</span></label>
+                    <input type="text" name="phone" required placeholder="Contoh: 081234567890" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+                    <span class="text-[10px] text-slate-400 mt-0.5 block font-mono">PIC dapat login menggunakan Username ATAU No. WhatsApp.</span>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-bold text-slate-700 mb-1">Username Login: <span class="text-red-500">*</span></label>
+                      <input type="text" name="username" required placeholder="pic_senen" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 font-mono">
+                    </div>
+                    <div>
+                      <label class="block text-xs font-bold text-slate-700 mb-1">Password: <span class="text-red-500">*</span></label>
+                      <input type="password" name="password" required placeholder="Minimal 6 karakter" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Tipe Penugasan / Peran Akun:</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <label class="border border-slate-300 rounded-md p-2.5 flex items-start gap-2.5 cursor-pointer hover:bg-slate-50 transition-colors">
+                        <input type="radio" name="role" value="pic" checked class="mt-0.5 text-[#0b1e36]">
+                        <div>
+                          <div class="text-xs font-black text-slate-900">PIC Lapangan</div>
+                          <div class="text-[10px] text-slate-500 leading-tight">Operasional rotasi, papan skor, kas, dan pemain.</div>
+                        </div>
+                      </label>
+                      <label class="border border-slate-300 rounded-md p-2.5 flex items-start gap-2.5 cursor-pointer hover:bg-slate-50 transition-colors">
+                        <input type="radio" name="role" value="pic_foto" class="mt-0.5 text-[#0b1e36]">
+                        <div>
+                          <div class="text-xs font-black text-slate-900">PIC Foto / Media</div>
+                          <div class="text-[10px] text-slate-500 leading-tight">Khusus upload foto dokumentasi & galeri mabar.</div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Tugaskan ke Sesi Awal (Opsional):</label>
+                    <select name="assigned_session_id" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+                      <option value="">-- Tugaskan Nanti di Tab Penugasan --</option>
+                      <?php foreach ($allSchedules as $sch): ?>
+                        <?php 
+                          $tS = isset($sch['time_start']) ? $sch['time_start'] : (isset($sch['start_time']) ? $sch['start_time'] : '20:00:00');
+                        ?>
+                        <option value="<?= $sch['id'] ?>">
+                          <?= htmlspecialchars($sch['day_name']) ?> — <?= htmlspecialchars($sch['venue_name']) ?> (<?= substr($tS, 0, 5) ?> WIB)
+                        </option>
+                      <?php endforeach; ?>
+                    </select>
+                    <span class="text-[10px] text-slate-500 mt-1 block">
+                      Bisa dikosongkan dan diatur kapan saja di tab <em>Penugasan PIC & Laporan Cabang</em>.
+                    </span>
+                  </div>
+
+                  <button type="submit" class="w-full py-3 rounded-md bg-[#0b1e36] hover:bg-[#132b4f] text-amber-400 font-black text-xs uppercase tracking-wider transition-all border border-amber-400/30 shadow-xs mt-2">
+                    Daftarkan Akun PIC Baru →
+                  </button>
+                </form>
+              </div>
             </div>
 
-            <!-- Catatan Penggunaan HP Courtside -->
-            <div class="mt-6 p-5 rounded-lg bg-amber-50 border border-amber-200 text-amber-950 text-xs leading-relaxed space-y-2">
-              <div class="font-black text-amber-900 uppercase tracking-wider font-mono flex items-center gap-2">
-                
-                <span>Panduan Operasional Lapangan (Mobile Courtside)</span>
+            <!-- Daftar Akun PIC Terdaftar -->
+            <div class="lg:col-span-7">
+              <div class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                <div class="p-6 border-b border-slate-200 flex items-center justify-between">
+                  <div>
+                    <h3 class="text-base font-black text-slate-900">
+                      Daftar Akun PIC Terdaftar (<?= count($picAccounts) ?>)
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Daftar username login PIC untuk akses aplikasi mobile courtside.</p>
+                  </div>
+                </div>
+
+                <?php if (empty($picAccounts)): ?>
+                  <div class="p-12 text-center">
+                    <h4 class="text-sm font-bold text-slate-800">Belum Ada Akun PIC</h4>
+                    <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                      Silakan daftarkan akun PIC di form sebelah kiri untuk memberikan akses operasional lapangan pada PIC di masing-masing GOR.
+                    </p>
+                  </div>
+                <?php else: ?>
+                  <div class="divide-y divide-slate-100">
+                    <?php foreach ($picAccounts as $pic): ?>
+                      <div class="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/80 transition-colors">
+                        <div class="flex items-start gap-3.5">
+                          <div class="w-11 h-11 rounded-lg bg-amber-100 text-blue-900 flex items-center justify-center font-black text-sm shrink-0 border border-blue-200">
+                            <?= strtoupper(substr($pic['name'], 0, 2)) ?>
+                          </div>
+                          <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                              <span class="font-extrabold text-sm text-slate-900"><?= htmlspecialchars($pic['name']) ?></span>
+                              <span class="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">@<?= htmlspecialchars($pic['username']) ?></span>
+                              <span class="text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider <?= (isset($pic['role']) && $pic['role'] === 'pic_foto') ? 'bg-cyan-100 text-cyan-900 border border-cyan-300' : 'bg-[#0b1e36] text-amber-400' ?>">
+                                <?= (isset($pic['role']) && $pic['role'] === 'pic_foto') ? 'PIC Foto / Media' : 'PIC Lapangan' ?>
+                              </span>
+                            </div>
+                            
+                            <div class="text-xs text-slate-600 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                              <span class="text-blue-700 font-bold">No. WA: <?= htmlspecialchars($pic['phone'] ?: 'Tidak ada') ?></span>
+                              <span>•</span>
+                              <span class="font-semibold text-slate-700">
+                                Total: <?= count(!empty($pic['assigned_schedules']) ? $pic['assigned_schedules'] : []) ?> Sesi Dipegang
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
+                          <form method="POST" action="?tab=pic_accounts" onsubmit="handleAdminFormConfirm(event, this, 'Hapus Akun PIC?', 'Akun PIC ini tidak akan dapat login lagi ke aplikasi lapangan.'); return false;">
+                            <input type="hidden" name="form_action" value="delete_pic_account">
+                            <input type="hidden" name="admin_id" value="<?= $pic['id'] ?>">
+                            <button type="submit" class="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 text-xs font-bold transition-colors">
+                              Hapus Akun
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    <?php endforeach; ?>
+                  </div>
+                <?php endif; ?>
+
               </div>
-              <p>
-                Bagikan URL <strong><code><?= $appUrl ?></code></strong> beserta Username & Password ke masing-masing PIC.
-              </p>
-              <p>
-                Ketika PIC membuka link di browser smartphone mereka dan login, sistem secara otomatis mengunci tampilan hanya ke sesi yang menjadi tanggung jawab mereka. Menu aplikasi didesain khusus super-lite dan responsif untuk pengoperasian cepat dengan satu tangan di pinggir lapangan.
-              </p>
+
+              <!-- Catatan Penggunaan HP Courtside -->
+              <div class="mt-6 p-5 rounded-lg bg-amber-50 border border-amber-200 text-amber-950 text-xs leading-relaxed space-y-2">
+                <div class="font-black text-amber-900 uppercase tracking-wider font-mono flex items-center gap-2">
+                  <span>Panduan Operasional Lapangan (Mobile Courtside)</span>
+                </div>
+                <p>
+                  Bagikan URL <strong><code><?= $appUrl ?></code></strong> beserta Username & Password ke masing-masing PIC.
+                </p>
+                <p>
+                  Ketika PIC membuka link di browser smartphone mereka dan login, sistem secara otomatis mengunci tampilan hanya ke sesi yang menjadi tanggung jawab mereka. Menu aplikasi didesain khusus super-lite dan responsif untuk pengoperasian cepat dengan satu tangan di pinggir lapangan.
+                </p>
+              </div>
+
             </div>
 
           </div>
 
         </div>
+
+        <!-- Sub-Tab Switcher Script -->
+        <script>
+          function switchPicSubTab(subTab) {
+            const secAss = document.getElementById('secPicAssignments');
+            const secAcc = document.getElementById('secPicAccounts');
+            const btnAss = document.getElementById('btnPicSubAssignments');
+            const btnAcc = document.getElementById('btnPicSubAccounts');
+            if (!secAss || !secAcc) return;
+
+            if (subTab === 'assignments') {
+              secAss.classList.remove('hidden');
+              secAcc.classList.add('hidden');
+              btnAss.className = 'px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all bg-[#0b1e36] text-amber-400 border border-amber-400/40 shadow-xs';
+              btnAcc.className = 'px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all bg-white text-slate-700 border border-slate-300 hover:bg-slate-100';
+            } else {
+              secAss.classList.add('hidden');
+              secAcc.classList.remove('hidden');
+              btnAss.className = 'px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all bg-white text-slate-700 border border-slate-300 hover:bg-slate-100';
+              btnAcc.className = 'px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all bg-[#0b1e36] text-amber-400 border border-amber-400/40 shadow-xs';
+            }
+
+            try {
+              sessionStorage.setItem('active_pic_subtab', subTab);
+            } catch(e) {}
+          }
+
+          document.addEventListener('DOMContentLoaded', () => {
+            const saved = sessionStorage.getItem('active_pic_subtab');
+            if (saved && (saved === 'assignments' || saved === 'accounts')) {
+              switchPicSubTab(saved);
+            }
+          });
+        </script>
 
       <!-- TAB 5: PROFIL KOMUNITAS, LOGO & FOTO DEPAN -->
       <?php elseif ($tab === 'settings'): 

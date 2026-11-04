@@ -117,86 +117,208 @@ class Schedule {
 
     public static function create(array $data) {
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare("
-            INSERT INTO `schedules` 
-            (`title`, `day_name`, `branch_area`, `schedule_date`, `time_start`, `time_end`, `venue_name`, `venue_address`, `venue_maps_url`, `court_count`, `court_desc`, `fee_per_person`, `max_slots`, `facilities`, `pic_name`, `pic_whatsapp`, `host_name`, `bank_info`, `cancellation_rules`, `status`, `notes`)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-        $stmt->execute([
-            $data['title'],
-            $data['day_name'],
-            isset($data['branch_area']) ? $data['branch_area'] : 'Jakarta Selatan',
-            $data['schedule_date'],
-            $data['time_start'],
-            $data['time_end'],
-            $data['venue_name'],
-            isset($data['venue_address']) ? $data['venue_address'] : null,
-            isset($data['venue_maps_url']) ? $data['venue_maps_url'] : null,
-            isset($data['court_count']) ? (int)$data['court_count'] : 2,
-            isset($data['court_desc']) ? $data['court_desc'] : 'Lapangan 1 - 3',
-            isset($data['fee_per_person']) ? (int)$data['fee_per_person'] : 35000,
-            isset($data['max_slots']) ? (int)$data['max_slots'] : 16,
-            isset($data['facilities']) ? $data['facilities'] : 'Karpet Vinyl BWF, Kok Bulu Angsa Berkualitas, Lampu LED Anti-Silau, Toilet & Kantin',
-            isset($data['pic_name']) ? $data['pic_name'] : 'Admin Komunitas',
-            isset($data['pic_whatsapp']) ? $data['pic_whatsapp'] : '081234567890',
-            isset($data['host_name']) ? $data['host_name'] : 'PIC Lapangan',
-            isset($data['bank_info']) ? $data['bank_info'] : 'BCA 1234567890 a.n Bendahara',
-            isset($data['cancellation_rules']) ? $data['cancellation_rules'] : 'Konfirmasi pembatalan slot maksimal H-1 atau cari pemain pengganti.',
-            isset($data['status']) ? $data['status'] : 'open',
-            isset($data['notes']) ? $data['notes'] : null
-        ]);
-        return (int)$pdo->lastInsertId();
+        $picId = isset($data['pic_id']) && (int)$data['pic_id'] > 0 ? (int)$data['pic_id'] : null;
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO `schedules` 
+                (`title`, `day_name`, `branch_area`, `schedule_date`, `time_start`, `time_end`, `venue_name`, `venue_address`, `venue_maps_url`, `court_count`, `court_desc`, `fee_per_person`, `max_slots`, `facilities`, `pic_id`, `pic_name`, `pic_whatsapp`, `host_name`, `bank_info`, `cancellation_rules`, `status`, `notes`)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $data['title'],
+                $data['day_name'],
+                isset($data['branch_area']) ? $data['branch_area'] : 'Jakarta Selatan',
+                $data['schedule_date'],
+                $data['time_start'],
+                $data['time_end'],
+                $data['venue_name'],
+                isset($data['venue_address']) ? $data['venue_address'] : null,
+                isset($data['venue_maps_url']) ? $data['venue_maps_url'] : null,
+                isset($data['court_count']) ? (int)$data['court_count'] : 2,
+                isset($data['court_desc']) ? $data['court_desc'] : 'Lapangan 1 - 3',
+                isset($data['fee_per_person']) ? (int)$data['fee_per_person'] : 35000,
+                isset($data['max_slots']) ? (int)$data['max_slots'] : 16,
+                isset($data['facilities']) ? $data['facilities'] : 'Karpet Vinyl BWF, Kok Bulu Angsa Berkualitas, Lampu LED Anti-Silau, Toilet & Kantin',
+                $picId,
+                isset($data['pic_name']) ? $data['pic_name'] : 'Admin Komunitas',
+                isset($data['pic_whatsapp']) ? $data['pic_whatsapp'] : '081234567890',
+                isset($data['host_name']) ? $data['host_name'] : 'PIC Lapangan',
+                isset($data['bank_info']) ? $data['bank_info'] : 'BCA 1234567890 a.n Bendahara',
+                isset($data['cancellation_rules']) ? $data['cancellation_rules'] : 'Konfirmasi pembatalan slot maksimal H-1 atau cari pemain pengganti.',
+                isset($data['status']) ? $data['status'] : 'open',
+                isset($data['notes']) ? $data['notes'] : null
+            ]);
+            return (int)$pdo->lastInsertId();
+        } catch (PDOException $e) {
+            $stmt = $pdo->prepare("
+                INSERT INTO `schedules` 
+                (`title`, `day_name`, `branch_area`, `schedule_date`, `time_start`, `time_end`, `venue_name`, `venue_address`, `venue_maps_url`, `court_count`, `court_desc`, `fee_per_person`, `max_slots`, `facilities`, `pic_name`, `pic_whatsapp`, `host_name`, `bank_info`, `cancellation_rules`, `status`, `notes`)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $data['title'],
+                $data['day_name'],
+                isset($data['branch_area']) ? $data['branch_area'] : 'Jakarta Selatan',
+                $data['schedule_date'],
+                $data['time_start'],
+                $data['time_end'],
+                $data['venue_name'],
+                isset($data['venue_address']) ? $data['venue_address'] : null,
+                isset($data['venue_maps_url']) ? $data['venue_maps_url'] : null,
+                isset($data['court_count']) ? (int)$data['court_count'] : 2,
+                isset($data['court_desc']) ? $data['court_desc'] : 'Lapangan 1 - 3',
+                isset($data['fee_per_person']) ? (int)$data['fee_per_person'] : 35000,
+                isset($data['max_slots']) ? (int)$data['max_slots'] : 16,
+                isset($data['facilities']) ? $data['facilities'] : 'Karpet Vinyl BWF, Kok Bulu Angsa Berkualitas, Lampu LED Anti-Silau, Toilet & Kantin',
+                isset($data['pic_name']) ? $data['pic_name'] : 'Admin Komunitas',
+                isset($data['pic_whatsapp']) ? $data['pic_whatsapp'] : '081234567890',
+                isset($data['host_name']) ? $data['host_name'] : 'PIC Lapangan',
+                isset($data['bank_info']) ? $data['bank_info'] : 'BCA 1234567890 a.n Bendahara',
+                isset($data['cancellation_rules']) ? $data['cancellation_rules'] : 'Konfirmasi pembatalan slot maksimal H-1 atau cari pemain pengganti.',
+                isset($data['status']) ? $data['status'] : 'open',
+                isset($data['notes']) ? $data['notes'] : null
+            ]);
+            return (int)$pdo->lastInsertId();
+        }
     }
 
     public static function update(int $id, array $data) {
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare("
-            UPDATE `schedules` 
-            SET `title` = :title,
-                `day_name` = :day_name,
-                `branch_area` = :branch_area,
-                `schedule_date` = :schedule_date,
-                `time_start` = :time_start,
-                `time_end` = :time_end,
-                `venue_name` = :venue_name,
-                `venue_address` = :venue_address,
-                `venue_maps_url` = :venue_maps_url,
-                `court_count` = :court_count,
-                `court_desc` = :court_desc,
-                `fee_per_person` = :fee_per_person,
-                `max_slots` = :max_slots,
-                `facilities` = :facilities,
-                `pic_name` = :pic_name,
-                `pic_whatsapp` = :pic_whatsapp,
-                `host_name` = :host_name,
-                `bank_info` = :bank_info,
-                `cancellation_rules` = :cancellation_rules,
-                `notes` = :notes
-            WHERE `id` = :id
-        ");
-        return $stmt->execute([
-            ':title' => $data['title'],
-            ':day_name' => $data['day_name'],
-            ':branch_area' => isset($data['branch_area']) ? $data['branch_area'] : 'Jakarta Selatan',
-            ':schedule_date' => $data['schedule_date'],
-            ':time_start' => $data['time_start'],
-            ':time_end' => $data['time_end'],
-            ':venue_name' => $data['venue_name'],
-            ':venue_address' => isset($data['venue_address']) ? $data['venue_address'] : null,
-            ':venue_maps_url' => isset($data['venue_maps_url']) ? $data['venue_maps_url'] : null,
-            ':court_count' => (int)$data['court_count'],
-            ':court_desc' => isset($data['court_desc']) ? $data['court_desc'] : 'Lapangan 1 - 3',
-            ':fee_per_person' => (int)$data['fee_per_person'],
-            ':max_slots' => (int)$data['max_slots'],
-            ':facilities' => isset($data['facilities']) ? $data['facilities'] : 'Karpet Vinyl BWF, Kok Bulu Angsa Berkualitas, Lampu LED Anti-Silau, Toilet & Kantin',
-            ':pic_name' => isset($data['pic_name']) ? $data['pic_name'] : 'Admin Komunitas',
-            ':pic_whatsapp' => isset($data['pic_whatsapp']) ? $data['pic_whatsapp'] : '081234567890',
-            ':host_name' => isset($data['host_name']) ? $data['host_name'] : 'PIC Lapangan',
-            ':bank_info' => isset($data['bank_info']) ? $data['bank_info'] : 'BCA 1234567890 a.n Bendahara',
-            ':cancellation_rules' => isset($data['cancellation_rules']) ? $data['cancellation_rules'] : 'Konfirmasi pembatalan slot maksimal H-1 atau cari pemain pengganti.',
-            ':notes' => isset($data['notes']) ? $data['notes'] : null,
-            ':id' => $id
-        ]);
+        $picId = isset($data['pic_id']) && (int)$data['pic_id'] > 0 ? (int)$data['pic_id'] : null;
+        try {
+            $stmt = $pdo->prepare("
+                UPDATE `schedules` 
+                SET `title` = :title,
+                    `day_name` = :day_name,
+                    `branch_area` = :branch_area,
+                    `schedule_date` = :schedule_date,
+                    `time_start` = :time_start,
+                    `time_end` = :time_end,
+                    `venue_name` = :venue_name,
+                    `venue_address` = :venue_address,
+                    `venue_maps_url` = :venue_maps_url,
+                    `court_count` = :court_count,
+                    `court_desc` = :court_desc,
+                    `fee_per_person` = :fee_per_person,
+                    `max_slots` = :max_slots,
+                    `facilities` = :facilities,
+                    `pic_id` = :pic_id,
+                    `pic_name` = :pic_name,
+                    `pic_whatsapp` = :pic_whatsapp,
+                    `host_name` = :host_name,
+                    `bank_info` = :bank_info,
+                    `cancellation_rules` = :cancellation_rules,
+                    `notes` = :notes
+                WHERE `id` = :id
+            ");
+            return $stmt->execute([
+                ':title' => $data['title'],
+                ':day_name' => $data['day_name'],
+                ':branch_area' => isset($data['branch_area']) ? $data['branch_area'] : 'Jakarta Selatan',
+                ':schedule_date' => $data['schedule_date'],
+                ':time_start' => $data['time_start'],
+                ':time_end' => $data['time_end'],
+                ':venue_name' => $data['venue_name'],
+                ':venue_address' => isset($data['venue_address']) ? $data['venue_address'] : null,
+                ':venue_maps_url' => isset($data['venue_maps_url']) ? $data['venue_maps_url'] : null,
+                ':court_count' => (int)$data['court_count'],
+                ':court_desc' => isset($data['court_desc']) ? $data['court_desc'] : 'Lapangan 1 - 3',
+                ':fee_per_person' => (int)$data['fee_per_person'],
+                ':max_slots' => (int)$data['max_slots'],
+                ':facilities' => isset($data['facilities']) ? $data['facilities'] : 'Karpet Vinyl BWF, Kok Bulu Angsa Berkualitas, Lampu LED Anti-Silau, Toilet & Kantin',
+                ':pic_id' => $picId,
+                ':pic_name' => isset($data['pic_name']) ? $data['pic_name'] : 'Admin Komunitas',
+                ':pic_whatsapp' => isset($data['pic_whatsapp']) ? $data['pic_whatsapp'] : '081234567890',
+                ':host_name' => isset($data['host_name']) ? $data['host_name'] : 'PIC Lapangan',
+                ':bank_info' => isset($data['bank_info']) ? $data['bank_info'] : 'BCA 1234567890 a.n Bendahara',
+                ':cancellation_rules' => isset($data['cancellation_rules']) ? $data['cancellation_rules'] : 'Konfirmasi pembatalan slot maksimal H-1 atau cari pemain pengganti.',
+                ':notes' => isset($data['notes']) ? $data['notes'] : null,
+                ':id' => $id
+            ]);
+        } catch (PDOException $e) {
+            $stmt = $pdo->prepare("
+                UPDATE `schedules` 
+                SET `title` = :title,
+                    `day_name` = :day_name,
+                    `branch_area` = :branch_area,
+                    `schedule_date` = :schedule_date,
+                    `time_start` = :time_start,
+                    `time_end` = :time_end,
+                    `venue_name` = :venue_name,
+                    `venue_address` = :venue_address,
+                    `venue_maps_url` = :venue_maps_url,
+                    `court_count` = :court_count,
+                    `court_desc` = :court_desc,
+                    `fee_per_person` = :fee_per_person,
+                    `max_slots` = :max_slots,
+                    `facilities` = :facilities,
+                    `pic_name` = :pic_name,
+                    `pic_whatsapp` = :pic_whatsapp,
+                    `host_name` = :host_name,
+                    `bank_info` = :bank_info,
+                    `cancellation_rules` = :cancellation_rules,
+                    `notes` = :notes
+                WHERE `id` = :id
+            ");
+            return $stmt->execute([
+                ':title' => $data['title'],
+                ':day_name' => $data['day_name'],
+                ':branch_area' => isset($data['branch_area']) ? $data['branch_area'] : 'Jakarta Selatan',
+                ':schedule_date' => $data['schedule_date'],
+                ':time_start' => $data['time_start'],
+                ':time_end' => $data['time_end'],
+                ':venue_name' => $data['venue_name'],
+                ':venue_address' => isset($data['venue_address']) ? $data['venue_address'] : null,
+                ':venue_maps_url' => isset($data['venue_maps_url']) ? $data['venue_maps_url'] : null,
+                ':court_count' => (int)$data['court_count'],
+                ':court_desc' => isset($data['court_desc']) ? $data['court_desc'] : 'Lapangan 1 - 3',
+                ':fee_per_person' => (int)$data['fee_per_person'],
+                ':max_slots' => (int)$data['max_slots'],
+                ':facilities' => isset($data['facilities']) ? $data['facilities'] : 'Karpet Vinyl BWF, Kok Bulu Angsa Berkualitas, Lampu LED Anti-Silau, Toilet & Kantin',
+                ':pic_name' => isset($data['pic_name']) ? $data['pic_name'] : 'Admin Komunitas',
+                ':pic_whatsapp' => isset($data['pic_whatsapp']) ? $data['pic_whatsapp'] : '081234567890',
+                ':host_name' => isset($data['host_name']) ? $data['host_name'] : 'PIC Lapangan',
+                ':bank_info' => isset($data['bank_info']) ? $data['bank_info'] : 'BCA 1234567890 a.n Bendahara',
+                ':cancellation_rules' => isset($data['cancellation_rules']) ? $data['cancellation_rules'] : 'Konfirmasi pembatalan slot maksimal H-1 atau cari pemain pengganti.',
+                ':notes' => isset($data['notes']) ? $data['notes'] : null,
+                ':id' => $id
+            ]);
+        }
+    }
+
+    public static function assignPic(int $sessionId, ?int $picId) {
+        $pdo = Database::getConnection();
+        if ($picId && $picId > 0) {
+            $stmtPic = $pdo->prepare("SELECT name, phone FROM admins WHERE id = ?");
+            $stmtPic->execute([$picId]);
+            $pic = $stmtPic->fetch(PDO::FETCH_ASSOC);
+            if ($pic) {
+                try {
+                    $pdo->prepare("UPDATE `schedules` SET `pic_id` = ?, `pic_name` = ?, `host_name` = ?, `pic_whatsapp` = ? WHERE `id` = ?")->execute([$picId, $pic['name'], $pic['name'], $pic['phone'], $sessionId]);
+                } catch (Exception $e) {
+                    $pdo->prepare("UPDATE `schedules` SET `pic_name` = ?, `host_name` = ?, `pic_whatsapp` = ? WHERE `id` = ?")->execute([$pic['name'], $pic['name'], $pic['phone'], $sessionId]);
+                }
+                $pdo->prepare("UPDATE `admins` SET `assigned_session_id` = ? WHERE `id` = ?")->execute([$sessionId, $picId]);
+                return true;
+            }
+        } else {
+            try {
+                $pdo->prepare("UPDATE `schedules` SET `pic_id` = NULL WHERE `id` = ?")->execute([$sessionId]);
+            } catch (Exception $e) {}
+            return true;
+        }
+        return false;
+    }
+
+    public static function getSchedulesByPic(int $picId) {
+        $pdo = Database::getConnection();
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM schedules WHERE pic_id = ? ORDER BY schedule_date DESC, time_start ASC");
+            $stmt->execute([$picId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            return [];
+        }
     }
 
     public static function delete(int $id) {

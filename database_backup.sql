@@ -257,6 +257,7 @@ CREATE TABLE `schedules` (
   `host_name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT 'Lina / Juni',
   `cancellation_rules` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT 'CANCEL MAX JAM 14.00 DI HARI-H, LEBIH DARI ITU TETAP BAYAR FULL ATAU CARI PENGGANTI PLISS‼️',
   `court_desc` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT 'Lapangan 1 - 3',
+  `pic_id` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_schedules_date` (`schedule_date`),
   KEY `idx_schedules_status` (`status`)
@@ -269,7 +270,7 @@ CREATE TABLE `schedules` (
 
 LOCK TABLES `schedules` WRITE;
 /*!40000 ALTER TABLE `schedules` DISABLE KEYS */;
-INSERT INTO `schedules` VALUES (9,'Main Court Badminton','Sabtu Malam','Senen','2026-11-07','20:00:00','22:00:00','Main Court Badminton','https://www.google.com/maps/search/?api=1&query=Plaza%20Kenari%20Mas%20Jalan%20Kramat%20Raya%20No.%20101%2C%20RW%2007%2C%20Senen%2C%20Jakarta%2C%20Java',3,40000,24,'Yizreel','082125051665','in_progress',NULL,'','2026-11-03 06:08:38','2026-11-03 06:41:55','JP Gold','Jalan Kramat Raya No. 101, RW 07, Senen, Jakarta, Java','BCA 1234567890 a.n Bendahara','Yizreel','Konfirmasi pembatalan slot maksimal H-1 atau cari pemain pengganti.','Lapangan 1 - 3');
+INSERT INTO `schedules` VALUES (9,'Main Court Badminton','Sabtu Malam','Senen','2026-11-07','20:00:00','22:00:00','Main Court Badminton','https://www.google.com/maps/search/?api=1&query=Plaza%20Kenari%20Mas%20Jalan%20Kramat%20Raya%20No.%20101%2C%20RW%2007%2C%20Senen%2C%20Jakarta%2C%20Java',3,40000,24,'Yizreel','082125051665','in_progress',NULL,'','2026-11-03 06:08:38','2026-11-03 06:41:55','JP Gold','Jalan Kramat Raya No. 101, RW 07, Senen, Jakarta, Java','BCA 1234567890 a.n Bendahara','Yizreel','Konfirmasi pembatalan slot maksimal H-1 atau cari pemain pengganti.','Lapangan 1 - 3',3);
 /*!40000 ALTER TABLE `schedules` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -324,6 +325,7 @@ CREATE TABLE `settings` (
   `community_name` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
   `logo_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `hero_image_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `hero_animation_enabled` tinyint(1) NOT NULL DEFAULT '1',
   `tagline` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `description` text COLLATE utf8mb4_unicode_ci,
   `instagram` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -362,9 +364,24 @@ CREATE TABLE `settings` (
 
 LOCK TABLES `settings` WRITE;
 /*!40000 ALTER TABLE `settings` DISABLE KEYS */;
-INSERT INTO `settings` VALUES (1,'Powershoot Badminton Club','/smashpoint/public/uploads/powershoot_logo.jpg','https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=800&q=80','Komunitas Badminton Kompetitif & Mabar Terorganisir Tanpa Catat Manual','Powershoot Badminton adalah komunitas bulutangkis aktif di Jakarta Selatan yang mengadakan sesi main bareng 3-4 kali seminggu di berbagai GOR terbaik. Dilengkapi sistem rotasi lapangan otomatis, akumulasi poin leaderboard, dan manajemen iuran transparan.','@powershoot.badminton','081299887766','Jakarta',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'index, follow',2023,'2026-11-02 05:31:07','Main Badminton Bareng Tanpa Repot Cari Lawan & Lapangan.','Selamat datang di Powershoot Badminton Club. Kami menyelenggarakan sesi main bareng ganda 4 kali setiap pekan di berbagai GOR terbaik Jakarta Selatan. Cukup daftar ke PIC WhatsApp, datang ke arena, dan nikmati pertandingan dengan pembagian giliran main yang teratur.','Pilih Jadwal & Daftar via WhatsApp PIC →','Komunitas Badminton Resmi Jakarta Selatan (Est. 2023)','','Pilih Jadwal & Hubungi PIC WA','Cek jadwal mabar di GOR terdekat, slot kuota tersisa, lalu klik tombol pendaftaran WhatsApp PIC untuk konfirmasi kehadiran.','Konfirmasi & Selesaikan Iuran','PIC sesi akan memverifikasi pendaftaran Anda. Cukup selesaikan pembayaran via transfer/QRIS atau tunai di lokasi mabar.','Datang & Main Sesuai Rotasi Otomatis','Cukup bawa raket dan hadir tepat waktu. Shuttlecock bulu angsa resmi berkualitas sudah kami sediakan di lapangan.','[{\"question\":\"Apakah pemain pemula (beginner) boleh ikut bergabung?\",\"answer\":\"Sangat boleh! Komunitas kami terbuka untuk semua tingkatan dari Beginner, Intermediate, hingga Advance. Sistem rotasi digital kami akan membagi pasangan dan lawan secara berimbang agar reli tetap menyenangkan bagi semua orang.\"},{\"question\":\"Bagaimana jika saya mendaftar sendirian tanpa pasangan ganda?\",\"answer\":\"Mayoritas peserta kami mendaftar secara individu! Di lapangan GOR, Anda akan dipasangkan secara bergantian dengan peserta lain oleh sistem rotasi otomatis, sehingga Anda pasti mendapat partner di setiap ronde.\"},{\"question\":\"Apakah saya perlu membawa shuttlecock sendiri?\",\"answer\":\"Tidak perlu. Seluruh biaya iuran mabar sudah mencakup penyediaan shuttlecock bulu angsa resmi berkualitas yang disediakan panitia. Anda hanya perlu membawa raket dan mengenakan sepatu badminton non-marking.\"},{\"question\":\"Bagaimana alur pembayaran iuran mabar?\",\"answer\":\"Pembayaran iuran dapat dilakukan secara cashless via QRIS\\/Transfer bank ke rekening komunitas atau tunai langsung kepada PIC sesi saat tiba di venue lapangan GOR.\"},{\"question\":\"Bagaimana jika saya berhalangan hadir setelah mendaftar?\",\"answer\":\"Mohon segera memberitahu PIC sesi WhatsApp minimal 4 jam sebelum jadwal sesi dimulai agar kuota Anda dapat dialihkan ke peserta waiting list.\"}]');
+INSERT INTO `settings` VALUES (1,'Powershoot Badminton Club','/smashpoint/public/uploads/powershoot_logo.jpg','https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=800&q=80',1,'Komunitas Badminton Kompetitif & Mabar Terorganisir Tanpa Catat Manual','Powershoot Badminton adalah komunitas bulutangkis aktif di Jakarta Selatan yang mengadakan sesi main bareng 3-4 kali seminggu di berbagai GOR terbaik. Dilengkapi sistem rotasi lapangan otomatis, akumulasi poin leaderboard, dan manajemen iuran transparan.','@powershoot.badminton','081299887766','Jakarta',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'index, follow',2023,'2026-11-02 05:31:07','Main Badminton Bareng Tanpa Repot Cari Lawan & Lapangan.','Selamat datang di Powershoot Badminton Club. Kami menyelenggarakan sesi main bareng ganda 4 kali setiap pekan di berbagai GOR terbaik Jakarta Selatan. Cukup daftar ke PIC WhatsApp, datang ke arena, dan nikmati pertandingan dengan pembagian giliran main yang teratur.','Pilih Jadwal & Daftar via WhatsApp PIC →','Komunitas Badminton Resmi Jakarta Selatan (Est. 2023)','','Pilih Jadwal & Hubungi PIC WA','Cek jadwal mabar di GOR terdekat, slot kuota tersisa, lalu klik tombol pendaftaran WhatsApp PIC untuk konfirmasi kehadiran.','Konfirmasi & Selesaikan Iuran','PIC sesi akan memverifikasi pendaftaran Anda. Cukup selesaikan pembayaran via transfer/QRIS atau tunai di lokasi mabar.','Datang & Main Sesuai Rotasi Otomatis','Cukup bawa raket dan hadir tepat waktu. Shuttlecock bulu angsa resmi berkualitas sudah kami sediakan di lapangan.','[{\"question\":\"Apakah pemain pemula (beginner) boleh ikut bergabung?\",\"answer\":\"Sangat boleh! Komunitas kami terbuka untuk semua tingkatan dari Beginner, Intermediate, hingga Advance. Sistem rotasi digital kami akan membagi pasangan dan lawan secara berimbang agar reli tetap menyenangkan bagi semua orang.\"},{\"question\":\"Bagaimana jika saya mendaftar sendirian tanpa pasangan ganda?\",\"answer\":\"Mayoritas peserta kami mendaftar secara individu! Di lapangan GOR, Anda akan dipasangkan secara bergantian dengan peserta lain oleh sistem rotasi otomatis, sehingga Anda pasti mendapat partner di setiap ronde.\"},{\"question\":\"Apakah saya perlu membawa shuttlecock sendiri?\",\"answer\":\"Tidak perlu. Seluruh biaya iuran mabar sudah mencakup penyediaan shuttlecock bulu angsa resmi berkualitas yang disediakan panitia. Anda hanya perlu membawa raket dan mengenakan sepatu badminton non-marking.\"},{\"question\":\"Bagaimana alur pembayaran iuran mabar?\",\"answer\":\"Pembayaran iuran dapat dilakukan secara cashless via QRIS\\/Transfer bank ke rekening komunitas atau tunai langsung kepada PIC sesi saat tiba di venue lapangan GOR.\"},{\"question\":\"Bagaimana jika saya berhalangan hadir setelah mendaftar?\",\"answer\":\"Mohon segera memberitahu PIC sesi WhatsApp minimal 4 jam sebelum jadwal sesi dimulai agar kuota Anda dapat dialihkan ke peserta waiting list.\"}]');
 /*!40000 ALTER TABLE `settings` ENABLE KEYS */;
 UNLOCK TABLES;
+
+-- ========================================================
+-- SMASHPOINT INCREMENTAL MIGRATIONS (Safe for existing DB)
+-- ========================================================
+ALTER TABLE `schedules` 
+  ADD COLUMN IF NOT EXISTS `pic_id` INT NULL AFTER `pic_whatsapp`,
+  ADD COLUMN IF NOT EXISTS `completed_at` DATETIME NULL AFTER `status`;
+
+ALTER TABLE `admins` 
+  ADD COLUMN IF NOT EXISTS `phone` VARCHAR(30) NULL AFTER `name`,
+  ADD COLUMN IF NOT EXISTS `assigned_session_id` INT NULL AFTER `role`;
+
+ALTER TABLE `settings`
+  ADD COLUMN IF NOT EXISTS `hero_animation_enabled` TINYINT(1) NOT NULL DEFAULT 1 AFTER `hero_image_url`;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -375,4 +392,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-11-03 16:40:04
+-- Dump completed on 2026-11-04 08:40:00

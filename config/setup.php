@@ -359,6 +359,26 @@ try {
         }
     }
 
+    // Incremental column migrations for existing databases
+    try {
+        $pdo->exec("
+            ALTER TABLE `schedules` 
+              ADD COLUMN IF NOT EXISTS `pic_id` INT NULL AFTER `pic_whatsapp`,
+              ADD COLUMN IF NOT EXISTS `completed_at` DATETIME NULL AFTER `status`;
+        ");
+        $pdo->exec("
+            ALTER TABLE `admins` 
+              ADD COLUMN IF NOT EXISTS `phone` VARCHAR(30) NULL AFTER `name`,
+              ADD COLUMN IF NOT EXISTS `assigned_session_id` INT NULL AFTER `role`;
+        ");
+        $pdo->exec("
+            ALTER TABLE `settings` 
+              ADD COLUMN IF NOT EXISTS `hero_animation_enabled` TINYINT(1) NOT NULL DEFAULT 1;
+        ");
+    } catch (Exception $ign) {
+        // Ignored if columns already present or db engine doesn't support IF NOT EXISTS in ALTER
+    }
+
     return true;
 } catch (Exception $e) {
     throw new Exception("Setup Failed: " . $e->getMessage());
