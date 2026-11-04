@@ -67,6 +67,22 @@ class MatchRecord {
         }
     }
 
+    public static function createSingle(int $sessionId, int $roundNumber, int $courtNumber, int $tA1, int $tA2, int $tB1, int $tB2) {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("
+            INSERT INTO `matches` 
+            (`session_id`, `round_number`, `court_number`, `team_a_p1`, `team_a_p2`, `team_b_p1`, `team_b_p2`, `status`)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'playing')
+        ");
+        $stmt->execute([$sessionId, $roundNumber, $courtNumber, $tA1, $tA2, $tB1, $tB2]);
+        $newId = (int)$pdo->lastInsertId();
+
+        $pdo->prepare("UPDATE `schedules` SET `status` = 'in_progress' WHERE `id` = ? AND `status` = 'open'")
+            ->execute([$sessionId]);
+
+        return $newId;
+    }
+
     public static function find(int $matchId) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("

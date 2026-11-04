@@ -173,6 +173,127 @@ class RotationEngine {
     }
 
     /**
+     * Generate match for a single empty court using rolling queue dispatch.
+     * Takes players available (i.e. present and not currently on any active court),
+     * picks the top 4 who have played fewest games, and balances them into Team A vs Team B.
+     */
+    public static function generateSingleCourt(
+        int $courtNumber,
+        array $availablePlayers,
+        array $pastMatches = [],
+        string $algorithm = 'balanced_level'
+    ): array {
+        if (count($availablePlayers) < 4) {
+            throw new InvalidArgumentException("Minimal dibutuhkan 4 pemain bebas (tidak sedang bertanding) untuk mengisi Lapangan {$courtNumber}.");
+        }
+
+        // Calculate workload from past matches
+        $workload = [];
+        $partnerHistory = [];
+        $opponentHistory = [];
+
+        foreach ($availablePlayers as $p) {
+            $workload[$p['id']] = ['played' => 0];
+            $partnerHistory[$p['id']] = [];
+            $opponentHistory[$p['id']] = [];
+        }
+
+        $courtMaxRound = 0;
+        $globalMaxRound = 0;
+        foreach ($pastMatches as $m) {
+            $tA = [(int)$m['team_a_p1'], (int)$m['team_a_p2']];
+            $tB = [(int)$m['team_b_p1'], (int)$m['team_b_p2']];
+            $allMatchPlayers = array_merge($tA, $tB);
+
+            foreach ($allMatchPlayers as $pId) {
+                if (isset($workload[$pId])) {
+                    $workload[$pId]['played']++;
+                }
+            }
+
+            self::incrementPairCount($partnerHistory, $tA[0], $tA[1]);
+            self::incrementPairCount($partnerHistory, $tB[0], $tB[1]);
+
+            foreach ($tA as $pa) {
+                foreach ($tB as $pb) {
+                    self::incrementPairCount($opponentHistory, $pa, $pb);
+                }
+            }
+
+            $rNum = (int)$m['round_number'];
+            if ($rNum > $globalMaxRound) {
+                $globalMaxRound = $rNum;
+            }
+            if ((int)$m['court_number'] === $courtNumber && $rNum > $courtMaxRound) {
+                $courtMaxRound = $rNum;
+            }
+        }
+
+        // Sort available players by fewest played matches
+        $pool = $availablePlayers;
+        usort($pool, function ($a, $b) use ($workload) {
+            $wA = $workload[$a['id']]['played'] ?? 0;
+            $wB = $workload[$b['id']]['played'] ?? 0;
+            if ($wA !== $wB) {
+                return $wA <=> $wB;
+            }
+            return mt_rand(-1, 1);
+        });
+
+        $selected = array_slice($pool, 0, 4);
+        $remainingResting = array_slice($pool, 4);
+
+        if ($algorithm === 'tiered_level') {
+            $matchedCourts = self::optimizeTieredPairings($selected, 1, $partnerHistory, $opponentHistory);
+        } elseif ($algorithm === 'fair_social') {
+            $matchedCourts = self::optimizeSocialPairings($selected, 1, $partnerHistory, $opponentHistory);
+        } else {
+            $matchedCourts = self::optimizeBalancedLevelPairings($selected, 1, $partnerHistory, $opponentHistory);
+        }
+
+        $match = $matchedCourts[0];
+        $match['court'] = $courtNumber;
+        $match['court_name'] = "Lapangan " . $courtNumber;
+        $nextRound = max($courtMaxRound + 1, $globalMaxRound > 0 ? $globalMaxRound : 1);
+        $match['round_number'] = $nextRound;
+
+        $pA1 = &$match['team_a'][0];
+        $pA2 = &$match['team_a'][1];
+        $pB1 = &$match['team_b'][0];
+        $pB2 = &$match['team_b'][1];
+
+        $pA1['played_count'] = $workload[$pA1['id']]['played'] ?? 0;
+        $pA2['played_count'] = $workload[$pA2['id']]['played'] ?? 0;
+        $pB1['played_count'] = $workload[$pB1['id']]['played'] ?? 0;
+        $pB2['played_count'] = $workload[$pB2['id']]['played'] ?? 0;
+
+        $rA = self::levelWeight($pA1['level']) + self::levelWeight($pA2['level']);
+        $rB = self::levelWeight($pB1['level']) + self::levelWeight($pB2['level']);
+        $diff = abs($rA - $rB);
+
+        $match['rating_a'] = $rA;
+        $match['rating_b'] = $rB;
+        $match['rating_diff'] = $diff;
+
+        if ($diff === 0) {
+            $match['balance_label'] = 'Sangat Seimbang (Rating ' . $rA . ' vs ' . $rB . ')';
+            $match['balance_class'] = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+        } elseif ($diff === 1) {
+            $match['balance_label'] = 'Seimbang (Rating ' . $rA . ' vs ' . $rB . ')';
+            $match['balance_class'] = 'bg-blue-50 text-blue-800 border-blue-200';
+        } else {
+            $match['balance_label'] = 'Selisih +' . $diff . ' (Perlu Intervensi)';
+            $match['balance_class'] = 'bg-amber-50 text-amber-800 border-amber-200';
+        }
+
+        return [
+            'match' => $match,
+            'resting' => $remainingResting,
+            'selected_players' => $selected
+        ];
+    }
+
+    /**
      * Balanced Level Optimization (Cross-pairing for maximum competitive equilibrium)
      */
     private static function optimizeBalancedLevelPairings(

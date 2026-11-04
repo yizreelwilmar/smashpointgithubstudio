@@ -81,6 +81,75 @@ try {
             ]);
             break;
 
+        case 'generate_single_court':
+            $sessionId = (int)(isset($_POST['session_id']) ? $_POST['session_id'] : 0);
+            $courtNumber = (int)(isset($_POST['court_number']) ? $_POST['court_number'] : 1);
+            $algorithm = isset($_POST['algorithm']) ? $_POST['algorithm'] : 'balanced_level';
+
+            $session = Schedule::find($sessionId);
+            if (!$session) throw new RuntimeException("Sesi mabar tidak ditemukan.");
+
+            $pastMatches = MatchRecord::getBySession($sessionId);
+
+            // Check if this court already has an ongoing match
+            foreach ($pastMatches as $pm) {
+                if ((int)$pm['court_number'] === $courtNumber && $pm['status'] === 'playing') {
+                    throw new RuntimeException("Lapangan {$courtNumber} masih memiliki pertandingan aktif. Simpan skor terlebih dahulu.");
+                }
+            }
+
+            // Collect player IDs currently playing on other active courts
+            $busyPlayerIds = [];
+            foreach ($pastMatches as $pm) {
+                if ($pm['status'] === 'playing') {
+                    $busyPlayerIds[] = (int)$pm['team_a_p1'];
+                    $busyPlayerIds[] = (int)$pm['team_a_p2'];
+                    $busyPlayerIds[] = (int)$pm['team_b_p1'];
+                    $busyPlayerIds[] = (int)$pm['team_b_p2'];
+                }
+            }
+            $busyPlayerIds = array_unique($busyPlayerIds);
+
+            // Present participants who are NOT currently playing
+            $participants = Participant::getBySession($sessionId);
+            $availableParticipants = array_filter($participants, function($p) use ($busyPlayerIds) {
+                return (int)$p['is_present'] === 1 && !in_array((int)$p['player_id'], $busyPlayerIds);
+            });
+
+            if (count($availableParticipants) < 4) {
+                $rem = count($availableParticipants);
+                throw new RuntimeException("Hanya ada {$rem} pemain menganggur yang hadir. Minimal dibutuhkan 4 pemain bebas untuk mengisi Lapangan {$courtNumber}.");
+            }
+
+            $availablePlayerList = array_map(function($p) {
+                return [
+                    'id' => (int)$p['player_id'],
+                    'name' => $p['name'],
+                    'level' => $p['level'],
+                ];
+            }, array_values($availableParticipants));
+
+            $res = RotationEngine::generateSingleCourt($courtNumber, $availablePlayerList, $pastMatches, $algorithm);
+            $m = $res['match'];
+
+            $newMatchId = MatchRecord::createSingle(
+                $sessionId,
+                (int)$m['round_number'],
+                $courtNumber,
+                (int)$m['team_a'][0]['id'],
+                (int)$m['team_a'][1]['id'],
+                (int)$m['team_b'][0]['id'],
+                (int)$m['team_b'][1]['id']
+            );
+
+            echo json_encode([
+                'success' => true,
+                'message' => "Lapangan {$courtNumber} siap! 4 pemain berikutnya berhasil dipanggil.",
+                'match_id' => $newMatchId,
+                'data' => $res
+            ]);
+            break;
+
         case 'save_score':
             $matchId = (int)(isset($_POST['match_id']) ? $_POST['match_id'] : 0);
             $scoreA = (int)(isset($_POST['score_a']) ? $_POST['score_a'] : 0);

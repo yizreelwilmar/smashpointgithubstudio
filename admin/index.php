@@ -3650,314 +3650,308 @@ ${listLines.join('\n')}${fullTag}`;
         }
       ?>
         
-        <div class="max-w-4xl bg-white rounded-lg border border-slate-200 p-6 sm:p-8 shadow-sm">
-          <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+        <div class="max-w-4xl bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          
+          <!-- Header Bar -->
+          <div class="p-4 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-slate-50 to-white">
             <div>
-              <h3 class="text-base font-black text-slate-900">Kelola Semua Konten Landing Page & Profil Komunitas</h3>
-              <p class="text-xs text-slate-500 mt-0.5">Ubah seluruh teks, judul sambutan, 3 langkah pendaftaran, FAQ, logo dan foto banner depan.</p>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] font-mono font-black uppercase tracking-wider text-[#0b1e36] bg-amber-400 px-2 py-0.5 rounded">
+                  CMS KONTEN & BRANDING
+                </span>
+              </div>
+              <h3 class="text-base sm:text-lg font-black text-slate-900 mt-1">
+                Profil Komunitas & Pengaturan Web
+              </h3>
+              <p class="text-xs text-slate-500 mt-0.5">
+                Kelola identitas komunitas, kata-kata sambutan, FAQ pendaftaran, dan optimasi SEO Google.
+              </p>
             </div>
-            <span class="text-xs font-mono font-bold text-blue-900 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded">
-              CMS Konten Publik
-            </span>
+            
+            <a href="<?= $landingUrl ?>" target="_blank" class="self-start sm:self-center px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-300 transition-all flex items-center gap-1.5 active:scale-95 shrink-0 min-h-[40px]">
+              <span>Lihat Web Publik ↗</span>
+            </a>
           </div>
 
-          <form method="POST" action="?tab=settings" enctype="multipart/form-data" class="space-y-8">
+          <!-- Mobile-Friendly Segmented Sub-Tabs Bar (Horizontally scrollable with touch momentum) -->
+          <div class="px-4 pt-3 pb-2 border-b border-slate-200 bg-slate-50/80">
+            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 select-none">
+              <button type="button" id="tabBtnProfile" onclick="switchSettingsSection('profile')" class="settings-nav-pill px-3.5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider shrink-0 transition-all bg-[#0b1e36] text-amber-400 border border-amber-400/40 shadow-xs min-h-[44px] flex items-center gap-1.5">
+                <span>1. Profil & Kontak</span>
+              </button>
+              <button type="button" id="tabBtnHero" onclick="switchSettingsSection('hero')" class="settings-nav-pill px-3.5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider shrink-0 transition-all bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 min-h-[44px] flex items-center gap-1.5">
+                <span>2. Tampilan Web</span>
+              </button>
+              <button type="button" id="tabBtnSteps" onclick="switchSettingsSection('steps')" class="settings-nav-pill px-3.5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider shrink-0 transition-all bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 min-h-[44px] flex items-center gap-1.5">
+                <span>3. Alur Ikut & FAQ</span>
+              </button>
+              <button type="button" id="tabBtnSeo" onclick="switchSettingsSection('seo')" class="settings-nav-pill px-3.5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider shrink-0 transition-all bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 min-h-[44px] flex items-center gap-1.5">
+                <span>4. Google SEO & Sosmed</span>
+              </button>
+            </div>
+          </div>
+
+          <form method="POST" action="?tab=settings" enctype="multipart/form-data" id="adminSettingsForm" class="p-4 sm:p-6 space-y-6">
             <input type="hidden" name="form_action" value="update_settings">
 
-            <!-- BAGIAN 1: TEKS SAMBUTAN & HERO SECTION (KATA-KATA UTAMA) -->
-            <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 space-y-4">
-              <div class="flex items-center justify-between border-b border-slate-200/60 pb-3">
-                <div>
-                  <h4 class="text-xs font-mono font-bold uppercase tracking-wider text-slate-900">
-                    1. Hero Section & Sambutan Utama (Bagian Paling Atas Web)
-                  </h4>
-                  <p class="text-[11px] text-slate-500 mt-0.5">Teks utama yang pertama kali dibaca pengunjung saat membuka landing page.</p>
-                </div>
-                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600 font-bold">Hero Banner</span>
+            <!-- ======================================================== -->
+            <!-- SUB-TAB 1: PROFIL KOMUNITAS, KONTAK & BRANDING           -->
+            <!-- ======================================================== -->
+            <div id="sectionSettingsProfile" class="settings-section space-y-5">
+              <div class="border-b border-slate-100 pb-3">
+                <span class="text-xs font-mono font-bold uppercase tracking-wider text-slate-900 block">
+                  Identitas Komunitas & Informasi Kontak
+                </span>
+                <p class="text-[11px] text-slate-500 mt-0.5">Informasi resmi yang ditampilkan pada header, footer, dan kontak pendaftaran mabar.</p>
               </div>
 
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Judul Besar Hero (Headline Utama):</label>
-                <input type="text" name="hero_title" required value="<?= htmlspecialchars(!empty($settings['hero_title']) ? $settings['hero_title'] : 'Main Badminton Bareng Tanpa Repot Cari Lawan & Lapangan.') ?>" class="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900">
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">
-                  Paragraf Sambutan & Deskripsi Hero (Teks Penjelasan):
+              <!-- Logo File & URL -->
+              <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider font-mono">
+                  Logo Resmi Komunitas:
                 </label>
-                <textarea name="hero_subtitle" rows="3" required class="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-xs text-slate-900 leading-relaxed focus:outline-none focus:ring-1 focus:ring-slate-900"><?= htmlspecialchars(!empty($settings['hero_subtitle']) ? $settings['hero_subtitle'] : 'Selamat datang di ' . $settings['community_name'] . '. Kami menyelenggarakan sesi main bareng ganda setiap pekan di berbagai GOR terbaik ' . (!empty($settings['base_city']) ? $settings['base_city'] : 'kota Anda') . '. Cukup daftar ke PIC WhatsApp, datang ke arena, dan nikmati pertandingan dengan pembagian giliran main yang teratur.') ?></textarea>
-                <span class="text-[11px] text-slate-400 mt-1 block">Teks sambutan ini tampil tepat di bawah judul besar pada halaman utama.</span>
+                <div class="flex flex-col sm:flex-row items-center gap-4">
+                  <div class="w-20 h-20 rounded-xl overflow-hidden border-2 border-slate-300 bg-white flex items-center justify-center p-1.5 shadow-xs shrink-0">
+                    <img id="logoPreviewImg" src="<?= htmlspecialchars($currentLogo ? $currentLogo : '') ?>" alt="Logo Komunitas" class="<?= empty($currentLogo) ? 'hidden' : '' ?> w-full h-full object-contain">
+                    <span id="logoPlaceholder" class="<?= !empty($currentLogo) ? 'hidden' : '' ?> text-sm font-black font-mono text-blue-900 bg-amber-100/80 w-full h-full rounded-lg flex items-center justify-center">
+                      PB
+                    </span>
+                  </div>
+                  <div class="w-full space-y-2">
+                    <input type="file" name="logo_file" accept="image/*" onchange="previewLogoFile(this)" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-700 file:mr-2.5 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-[#0b1e36] file:text-amber-400 cursor-pointer min-h-[44px]">
+                    <input type="text" name="logo_url" id="logoUrlInput" value="<?= htmlspecialchars($currentLogo) ?>" placeholder="Atau tempel URL logo publik..." oninput="updateLogoPreview(this.value)" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 min-h-[44px]">
+                  </div>
+                </div>
               </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Teks Tombol Aksi Pendaftaran (CTA):</label>
-                  <input type="text" name="hero_cta_text" required value="<?= htmlspecialchars(!empty($settings['hero_cta_text']) ? $settings['hero_cta_text'] : 'Pilih Jadwal & Daftar via WhatsApp PIC →') ?>" placeholder="Contoh: Pilih Jadwal & Daftar via WhatsApp PIC →" class="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900">
-                </div>
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Teks Info Pengumuman Atas (Announcement Bar):</label>
-                  <input type="text" name="announcement_text" value="<?= htmlspecialchars(!empty($settings['announcement_text']) ? $settings['announcement_text'] : 'Komunitas Badminton Resmi ' . (!empty($settings['base_city']) ? $settings['base_city'] : 'Indonesia') . ' (Est. ' . date('Y') . ')') ?>" placeholder="Contoh: Komunitas Badminton Terbuka & Ramah Pemula" class="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900">
-                </div>
-              </div>
-
-              <!-- Foto Banner Hero -->
-              <div class="pt-2 border-t border-slate-200/60">
-                <label class="block text-xs font-bold text-slate-700 mb-2">Foto Atlet / Banner Hero (Samping Judul):</label>
-                <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-                  <div class="sm:col-span-3">
-                    <div class="aspect-[4/3] rounded-md overflow-hidden border border-slate-300 bg-slate-200 shadow-xs">
-                      <img id="heroPreviewImg" src="<?= htmlspecialchars($currentHero) ?>" alt="Foto Depan Hero" class="w-full h-full object-cover">
-                    </div>
-                  </div>
-                  <div class="sm:col-span-9 space-y-2">
-                    <div>
-                      <input type="file" name="hero_file" accept="image/*" onchange="previewFile(this, 'heroPreviewImg')" class="w-full bg-white border border-slate-300 rounded-md px-3 py-1.5 text-xs text-slate-700 file:mr-2.5 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-slate-900 file:text-white cursor-pointer">
-                    </div>
-                    <div>
-                      <input type="url" name="hero_image_url" id="heroUrlInput" value="<?= htmlspecialchars($currentHero) ?>" placeholder="Atau paste URL foto..." oninput="document.getElementById('heroPreviewImg').src = this.value || '<?= htmlspecialchars($currentHero) ?>'" class="w-full bg-white border border-slate-300 rounded-md px-3 py-1.5 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900">
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- BAGIAN 2: 3 LANGKAH CARA IKUT MABAR -->
-            <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 space-y-4">
-              <div class="flex items-center justify-between border-b border-slate-200/60 pb-3">
-                <div>
-                  <h4 class="text-xs font-mono font-bold uppercase tracking-wider text-slate-900">
-                    2. Konten 3 Langkah Alur Ikut Mabar
-                  </h4>
-                  <p class="text-[11px] text-slate-500 mt-0.5">Teks pada 3 kartu alur pendaftaran peserta di landing page.</p>
-                </div>
-                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600 font-bold">Alur Ikut</span>
-              </div>
-
-              <!-- Langkah 1 -->
-              <div class="p-3 bg-white border border-slate-200 rounded-md space-y-2">
-                <div class="text-xs font-bold text-slate-800 flex items-center gap-2">
-                  <span class="w-5 h-5 rounded bg-slate-900 text-amber-400 font-mono text-[10px] flex items-center justify-center font-bold">01</span>
-                  <span>Langkah 1 (Pilih Jadwal)</span>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <input type="text" name="step_1_title" required value="<?= htmlspecialchars(!empty($settings['step_1_title']) ? $settings['step_1_title'] : 'Pilih Jadwal & Lokasi GOR') ?>" placeholder="Judul Langkah 1" class="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 text-xs font-bold text-slate-900">
-                  <input type="text" name="step_1_desc" required value="<?= htmlspecialchars(!empty($settings['step_1_desc']) ? $settings['step_1_desc'] : 'Lihat daftar sesi mingguan kami di bawah. Pilih hari, jam main, dan lokasi GOR yang paling dekat dengan domisili Anda.') ?>" placeholder="Penjelasan Langkah 1" class="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-900">
-                </div>
-              </div>
-
-              <!-- Langkah 2 -->
-              <div class="p-3 bg-white border border-slate-200 rounded-md space-y-2">
-                <div class="text-xs font-bold text-slate-800 flex items-center gap-2">
-                  <span class="w-5 h-5 rounded bg-slate-900 text-amber-400 font-mono text-[10px] flex items-center justify-center font-bold">02</span>
-                  <span>Langkah 2 (Kontak PIC & Bayar)</span>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <input type="text" name="step_2_title" required value="<?= htmlspecialchars(!empty($settings['step_2_title']) ? $settings['step_2_title'] : 'Hubungi PIC & Bayar Iuran') ?>" placeholder="Judul Langkah 2" class="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 text-xs font-bold text-slate-900">
-                  <input type="text" name="step_2_desc" required value="<?= htmlspecialchars(!empty($settings['step_2_desc']) ? $settings['step_2_desc'] : 'Klik link daftar pada jadwal untuk langsung terhubung dengan PIC sesi di WhatsApp guna konfirmasi slot dan menyelesaikan pembayaran iuran.') ?>" placeholder="Penjelasan Langkah 2" class="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-900">
-                </div>
-              </div>
-
-              <!-- Langkah 3 -->
-              <div class="p-3 bg-white border border-slate-200 rounded-md space-y-2">
-                <div class="text-xs font-bold text-slate-800 flex items-center gap-2">
-                  <span class="w-5 h-5 rounded bg-slate-900 text-amber-400 font-mono text-[10px] flex items-center justify-center font-bold">03</span>
-                  <span>Langkah 3 (Main & Rotasi)</span>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <input type="text" name="step_3_title" required value="<?= htmlspecialchars(!empty($settings['step_3_title']) ? $settings['step_3_title'] : 'Datang & Main Sesuai Rotasi') ?>" placeholder="Judul Langkah 3" class="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 text-xs font-bold text-slate-900">
-                  <input type="text" name="step_3_desc" required value="<?= htmlspecialchars(!empty($settings['step_3_desc']) ? $settings['step_3_desc'] : 'Cukup bawa raket pribadi dan tiba di lapangan tepat waktu. Kok bulu angsa berkualitas dan rotasi ganda sudah diatur oleh sistem aplikasi.') ?>" placeholder="Penjelasan Langkah 3" class="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-900">
-                </div>
-              </div>
-            </div>
-
-            <!-- BAGIAN 3: TANYA JAWAB (FAQ SEPUTAR MABAR) -->
-            <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 space-y-4">
-              <div class="flex items-center justify-between border-b border-slate-200/60 pb-3">
-                <div>
-                  <h4 class="text-xs font-mono font-bold uppercase tracking-wider text-slate-900">
-                    3. Pertanyaan & Jawaban (FAQ Accordion)
-                  </h4>
-                  <p class="text-[11px] text-slate-500 mt-0.5">Kelola poin tanya jawab yang sering ditanyakan peserta baru.</p>
-                </div>
-                <button type="button" onclick="addFaqRow()" class="px-2.5 py-1 rounded bg-slate-900 text-amber-400 text-xs font-bold hover:bg-slate-800 transition-colors">
-                  + Tambah FAQ
-                </button>
-              </div>
-
-              <div id="faqContainer" class="space-y-3">
-                <?php foreach ($currentFaqs as $idx => $faq): ?>
-                  <div class="faq-row p-3.5 bg-white border border-slate-200 rounded-md space-y-2">
-                    <div class="flex items-center justify-between gap-2">
-                      <span class="text-xs font-bold text-slate-700 font-mono">FAQ #<?= $idx + 1 ?></span>
-                      <button type="button" onclick="this.closest('.faq-row').remove()" class="text-rose-600 hover:text-rose-800 text-xs font-bold">Hapus</button>
-                    </div>
-                    <div>
-                      <input type="text" name="faq_questions[]" required value="<?= htmlspecialchars($faq['question']) ?>" placeholder="Tuliskan pertanyaan..." class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-1.5 text-xs font-bold text-slate-900">
-                    </div>
-                    <div>
-                      <textarea name="faq_answers[]" rows="2" required placeholder="Tuliskan jawaban lengkap..." class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900"><?= htmlspecialchars($faq['answer']) ?></textarea>
-                    </div>
-                  </div>
-                <?php endforeach; ?>
-              </div>
-            </div>
-
-            <!-- BAGIAN 4: IDENTITAS BRAND, LOGO & KONTAK -->
-            <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 space-y-4">
-              <div class="flex items-center justify-between border-b border-slate-200/60 pb-3">
-                <div>
-                  <h4 class="text-xs font-mono font-bold uppercase tracking-wider text-slate-900">
-                    4. Profil Komunitas & Identitas Brand
-                  </h4>
-                  <p class="text-[11px] text-slate-500 mt-0.5">Logo, nama komunitas, sosial media, dan informasi kontak resmi.</p>
-                </div>
-                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600 font-bold">Branding</span>
-              </div>
-
-              <!-- Logo File & URL -->
-              <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-                <div class="sm:col-span-3 flex flex-col items-center">
-                  <div class="w-20 h-20 rounded-md overflow-hidden border border-slate-300 bg-white flex items-center justify-center p-1 shadow-xs">
-                    <img id="logoPreviewImg" src="<?= htmlspecialchars($currentLogo ? $currentLogo : '') ?>" alt="Logo Komunitas" class="<?= empty($currentLogo) ? 'hidden' : '' ?> w-full h-full object-contain">
-                    <span id="logoPlaceholder" class="<?= !empty($currentLogo) ? 'hidden' : '' ?> text-xs font-black font-mono text-blue-900 bg-amber-100/80 w-full h-full rounded flex items-center justify-center">
-                      PB
-                    </span>
-                  </div>
-                  <span class="text-[10px] text-slate-400 mt-1 font-mono">Logo Komunitas</span>
-                </div>
-
-                <div class="sm:col-span-9 space-y-2">
-                  <input type="file" name="logo_file" accept="image/*" onchange="previewLogoFile(this)" class="w-full bg-white border border-slate-300 rounded-md px-3 py-1.5 text-xs text-slate-700 file:mr-2.5 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-slate-900 file:text-white cursor-pointer">
-                  <input type="text" name="logo_url" id="logoUrlInput" value="<?= htmlspecialchars($currentLogo) ?>" placeholder="Atau URL logo..." oninput="updateLogoPreview(this.value)" class="w-full bg-white border border-slate-300 rounded-md px-3 py-1.5 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900">
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Nama Komunitas:</label>
-                  <input type="text" name="community_name" required value="<?= htmlspecialchars($settings['community_name']) ?>" placeholder="Contoh: Smash Club Badminton" class="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs font-bold text-slate-900">
+                  <label class="block text-xs font-bold text-slate-800 mb-1 font-mono uppercase">Nama Komunitas: <span class="text-red-500">*</span></label>
+                  <input type="text" name="community_name" required value="<?= htmlspecialchars($settings['community_name']) ?>" placeholder="Misal: Powershoot Badminton Club" class="w-full bg-white border border-slate-300 rounded-lg px-3.5 py-2.5 text-xs font-bold text-slate-900 min-h-[44px]">
                 </div>
 
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Slogan / Tagline Komunitas:</label>
-                  <input type="text" name="tagline" required value="<?= htmlspecialchars($settings['tagline']) ?>" placeholder="Contoh: Komunitas Badminton Terbuka & Mabar Rutin" class="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900">
+                  <label class="block text-xs font-bold text-slate-800 mb-1 font-mono uppercase">Slogan / Tagline: <span class="text-red-500">*</span></label>
+                  <input type="text" name="tagline" required value="<?= htmlspecialchars($settings['tagline']) ?>" placeholder="Misal: Komunitas Mabar Terbuka & Ramah Pemula" class="w-full bg-white border border-slate-300 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 min-h-[44px]">
                 </div>
               </div>
 
-              <div class="p-3 bg-amber-50/70 border border-amber-200/80 rounded-md text-xs text-amber-950 leading-relaxed">
-                <span class="font-bold text-amber-900">💡 Pengaturan Kota & Profil Komunitas:</span> Mengubah <strong>Kota / Basis Area</strong> dan <strong>Deskripsi Footer</strong> di bawah ini akan secara otomatis memperbarui seluruh teks kota di website publik, galeri foto, meta tag SEO, judul Cabang GOR di footer, serta structured data komunitas.
+              <!-- Basis Wilayah Callout -->
+              <div class="p-3.5 bg-amber-50 border border-amber-300 rounded-xl space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-900">[PENGATURAN AREA / KOTA]</span>
+                  <span class="text-[10px] font-mono text-amber-800">Otomatis sinkron ke seluruh website</span>
+                </div>
+                <label class="block text-xs font-black text-amber-950 font-mono uppercase">Kota / Basis Wilayah Operasional: <span class="text-red-500">*</span></label>
+                <input type="text" name="base_city" required value="<?= htmlspecialchars($settings['base_city']) ?>" placeholder="Misal: Jakarta Selatan, Tangerang, Surabaya" class="w-full bg-white border border-amber-400 focus:border-amber-600 rounded-lg px-3.5 py-2.5 text-xs font-bold text-slate-900 min-h-[44px]">
+                <p class="text-[11px] text-amber-900/80 mt-1">
+                  Mengubah nama kota di sini akan otomatis memperbarui teks di footer "Cabang GOR [Kota]", meta tag SEO Google, dan structured data komunitas.
+                </p>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-800 mb-1 font-mono uppercase">No. WhatsApp PIC Default:</label>
+                  <input type="text" name="whatsapp_default" value="<?= htmlspecialchars($settings['whatsapp_default']) ?>" placeholder="Misal: 081299887766" class="w-full bg-white border border-slate-300 rounded-lg px-3.5 py-2.5 text-xs font-mono font-bold text-slate-900 min-h-[44px]">
+                  <span class="text-[10px] text-slate-500 mt-1 block">Digunakan saat calon peserta menekan tombol konfirmasi pendaftaran.</span>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-800 mb-1 font-mono uppercase">Instagram Resmi (@handle):</label>
+                  <input type="text" name="instagram" value="<?= htmlspecialchars($settings['instagram']) ?>" placeholder="Misal: @powershoot.badminton" class="w-full bg-white border border-slate-300 rounded-lg px-3.5 py-2.5 text-xs font-bold text-slate-900 min-h-[44px]">
+                  <span class="text-[10px] text-slate-500 mt-1 block">Tampil pada footer web dan profil media sosial komunitas.</span>
+                </div>
               </div>
 
               <div>
-                <label class="block text-xs font-bold text-slate-800 mb-1">Deskripsi Footer Landing Page (Tentang Komunitas):</label>
-                <textarea name="description" rows="3" placeholder="Deskripsi singkat profil dan kegiatan komunitas badminton Anda..." class="w-full bg-white border border-slate-300 rounded-md px-3 py-2.5 text-xs text-slate-900 leading-relaxed focus:outline-none focus:ring-1 focus:ring-slate-900"><?= htmlspecialchars($settings['description']) ?></textarea>
-                <p class="text-[11px] text-slate-500 mt-1">Teks profil komunitas yang tampil di kolom kiri footer landing page.</p>
+                <label class="block text-xs font-bold text-slate-800 mb-1 font-mono uppercase">Deskripsi Profil di Footer Landing Page:</label>
+                <textarea name="description" rows="3" placeholder="Tuliskan gambaran singkat tentang sejarah, visi, dan kegiatan rutin komunitas badminton Anda..." class="w-full bg-white border border-slate-300 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 leading-relaxed focus:outline-none"><?= htmlspecialchars($settings['description']) ?></textarea>
+              </div>
+            </div>
+
+            <!-- ======================================================== -->
+            <!-- SUB-TAB 2: KONTEN WEB, SAMBUTAN & FOTO BANNER DEPAN      -->
+            <!-- ======================================================== -->
+            <div id="sectionSettingsHero" class="settings-section hidden space-y-5">
+              <div class="border-b border-slate-100 pb-3">
+                <span class="text-xs font-mono font-bold uppercase tracking-wider text-slate-900 block">
+                  Teks Sambutan & Banner Depan Landing Page
+                </span>
+                <p class="text-[11px] text-slate-500 mt-0.5">Konten pertama yang dilihat oleh pengunjung saat membuka halaman utama.</p>
               </div>
 
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Instagram (@handle):</label>
-                  <input type="text" name="instagram" value="<?= htmlspecialchars($settings['instagram']) ?>" placeholder="Contoh: @namakomunitas" class="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900">
-                </div>
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">WhatsApp Default PIC:</label>
-                  <input type="text" name="whatsapp_default" value="<?= htmlspecialchars($settings['whatsapp_default']) ?>" placeholder="Contoh: 081234567890" class="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900">
-                </div>
-                <div>
-                  <label class="block text-xs font-bold text-amber-700 mb-1">Kota / Basis Wilayah: <span class="text-red-500">*</span></label>
-                  <input type="text" name="base_city" required value="<?= htmlspecialchars($settings['base_city']) ?>" placeholder="Contoh: Jakarta Selatan, Surabaya, Bandung" class="w-full bg-white border border-amber-300 focus:border-amber-500 rounded-md px-3 py-2 text-xs text-slate-900 font-bold focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-xs">
-                  <p class="text-[11px] text-slate-500 mt-1">Ditampilkan di footer "Cabang GOR [Kota]" & SEO.</p>
+              <div>
+                <label class="block text-xs font-bold text-slate-800 mb-1 font-mono uppercase">Info Pengumuman Atas (Announcement Bar):</label>
+                <input type="text" name="announcement_text" value="<?= htmlspecialchars(!empty($settings['announcement_text']) ? $settings['announcement_text'] : 'Komunitas Badminton Resmi ' . (!empty($settings['base_city']) ? $settings['base_city'] : 'Indonesia') . ' (Est. ' . date('Y') . ')') ?>" placeholder="Misal: Komunitas Badminton Terbuka & Ramah Pemula" class="w-full bg-white border border-slate-300 rounded-lg px-3.5 py-2.5 text-xs font-semibold text-slate-900 min-h-[44px]">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-800 mb-1 font-mono uppercase">Judul Besar Headline Sambutan: <span class="text-red-500">*</span></label>
+                <input type="text" name="hero_title" required value="<?= htmlspecialchars(!empty($settings['hero_title']) ? $settings['hero_title'] : 'Main Badminton Bareng Tanpa Repot Cari Lawan & Lapangan.') ?>" class="w-full bg-white border border-slate-300 rounded-lg px-3.5 py-2.5 text-xs font-black text-slate-900 min-h-[44px]">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-800 mb-1 font-mono uppercase">Paragraf Sambutan & Deskripsi Hero: <span class="text-red-500">*</span></label>
+                <textarea name="hero_subtitle" rows="3" required class="w-full bg-white border border-slate-300 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 leading-relaxed focus:outline-none"><?= htmlspecialchars(!empty($settings['hero_subtitle']) ? $settings['hero_subtitle'] : 'Selamat datang di ' . $settings['community_name'] . '. Kami menyelenggarakan sesi main bareng ganda setiap pekan di berbagai GOR terbaik ' . (!empty($settings['base_city']) ? $settings['base_city'] : 'kota Anda') . '. Cukup daftar ke PIC WhatsApp, datang ke arena, dan nikmati pertandingan dengan pembagian giliran main yang teratur.') ?></textarea>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-800 mb-1 font-mono uppercase">Teks Tombol Aksi Pendaftaran (CTA Button): <span class="text-red-500">*</span></label>
+                <input type="text" name="hero_cta_text" required value="<?= htmlspecialchars(!empty($settings['hero_cta_text']) ? $settings['hero_cta_text'] : 'Pilih Jadwal & Daftar via WhatsApp PIC →') ?>" class="w-full bg-white border border-slate-300 rounded-lg px-3.5 py-2.5 text-xs font-bold text-slate-900 min-h-[44px]">
+              </div>
+
+              <!-- Foto Banner Depan -->
+              <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                <label class="block text-xs font-bold text-slate-800 font-mono uppercase">Foto Banner Depan (Hero Banner):</label>
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                  <div class="sm:col-span-4">
+                    <div class="aspect-[4/3] rounded-lg overflow-hidden border border-slate-300 bg-slate-200 shadow-2xs">
+                      <img id="heroPreviewImg" src="<?= htmlspecialchars($currentHero) ?>" alt="Banner Hero" class="w-full h-full object-cover">
+                    </div>
+                  </div>
+                  <div class="sm:col-span-8 space-y-2">
+                    <input type="file" name="hero_file" accept="image/*" onchange="previewFile(this, 'heroPreviewImg')" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-700 file:mr-2.5 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-[#0b1e36] file:text-amber-400 cursor-pointer min-h-[44px]">
+                    <input type="url" name="hero_image_url" id="heroUrlInput" value="<?= htmlspecialchars($currentHero) ?>" placeholder="Atau masukkan URL foto publik..." oninput="document.getElementById('heroPreviewImg').src = this.value || '<?= htmlspecialchars($currentHero) ?>'" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 min-h-[44px]">
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- BAGIAN 5: YOAST SEO & SEARCH ENGINE OPTIMIZATION MANAGER -->
+            <!-- ======================================================== -->
+            <!-- SUB-TAB 3: ALUR IKUT MABAR (3 LANGKAH) & FAQ            -->
+            <!-- ======================================================== -->
+            <div id="sectionSettingsSteps" class="settings-section hidden space-y-5">
+              <div class="border-b border-slate-100 pb-3">
+                <span class="text-xs font-mono font-bold uppercase tracking-wider text-slate-900 block">
+                  3 Langkah Alur Mabar & Pertanyaan Sering Ditanyakan (FAQ)
+                </span>
+                <p class="text-[11px] text-slate-500 mt-0.5">Panduan bagi pemain baru yang ingin bergabung ke sesi mabar Anda.</p>
+              </div>
+
+              <!-- 3 Langkah Ikut Mabar -->
+              <div class="space-y-3">
+                <span class="text-xs font-bold text-slate-800 font-mono uppercase block">3 Langkah Cara Ikut Mabar:</span>
+                
+                <!-- Langkah 1 -->
+                <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                  <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-md bg-[#0b1e36] text-amber-400 font-mono text-xs flex items-center justify-center font-bold">01</span>
+                    <span class="text-xs font-bold text-slate-900">Langkah 1 (Pilih Jadwal)</span>
+                  </div>
+                  <input type="text" name="step_1_title" required value="<?= htmlspecialchars(!empty($settings['step_1_title']) ? $settings['step_1_title'] : 'Pilih Jadwal & Lokasi GOR') ?>" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 min-h-[40px]">
+                  <textarea name="step_1_desc" rows="2" required class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900"><?= htmlspecialchars(!empty($settings['step_1_desc']) ? $settings['step_1_desc'] : 'Lihat daftar sesi mingguan kami di bawah. Pilih hari, jam main, dan lokasi GOR yang paling dekat dengan domisili Anda.') ?></textarea>
+                </div>
+
+                <!-- Langkah 2 -->
+                <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                  <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-md bg-[#0b1e36] text-amber-400 font-mono text-xs flex items-center justify-center font-bold">02</span>
+                    <span class="text-xs font-bold text-slate-900">Langkah 2 (Kontak PIC & Bayar)</span>
+                  </div>
+                  <input type="text" name="step_2_title" required value="<?= htmlspecialchars(!empty($settings['step_2_title']) ? $settings['step_2_title'] : 'Hubungi PIC & Bayar Iuran') ?>" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 min-h-[40px]">
+                  <textarea name="step_2_desc" rows="2" required class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900"><?= htmlspecialchars(!empty($settings['step_2_desc']) ? $settings['step_2_desc'] : 'Klik link daftar pada jadwal untuk langsung terhubung dengan PIC sesi di WhatsApp guna konfirmasi slot dan menyelesaikan pembayaran iuran.') ?></textarea>
+                </div>
+
+                <!-- Langkah 3 -->
+                <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                  <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-md bg-[#0b1e36] text-amber-400 font-mono text-xs flex items-center justify-center font-bold">03</span>
+                    <span class="text-xs font-bold text-slate-900">Langkah 3 (Main & Rotasi)</span>
+                  </div>
+                  <input type="text" name="step_3_title" required value="<?= htmlspecialchars(!empty($settings['step_3_title']) ? $settings['step_3_title'] : 'Datang & Main Sesuai Rotasi') ?>" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 min-h-[40px]">
+                  <textarea name="step_3_desc" rows="2" required class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900"><?= htmlspecialchars(!empty($settings['step_3_desc']) ? $settings['step_3_desc'] : 'Cukup bawa raket pribadi dan tiba di lapangan tepat waktu. Kok bulu angsa berkualitas dan rotasi ganda sudah diatur oleh sistem aplikasi.') ?></textarea>
+                </div>
+              </div>
+
+              <!-- FAQ Section -->
+              <div class="pt-3 border-t border-slate-100 space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-slate-800 font-mono uppercase">Tanya Jawab (FAQ Accordion):</span>
+                  <button type="button" onclick="addFaqRow()" class="px-3 py-2 rounded-lg bg-[#0b1e36] text-amber-400 text-xs font-bold hover:bg-[#132b4f] transition-all min-h-[40px] flex items-center gap-1 active:scale-95">
+                    <span>+ Tambah FAQ</span>
+                  </button>
+                </div>
+
+                <div id="faqContainer" class="space-y-3">
+                  <?php foreach ($currentFaqs as $idx => $faq): ?>
+                    <div class="faq-row p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-bold text-slate-700 font-mono">FAQ #<?= $idx + 1 ?></span>
+                        <button type="button" onclick="this.closest('.faq-row').remove()" class="text-rose-600 hover:text-rose-800 text-xs font-bold px-2 py-1 min-h-[36px]">Hapus</button>
+                      </div>
+                      <input type="text" name="faq_questions[]" required value="<?= htmlspecialchars($faq['question']) ?>" placeholder="Pertanyaan..." class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 min-h-[40px]">
+                      <textarea name="faq_answers[]" rows="2" required placeholder="Jawaban..." class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900"><?= htmlspecialchars($faq['answer']) ?></textarea>
+                    </div>
+                  <?php endforeach; ?>
+                </div>
+              </div>
+            </div>
+
+            <!-- ======================================================== -->
+            <!-- SUB-TAB 4: GOOGLE SEO & MEDIA SOSIAL                     -->
+            <!-- ======================================================== -->
             <?php
-              $siteHost = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'smashpoint.test';
+              $siteHost = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'powershoot.test';
               $currentOgImage = !empty($settings['og_image_url']) ? $settings['og_image_url'] : $currentHero;
             ?>
-            <div class="bg-gradient-to-br from-slate-50 to-emerald-50/20 border-2 border-emerald-500/80 rounded-xl p-5 sm:p-6 space-y-6 shadow-sm">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200/80 pb-4 gap-3">
+            <div id="sectionSettingsSeo" class="settings-section hidden space-y-5">
+              <div class="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <div class="flex items-center gap-2">
-                    <span class="w-6 h-6 rounded bg-emerald-600 text-white flex items-center justify-center font-black text-xs shadow-xs">Y</span>
-                    <h4 class="text-sm font-black uppercase tracking-wider text-slate-900 font-sans">
-                      5. Optimasi Mesin Pencari Google & SEO (Yoast-Style)
-                    </h4>
-                  </div>
-                  <p class="text-[11px] text-slate-500 mt-1">Kelola judul Google, deskripsi meta, kata kunci fokus, dan pratinjau thumbnail saat tautan dibagikan ke WhatsApp & media sosial.</p>
+                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-slate-900 block">
+                    Optimasi Mesin Pencari Google & Media Sosial
+                  </span>
+                  <p class="text-[11px] text-slate-500 mt-0.5">Pastikan website Anda mudah ditemukan di Google dan tampil rapi saat link dibagikan di WhatsApp.</p>
                 </div>
                 
-                <!-- Yoast Overall SEO Health Score Badge -->
-                <div class="flex items-center gap-2">
-                  <div id="yoastScoreBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-xs bg-emerald-100 text-emerald-800 border border-emerald-300">
-                    <span id="yoastScoreDot" class="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                    <span id="yoastScoreText">SEO: 100/100 (Sangat Baik)</span>
-                  </div>
+                <!-- Yoast SEO Health Badge -->
+                <div id="yoastScoreBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-xs bg-emerald-100 text-emerald-800 border border-emerald-300 self-start sm:self-center">
+                  <span id="yoastScoreDot" class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                  <span id="yoastScoreText">SEO: 100/100 [Sangat Baik]</span>
                 </div>
               </div>
 
               <!-- Focus Keyphrase Input -->
-              <div class="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1.5">
-                  <label class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <span class="text-amber-500 font-bold">★</span>
-                    <span>Kata Kunci Target / Focus Keyphrase:</span>
-                  </label>
-                  <span class="text-[10px] text-slate-400 font-mono">Kata kunci pencarian yang ingin dimenangkan di Google</span>
-                </div>
-                <div class="relative">
-                  <input type="text" id="seoFocusKeyword" name="focus_keyword" value="<?= htmlspecialchars(!empty($settings['focus_keyword']) ? $settings['focus_keyword'] : ('mabar badminton ' . strtolower(!empty($settings['base_city']) ? $settings['base_city'] : 'indonesia'))) ?>" placeholder="Misal: mabar badminton jakarta selatan" class="w-full bg-slate-50 border border-slate-300 focus:border-emerald-600 focus:bg-white rounded-md px-3.5 py-2 text-xs text-slate-900 font-semibold focus:outline-none transition-all">
-                </div>
-                <p class="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
-                  Yoast SEO akan menganalisis apakah kata kunci ini terdapat di judul utama (SEO Title) dan meta deskripsi untuk memastikan visibilitas pencarian optimal di Google.
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-1.5">
+                <label class="block text-xs font-bold text-slate-800 font-mono uppercase">
+                  Kata Kunci Target Google (Focus Keyphrase):
+                </label>
+                <input type="text" id="seoFocusKeyword" name="focus_keyword" value="<?= htmlspecialchars(!empty($settings['focus_keyword']) ? $settings['focus_keyword'] : ('mabar badminton ' . strtolower(!empty($settings['base_city']) ? $settings['base_city'] : 'indonesia'))) ?>" placeholder="Misal: mabar badminton jakarta selatan" class="w-full bg-white border border-slate-300 focus:border-emerald-600 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 font-semibold min-h-[44px]">
+                <p class="text-[11px] text-slate-500">
+                  Kata kunci yang diketik pencari di Google. Sistem akan memeriksa apakah kata kunci ini ada di Judul dan Deskripsi.
                 </p>
               </div>
 
-              <!-- Preview Tabs: Google Search Result vs WhatsApp / Social Share Card -->
+              <!-- Live Preview Simulator Toggle -->
               <div class="space-y-3">
                 <div class="flex items-center justify-between border-b border-slate-200 pb-2">
                   <div class="flex items-center gap-2">
-                    <button type="button" id="tabGoogleBtn" onclick="switchSeoPreviewTab('google')" class="px-3.5 py-1.5 rounded-md text-xs font-bold transition-all bg-[#0b1e36] text-amber-400 shadow-xs flex items-center gap-1.5">
-                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-                      <span>Google Search Snippet</span>
+                    <button type="button" id="tabGoogleBtn" onclick="switchSeoPreviewTab('google')" class="px-3 py-2 rounded-lg text-xs font-bold transition-all bg-[#0b1e36] text-amber-400 min-h-[40px] flex items-center gap-1">
+                      <span>[Google Preview]</span>
                     </button>
-                    <button type="button" id="tabSocialBtn" onclick="switchSeoPreviewTab('social')" class="px-3.5 py-1.5 rounded-md text-xs font-bold transition-all bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center gap-1.5">
-                      <svg class="w-3.5 h-3.5 text-emerald-600" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2z"/></svg>
-                      <span>WhatsApp & Medsos Card</span>
+                    <button type="button" id="tabSocialBtn" onclick="switchSeoPreviewTab('social')" class="px-3 py-2 rounded-lg text-xs font-bold transition-all bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 min-h-[40px] flex items-center gap-1">
+                      <span>[WhatsApp & Sosmed]</span>
                     </button>
                   </div>
 
-                  <!-- Google Mobile vs Desktop Toggle -->
                   <div id="googleViewToggle" class="flex items-center gap-1 bg-slate-200/80 p-0.5 rounded-md text-[10px] font-bold">
-                    <button type="button" id="btnViewDesktop" onclick="setGoogleViewMode('desktop')" class="px-2.5 py-1 rounded bg-white text-slate-900 shadow-2xs">Desktop</button>
-                    <button type="button" id="btnViewMobile" onclick="setGoogleViewMode('mobile')" class="px-2.5 py-1 rounded text-slate-600 hover:text-slate-900">Mobile</button>
+                    <button type="button" id="btnViewDesktop" onclick="setGoogleViewMode('desktop')" class="px-2.5 py-1 rounded bg-white text-slate-900 shadow-2xs font-bold">Desktop</button>
+                    <button type="button" id="btnViewMobile" onclick="setGoogleViewMode('mobile')" class="px-2.5 py-1 rounded text-slate-600 hover:text-slate-900 font-bold">Mobile</button>
                   </div>
                 </div>
 
-                <!-- Google Snippet Simulation Container -->
-                <div id="googlePreviewContainer" class="p-4 sm:p-5 bg-white border border-slate-200 rounded-lg shadow-sm">
+                <!-- Google Snippet Simulation -->
+                <div id="googlePreviewContainer" class="p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
                   <div id="googleSnippetCard" class="max-w-2xl font-sans text-left space-y-1">
-                    <!-- URL & Breadcrumb (Google Style) -->
-                    <div class="flex items-center gap-2 text-xs text-slate-600">
-                      <div class="w-5 h-5 rounded-full bg-slate-100 border border-slate-300 flex items-center justify-center text-[10px] text-blue-900 font-bold shrink-0">
-                        🏸
-                      </div>
-                      <div class="truncate">
-                        <span class="text-xs font-semibold text-slate-900"><?= htmlspecialchars($siteHost) ?></span>
-                        <span class="text-slate-400 mx-1">›</span>
-                        <span id="googleSlugPreview" class="text-slate-500 font-mono text-[11px]"><?= strtolower(urlencode(!empty($settings['base_city']) ? $settings['base_city'] : 'komunitas')) ?> › mabar</span>
-                      </div>
+                    <div class="truncate text-xs text-slate-600">
+                      <span class="font-semibold text-slate-900"><?= htmlspecialchars($siteHost) ?></span>
+                      <span class="text-slate-400 mx-1">›</span>
+                      <span id="googleSlugPreview" class="text-slate-500 font-mono text-[11px]"><?= strtolower(urlencode(!empty($settings['base_city']) ? $settings['base_city'] : 'komunitas')) ?> › mabar</span>
                     </div>
-                    
-                    <!-- Search Title Link -->
                     <div class="pt-0.5">
-                      <a href="javascript:void(0)" id="googleTitlePreview" class="text-base sm:text-lg font-medium text-[#1a0dab] hover:underline cursor-pointer leading-snug line-clamp-2">
+                      <a href="javascript:void(0)" id="googleTitlePreview" class="text-base sm:text-lg font-medium text-[#1a0dab] hover:underline leading-snug line-clamp-2">
                         <?= htmlspecialchars(!empty($settings['meta_title']) ? $settings['meta_title'] : ($settings['community_name'] . ' — Mabar Badminton & Rotasi Lapangan ' . (!empty($settings['base_city']) ? $settings['base_city'] : 'Indonesia'))) ?>
                       </a>
                     </div>
-
-                    <!-- Meta Description -->
                     <div class="pt-0.5">
                       <p id="googleDescPreview" class="text-xs sm:text-[13px] text-[#4d5156] leading-relaxed line-clamp-3">
                         <?= htmlspecialchars(!empty($settings['meta_description']) ? $settings['meta_description'] : (!empty($settings['description']) ? strip_tags($settings['description']) : ('Komunitas mabar badminton resmi di ' . (!empty($settings['base_city']) ? $settings['base_city'] : 'Indonesia') . ' dengan sistem rotasi ganda fair level, jadwal rutin setiap pekan, dan kok bulu angsa turnamen.'))) ?>
@@ -3966,10 +3960,10 @@ ${listLines.join('\n')}${fullTag}`;
                   </div>
                 </div>
 
-                <!-- WhatsApp / Facebook Share Preview Container -->
-                <div id="socialPreviewContainer" class="hidden p-4 sm:p-5 bg-white border border-slate-200 rounded-lg shadow-sm">
-                  <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2 font-mono">Pratinjau Tampilan Saat Link Dishare di WhatsApp / Facebook:</span>
-                  <div class="max-w-md bg-slate-50 border border-slate-300 rounded-lg overflow-hidden shadow-sm">
+                <!-- WhatsApp Card Simulation -->
+                <div id="socialPreviewContainer" class="hidden p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
+                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2 font-mono">Tampilan Share di WhatsApp:</span>
+                  <div class="max-w-md bg-slate-50 border border-slate-300 rounded-lg overflow-hidden shadow-xs">
                     <div class="aspect-[1.91/1] bg-slate-200 relative overflow-hidden">
                       <img id="socialPreviewImg" src="<?= htmlspecialchars($currentOgImage) ?>" alt="Social Banner Preview" class="w-full h-full object-cover">
                     </div>
@@ -3986,26 +3980,21 @@ ${listLines.join('\n')}${fullTag}`;
                 </div>
               </div>
 
-              <!-- SEO Meta Title Input & Live Snippet Variables -->
+              <!-- SEO Meta Title Input & Snippet Variables -->
               <div class="space-y-2">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <label class="text-xs font-bold text-slate-800">
-                    SEO Meta Title (Judul Pencarian Google): <span class="text-red-500">*</span>
+                  <label class="text-xs font-bold text-slate-800 font-mono uppercase">
+                    SEO Meta Title (Judul di Google): <span class="text-red-500">*</span>
                   </label>
-                  
-                  <!-- Snippet Variable Insertion Chips -->
                   <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="text-[10px] text-slate-400">Sisipkan Variabel:</span>
-                    <button type="button" onclick="insertSeoVariable('seoTitleInput', '%%sitename%%')" class="px-2 py-0.5 rounded bg-amber-50 hover:bg-amber-100 text-amber-900 text-[10px] font-bold font-mono border border-amber-200 transition-colors">+ Judul Situs</button>
-                    <button type="button" onclick="insertSeoVariable('seoTitleInput', '%%city%%')" class="px-2 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-900 text-[10px] font-bold font-mono border border-blue-200 transition-colors">+ Kota</button>
-                    <button type="button" onclick="insertSeoVariable('seoTitleInput', '%%tagline%%')" class="px-2 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-[10px] font-bold font-mono border border-emerald-200 transition-colors">+ Tagline</button>
-                    <button type="button" onclick="insertSeoVariable('seoTitleInput', '%%sep%%')" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold font-mono border border-slate-300 transition-colors">+ Sep (—)</button>
+                    <button type="button" onclick="insertSeoVariable('seoTitleInput', '%%sitename%%')" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold font-mono border border-slate-300">+ Nama Web</button>
+                    <button type="button" onclick="insertSeoVariable('seoTitleInput', '%%city%%')" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold font-mono border border-slate-300">+ Kota</button>
+                    <button type="button" onclick="insertSeoVariable('seoTitleInput', '%%tagline%%')" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold font-mono border border-slate-300">+ Tagline</button>
                   </div>
                 </div>
 
-                <input type="text" id="seoTitleInput" name="meta_title" required value="<?= htmlspecialchars(!empty($settings['meta_title']) ? $settings['meta_title'] : ($settings['community_name'] . ' — Mabar Badminton & Rotasi Lapangan ' . (!empty($settings['base_city']) ? $settings['base_city'] : 'Indonesia'))) ?>" placeholder="%%sitename%% %%sep%% Mabar Badminton & Rotasi Lapangan %%city%%" class="w-full bg-white border border-slate-300 focus:border-emerald-600 rounded-md px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs">
+                <input type="text" id="seoTitleInput" name="meta_title" required value="<?= htmlspecialchars(!empty($settings['meta_title']) ? $settings['meta_title'] : ($settings['community_name'] . ' — Mabar Badminton & Rotasi Lapangan ' . (!empty($settings['base_city']) ? $settings['base_city'] : 'Indonesia'))) ?>" class="w-full bg-white border border-slate-300 focus:border-emerald-600 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 font-bold min-h-[44px]">
 
-                <!-- Yoast Progress Bar for Title -->
                 <div class="space-y-1">
                   <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
                     <div id="titleProgressBar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 80%;"></div>
@@ -4020,21 +4009,17 @@ ${listLines.join('\n')}${fullTag}`;
               <!-- SEO Meta Description Input -->
               <div class="space-y-2">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <label class="text-xs font-bold text-slate-800">
-                    SEO Meta Description (Deskripsi Cuplikan Snippet): <span class="text-red-500">*</span>
+                  <label class="text-xs font-bold text-slate-800 font-mono uppercase">
+                    SEO Meta Description (Deskripsi Google): <span class="text-red-500">*</span>
                   </label>
-                  
                   <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="text-[10px] text-slate-400">Sisipkan:</span>
-                    <button type="button" onclick="insertSeoVariable('seoDescInput', '%%sitename%%')" class="px-2 py-0.5 rounded bg-amber-50 hover:bg-amber-100 text-amber-900 text-[10px] font-bold font-mono border border-amber-200 transition-colors">+ Judul</button>
-                    <button type="button" onclick="insertSeoVariable('seoDescInput', '%%city%%')" class="px-2 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-900 text-[10px] font-bold font-mono border border-blue-200 transition-colors">+ Kota</button>
-                    <button type="button" onclick="insertSeoVariable('seoDescInput', '%%tagline%%')" class="px-2 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-[10px] font-bold font-mono border border-emerald-200 transition-colors">+ Tagline</button>
+                    <button type="button" onclick="insertSeoVariable('seoDescInput', '%%sitename%%')" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold font-mono border border-slate-300">+ Nama Web</button>
+                    <button type="button" onclick="insertSeoVariable('seoDescInput', '%%city%%')" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold font-mono border border-slate-300">+ Kota</button>
                   </div>
                 </div>
 
-                <textarea id="seoDescInput" name="meta_description" rows="3" required placeholder="Tuliskan rangkuman menarik tentang komunitas mabar badminton Anda..." class="w-full bg-white border border-slate-300 focus:border-emerald-600 rounded-md px-3.5 py-2.5 text-xs text-slate-900 leading-relaxed focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"><?= htmlspecialchars(!empty($settings['meta_description']) ? $settings['meta_description'] : (!empty($settings['description']) ? strip_tags($settings['description']) : ('Komunitas mabar badminton resmi di ' . (!empty($settings['base_city']) ? $settings['base_city'] : 'Indonesia') . ' dengan sistem rotasi ganda fair level, jadwal rutin setiap pekan, dan kok bulu angsa turnamen.'))) ?></textarea>
+                <textarea id="seoDescInput" name="meta_description" rows="3" required class="w-full bg-white border border-slate-300 focus:border-emerald-600 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 leading-relaxed"><?= htmlspecialchars(!empty($settings['meta_description']) ? $settings['meta_description'] : (!empty($settings['description']) ? strip_tags($settings['description']) : ('Komunitas mabar badminton resmi di ' . (!empty($settings['base_city']) ? $settings['base_city'] : 'Indonesia') . ' dengan sistem rotasi ganda fair level, jadwal rutin setiap pekan, dan kok bulu angsa turnamen.'))) ?></textarea>
 
-                <!-- Yoast Progress Bar for Description -->
                 <div class="space-y-1">
                   <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
                     <div id="descProgressBar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 85%;"></div>
@@ -4046,128 +4031,112 @@ ${listLines.join('\n')}${fullTag}`;
                 </div>
               </div>
 
-              <!-- Yoast SEO Real-time Content & Health Analysis Checklist -->
-              <div class="bg-white border border-slate-200 rounded-lg p-4 sm:p-5 shadow-xs space-y-3">
-                <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-black uppercase tracking-wider text-slate-900 font-mono">Hasil Analisis Yoast SEO</span>
-                    <span class="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-bold">Audit Real-Time</span>
-                  </div>
+              <!-- Real-time Checklist -->
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2.5">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <span class="text-xs font-mono font-bold uppercase text-slate-900">Audit Kualitas SEO Real-Time</span>
                   <span id="yoastScoreSummary" class="text-xs font-bold text-emerald-700">6 dari 6 kriteria terpenuhi</span>
                 </div>
-
-                <div class="space-y-2 text-xs" id="yoastChecklist">
-                  <div id="checkKwTitle" class="flex items-start gap-2.5 py-1">
+                <div class="space-y-1.5 text-xs" id="yoastChecklist">
+                  <div id="checkKwTitle" class="flex items-start gap-2.5 py-0.5">
                     <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">✓</span>
-                    <span class="text-slate-700"><strong>Kata Kunci Target di Judul SEO:</strong> Kata kunci fokus ditemukan di judul Google Anda.</span>
+                    <span class="text-slate-700"><strong>Kata Kunci di Judul:</strong> Ditemukan di judul Google.</span>
                   </div>
-                  <div id="checkKwDesc" class="flex items-start gap-2.5 py-1">
+                  <div id="checkKwDesc" class="flex items-start gap-2.5 py-0.5">
                     <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">✓</span>
-                    <span class="text-slate-700"><strong>Kata Kunci Target di Deskripsi:</strong> Kata kunci fokus tercantum di meta description.</span>
+                    <span class="text-slate-700"><strong>Kata Kunci di Deskripsi:</strong> Tercantum di meta deskripsi.</span>
                   </div>
-                  <div id="checkTitleLength" class="flex items-start gap-2.5 py-1">
+                  <div id="checkTitleLength" class="flex items-start gap-2.5 py-0.5">
                     <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">✓</span>
-                    <span class="text-slate-700"><strong>Panjang Judul SEO:</strong> Ukuran judul berada dalam rekomendasi ideal 40-65 karakter.</span>
+                    <span class="text-slate-700"><strong>Panjang Judul SEO:</strong> Ideal (40-65 karakter).</span>
                   </div>
-                  <div id="checkDescLength" class="flex items-start gap-2.5 py-1">
+                  <div id="checkDescLength" class="flex items-start gap-2.5 py-0.5">
                     <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">✓</span>
-                    <span class="text-slate-700"><strong>Panjang Meta Description:</strong> Ukuran deskripsi berada dalam rekomendasi ideal 120-160 karakter.</span>
+                    <span class="text-slate-700"><strong>Panjang Deskripsi:</strong> Ideal (120-160 karakter).</span>
                   </div>
-                  <div id="checkOgImage" class="flex items-start gap-2.5 py-1">
+                  <div id="checkOgImage" class="flex items-start gap-2.5 py-0.5">
                     <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">✓</span>
-                    <span class="text-slate-700"><strong>Banner OpenGraph / Media Sosial:</strong> Thumbnail share untuk WhatsApp & Facebook siap tampil.</span>
+                    <span class="text-slate-700"><strong>Thumbnail Medsos:</strong> Banner share siap tampil.</span>
                   </div>
-                  <div id="checkRobots" class="flex items-start gap-2.5 py-1">
+                  <div id="checkRobots" class="flex items-start gap-2.5 py-0.5">
                     <span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">✓</span>
-                    <span class="text-slate-700"><strong>Pengaturan Indexing:</strong> Robot Google diizinkan mengindeks halaman ini (`index, follow`).</span>
+                    <span class="text-slate-700"><strong>Pengaturan Indexing:</strong> Diizinkan terindeks (`index, follow`).</span>
                   </div>
                 </div>
               </div>
 
-              <!-- OpenGraph & Media Sosial Specific Customizations (Custom Title, Desc, and Banner) -->
-              <div class="bg-white border border-slate-200 rounded-lg p-4 sm:p-5 shadow-xs space-y-4">
-                <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                  <h5 class="text-xs font-black uppercase tracking-wider text-slate-900 font-mono flex items-center gap-2">
-                    <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
-                    <span>Kustomisasi OpenGraph Media Sosial & WhatsApp</span>
-                  </h5>
-                  <span class="text-[10px] text-slate-400">Opsional (Default otomatis dari SEO Google)</span>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Judul Khusus Medsos (OG Title):</label>
-                    <input type="text" id="ogTitleInput" name="og_title" value="<?= htmlspecialchars(!empty($settings['og_title']) ? $settings['og_title'] : '') ?>" placeholder="Kosongkan jika sama dengan Judul SEO Google..." class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900">
-                  </div>
-                  <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Deskripsi Khusus Medsos (OG Description):</label>
-                    <input type="text" id="ogDescInput" name="og_description" value="<?= htmlspecialchars(!empty($settings['og_description']) ? $settings['og_description'] : '') ?>" placeholder="Kosongkan jika sama dengan Deskripsi SEO Google..." class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900">
-                  </div>
-                </div>
-
-                <!-- Banner Share Upload -->
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Gambar Banner Thumbnail Share (Ukuran Ideal 1200 x 630 px):</label>
-                  <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-                    <div class="sm:col-span-3">
-                      <div class="aspect-[1.91/1] rounded border border-slate-300 overflow-hidden bg-slate-100">
-                        <img id="ogPreviewThumb" src="<?= htmlspecialchars($currentOgImage) ?>" alt="OG Banner" class="w-full h-full object-cover">
-                      </div>
+              <!-- Media Sosial & WhatsApp Custom Share Settings -->
+              <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                <span class="text-xs font-mono font-bold uppercase text-slate-800 block">Thumbnail Share WhatsApp & Medsos:</span>
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                  <div class="sm:col-span-4">
+                    <div class="aspect-[1.91/1] rounded-lg border border-slate-300 overflow-hidden bg-slate-100 shadow-2xs">
+                      <img id="ogPreviewThumb" src="<?= htmlspecialchars($currentOgImage) ?>" alt="OG Banner" class="w-full h-full object-cover">
                     </div>
-                    <div class="sm:col-span-9 space-y-2">
-                      <input type="file" name="og_image_file" accept="image/*" onchange="previewFile(this, 'ogPreviewThumb'); previewFile(this, 'socialPreviewImg');" class="w-full bg-white border border-slate-300 rounded px-2.5 py-1 text-xs file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-xs file:font-bold file:bg-slate-900 file:text-white cursor-pointer">
-                      <input type="url" id="ogUrlInput" name="og_image_url" value="<?= htmlspecialchars(!empty($settings['og_image_url']) ? $settings['og_image_url'] : '') ?>" placeholder="Atau paste URL gambar..." oninput="document.getElementById('ogPreviewThumb').src = this.value; document.getElementById('socialPreviewImg').src = this.value;" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-1.5 text-xs font-mono text-slate-900">
-                    </div>
+                  </div>
+                  <div class="sm:col-span-8 space-y-2">
+                    <input type="file" name="og_image_file" accept="image/*" onchange="previewFile(this, 'ogPreviewThumb'); previewFile(this, 'socialPreviewImg');" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-700 file:mr-2.5 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-[#0b1e36] file:text-amber-400 cursor-pointer min-h-[44px]">
+                    <input type="url" id="ogUrlInput" name="og_image_url" value="<?= htmlspecialchars(!empty($settings['og_image_url']) ? $settings['og_image_url'] : '') ?>" placeholder="Atau tempel URL gambar banner..." oninput="document.getElementById('ogPreviewThumb').src = this.value; document.getElementById('socialPreviewImg').src = this.value;" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 min-h-[44px]">
                   </div>
                 </div>
               </div>
-
-              <!-- Advanced SEO Accordion -->
-              <details class="bg-white border border-slate-200 rounded-lg group shadow-xs">
-                <summary class="p-4 text-xs font-bold text-slate-800 cursor-pointer flex items-center justify-between list-none hover:bg-slate-50 transition-colors">
-                  <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    <span>Pengaturan SEO Tingkat Lanjut (Robots Indexing & Canonical)</span>
-                  </div>
-                  <span class="text-xs text-slate-400 group-open:rotate-180 transition-transform">▼</span>
-                </summary>
-                
-                <div class="p-4 border-t border-slate-100 space-y-3 bg-slate-50/50">
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-xs font-bold text-slate-700 mb-1">Pengaturan Robot Pencari (Robots Meta Tag):</label>
-                      <select id="seoRobotsSelect" name="robots_meta" class="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs font-bold text-slate-800">
-                        <option value="index, follow" <?= (empty($settings['robots_meta']) || $settings['robots_meta'] === 'index, follow') ? 'selected' : '' ?>>Izinkan Google mengindeks & mengikuti link (index, follow - Direkomendasikan)</option>
-                        <option value="noindex, follow" <?= ($settings['robots_meta'] === 'noindex, follow') ? 'selected' : '' ?>>Jangan indeks di Google, tapi ikuti link (noindex, follow)</option>
-                        <option value="noindex, nofollow" <?= ($settings['robots_meta'] === 'noindex, nofollow') ? 'selected' : '' ?>>Blokir sepenuhnya dari pencarian (noindex, nofollow)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label class="block text-xs font-bold text-slate-700 mb-1">Canonical URL Kustom (Opsional):</label>
-                      <input type="url" name="canonical_url" value="<?= htmlspecialchars(!empty($settings['canonical_url']) ? $settings['canonical_url'] : '') ?>" placeholder="https://domainanda.com/" class="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs font-mono text-slate-800">
-                      <span class="text-[10px] text-slate-400 mt-0.5 block">Kosongkan jika menggunakan domain default.</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Kata Kunci Meta Tambahan (Meta Keywords):</label>
-                    <input type="text" name="meta_keywords" value="<?= htmlspecialchars(!empty($settings['meta_keywords']) ? $settings['meta_keywords'] : '') ?>" placeholder="Pisahkan dengan koma: mabar badminton, gor bulutangkis, sewa court..." class="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs text-slate-800">
-                  </div>
-                </div>
-              </details>
 
             </div>
 
-            <div class="pt-4 border-t border-slate-200">
-              <button type="submit" class="w-full py-3.5 rounded-md bg-[#0b1e36] hover:bg-[#132b4f] text-amber-400 border border-amber-400/40 font-black text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2">
-                <span>Simpan Seluruh Perubahan Konten & Pengaturan SEO</span>
+            <!-- ======================================================== -->
+            <!-- FLOATING / STICKY BOTTOM SAVE ACTION BAR                 -->
+            <!-- ======================================================== -->
+            <div class="sticky bottom-0 z-20 bg-white/95 backdrop-blur-md p-3.5 border-t-2 border-slate-200 shadow-lg -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 rounded-b-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="text-[11px] font-mono text-slate-500 hidden sm:block">
+                Menyimpan seluruh perubahan dari semua tab sekaligus.
+              </div>
+              <button type="submit" class="w-full sm:w-auto px-6 py-3.5 rounded-lg bg-[#0b1e36] hover:bg-[#132b4f] text-amber-400 font-black text-xs uppercase tracking-wider transition-all border border-amber-400/40 shadow-md active:scale-95 min-h-[48px] flex items-center justify-center gap-2">
+                <span>Simpan Seluruh Pengaturan Web</span>
               </button>
             </div>
+
           </form>
         </div>
 
         <script>
+          // Sub-Tab Switcher for Settings
+          function switchSettingsSection(sectionName) {
+            document.querySelectorAll('.settings-section').forEach(sec => sec.classList.add('hidden'));
+            document.querySelectorAll('.settings-nav-pill').forEach(btn => {
+              btn.className = 'settings-nav-pill px-3.5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider shrink-0 transition-all bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 min-h-[44px] flex items-center gap-1.5';
+            });
+
+            if (sectionName === 'profile') {
+              document.getElementById('sectionSettingsProfile')?.classList.remove('hidden');
+              const b = document.getElementById('tabBtnProfile');
+              if (b) b.className = 'settings-nav-pill px-3.5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider shrink-0 transition-all bg-[#0b1e36] text-amber-400 border border-amber-400/40 shadow-xs min-h-[44px] flex items-center gap-1.5';
+            } else if (sectionName === 'hero') {
+              document.getElementById('sectionSettingsHero')?.classList.remove('hidden');
+              const b = document.getElementById('tabBtnHero');
+              if (b) b.className = 'settings-nav-pill px-3.5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider shrink-0 transition-all bg-[#0b1e36] text-amber-400 border border-amber-400/40 shadow-xs min-h-[44px] flex items-center gap-1.5';
+            } else if (sectionName === 'steps') {
+              document.getElementById('sectionSettingsSteps')?.classList.remove('hidden');
+              const b = document.getElementById('tabBtnSteps');
+              if (b) b.className = 'settings-nav-pill px-3.5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider shrink-0 transition-all bg-[#0b1e36] text-amber-400 border border-amber-400/40 shadow-xs min-h-[44px] flex items-center gap-1.5';
+            } else if (sectionName === 'seo') {
+              document.getElementById('sectionSettingsSeo')?.classList.remove('hidden');
+              const b = document.getElementById('tabBtnSeo');
+              if (b) b.className = 'settings-nav-pill px-3.5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider shrink-0 transition-all bg-[#0b1e36] text-amber-400 border border-amber-400/40 shadow-xs min-h-[44px] flex items-center gap-1.5';
+              evaluateYoastSeo();
+            }
+
+            try {
+              sessionStorage.setItem('active_settings_tab', sectionName);
+            } catch(e) {}
+          }
+
+          document.addEventListener('DOMContentLoaded', () => {
+            const savedTab = sessionStorage.getItem('active_settings_tab');
+            if (savedTab && ['profile', 'hero', 'steps', 'seo'].includes(savedTab)) {
+              switchSettingsSection(savedTab);
+            }
+          });
+
           function previewFile(input, targetId) {
             if (input.files && input.files[0]) {
               const reader = new FileReader();
@@ -4212,18 +4181,14 @@ ${listLines.join('\n')}${fullTag}`;
             const container = document.getElementById('faqContainer');
             const count = container.querySelectorAll('.faq-row').length + 1;
             const div = document.createElement('div');
-            div.className = 'faq-row p-3.5 bg-white border border-slate-200 rounded-md space-y-2';
+            div.className = 'faq-row p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2';
             div.innerHTML = `
               <div class="flex items-center justify-between gap-2">
                 <span class="text-xs font-bold text-slate-700 font-mono">FAQ #${count} (Baru)</span>
-                <button type="button" onclick="this.closest('.faq-row').remove()" class="text-rose-600 hover:text-rose-800 text-xs font-bold">Hapus</button>
+                <button type="button" onclick="this.closest('.faq-row').remove()" class="text-rose-600 hover:text-rose-800 text-xs font-bold px-2 py-1 min-h-[36px]">Hapus</button>
               </div>
-              <div>
-                <input type="text" name="faq_questions[]" required placeholder="Tuliskan pertanyaan..." class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-1.5 text-xs font-bold text-slate-900">
-              </div>
-              <div>
-                <textarea name="faq_answers[]" rows="2" required placeholder="Tuliskan jawaban lengkap..." class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900"></textarea>
-              </div>
+              <input type="text" name="faq_questions[]" required placeholder="Tuliskan pertanyaan..." class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 min-h-[40px]">
+              <textarea name="faq_answers[]" rows="2" required placeholder="Tuliskan jawaban lengkap..." class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900"></textarea>
             `;
             container.appendChild(div);
           }
@@ -4255,14 +4220,14 @@ ${listLines.join('\n')}${fullTag}`;
               if (googleTab) googleTab.classList.remove('hidden');
               if (socialTab) socialTab.classList.add('hidden');
               if (toggle) toggle.classList.remove('hidden');
-              if (btnGoogle) btnGoogle.className = 'px-3.5 py-1.5 rounded-md text-xs font-bold transition-all bg-[#0b1e36] text-amber-400 shadow-xs flex items-center gap-1.5';
-              if (btnSocial) btnSocial.className = 'px-3.5 py-1.5 rounded-md text-xs font-bold transition-all bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center gap-1.5';
+              if (btnGoogle) btnGoogle.className = 'px-3 py-2 rounded-lg text-xs font-bold transition-all bg-[#0b1e36] text-amber-400 min-h-[40px] flex items-center gap-1';
+              if (btnSocial) btnSocial.className = 'px-3 py-2 rounded-lg text-xs font-bold transition-all bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 min-h-[40px] flex items-center gap-1';
             } else {
               if (googleTab) googleTab.classList.add('hidden');
               if (socialTab) socialTab.classList.remove('hidden');
               if (toggle) toggle.classList.add('hidden');
-              if (btnSocial) btnSocial.className = 'px-3.5 py-1.5 rounded-md text-xs font-bold transition-all bg-[#0b1e36] text-amber-400 shadow-xs flex items-center gap-1.5';
-              if (btnGoogle) btnGoogle.className = 'px-3.5 py-1.5 rounded-md text-xs font-bold transition-all bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center gap-1.5';
+              if (btnSocial) btnSocial.className = 'px-3 py-2 rounded-lg text-xs font-bold transition-all bg-[#0b1e36] text-amber-400 min-h-[40px] flex items-center gap-1';
+              if (btnGoogle) btnGoogle.className = 'px-3 py-2 rounded-lg text-xs font-bold transition-all bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 min-h-[40px] flex items-center gap-1';
             }
           }
 
@@ -4314,7 +4279,6 @@ ${listLines.join('\n')}${fullTag}`;
             const robotsVal = document.getElementById('seoRobotsSelect')?.value || 'index, follow';
             const cityVal = document.querySelector('input[name="base_city"]')?.value || 'komunitas';
 
-            // 1. Update Google Snippet Text
             const titleEl = document.getElementById('googleTitlePreview');
             const descEl = document.getElementById('googleDescPreview');
             const socialTitleEl = document.getElementById('socialTitlePreview');
@@ -4327,7 +4291,6 @@ ${listLines.join('\n')}${fullTag}`;
             if (socialTitleEl) socialTitleEl.textContent = ogTitle || resolvedTitle;
             if (socialDescEl) socialDescEl.textContent = ogDesc || resolvedDesc;
 
-            // 2. Title length evaluation (ideal: 40-65 chars)
             const titleLen = resolvedTitle.length;
             const titleBar = document.getElementById('titleProgressBar');
             const titleStatus = document.getElementById('titleStatusText');
@@ -4355,7 +4318,6 @@ ${listLines.join('\n')}${fullTag}`;
               titleScore = 10;
             }
 
-            // 3. Description length evaluation (ideal: 120-160 chars)
             const descLen = resolvedDesc.length;
             const descBar = document.getElementById('descProgressBar');
             const descStatus = document.getElementById('descStatusText');
@@ -4383,36 +4345,28 @@ ${listLines.join('\n')}${fullTag}`;
               descScore = 10;
             }
 
-            // 4. Focus keyword in Title
             let hasKwInTitle = false;
             if (focusKw && resolvedTitle.toLowerCase().includes(focusKw)) {
               hasKwInTitle = true;
             }
-            updateCheckItem('checkKwTitle', hasKwInTitle, 'Kata Kunci Target di Judul SEO', 'Kata kunci fokus ditemukan di judul Google Anda.', 'Kata kunci fokus belum terdapat di judul SEO.');
+            updateCheckItem('checkKwTitle', hasKwInTitle, 'Kata Kunci di Judul', 'Ditemukan di judul Google.', 'Belum ada di judul SEO.');
 
-            // 5. Focus keyword in Description
             let hasKwInDesc = false;
             if (focusKw && resolvedDesc.toLowerCase().includes(focusKw)) {
               hasKwInDesc = true;
             }
-            updateCheckItem('checkKwDesc', hasKwInDesc, 'Kata Kunci Target di Deskripsi', 'Kata kunci fokus tercantum di meta description.', 'Kata kunci fokus belum dimasukkan ke meta description.');
+            updateCheckItem('checkKwDesc', hasKwInDesc, 'Kata Kunci di Deskripsi', 'Tercantum di meta deskripsi.', 'Belum ada di meta deskripsi.');
 
-            // 6. Title Length Check Item
-            updateCheckItem('checkTitleLength', titleScore === 25, 'Panjang Judul SEO', 'Ukuran judul berada dalam rentang ideal 40-65 karakter.', 'Ukuran judul belum ideal (saat ini ' + titleLen + ' karakter).');
+            updateCheckItem('checkTitleLength', titleScore === 25, 'Panjang Judul SEO', 'Ideal (40-65 karakter).', 'Belum ideal (' + titleLen + ' karakter).');
+            updateCheckItem('checkDescLength', descScore === 25, 'Panjang Deskripsi', 'Ideal (120-160 karakter).', 'Belum ideal (' + descLen + ' karakter).');
 
-            // 7. Desc Length Check Item
-            updateCheckItem('checkDescLength', descScore === 25, 'Panjang Meta Description', 'Ukuran deskripsi berada dalam rentang ideal 120-160 karakter.', 'Ukuran deskripsi belum ideal (saat ini ' + descLen + ' karakter).');
-
-            // 8. OG Image Check Item
             const ogImgSrc = document.getElementById('ogPreviewThumb')?.getAttribute('src') || '';
             const hasOgImage = ogImgSrc.trim() !== '' && !ogImgSrc.includes('placeholder');
-            updateCheckItem('checkOgImage', hasOgImage, 'Banner OpenGraph / Media Sosial', 'Thumbnail share untuk WhatsApp & Facebook siap tampil.', 'Thumbnail share media sosial belum dipilih.');
+            updateCheckItem('checkOgImage', hasOgImage, 'Thumbnail Medsos', 'Banner share siap tampil.', 'Banner share belum dipilih.');
 
-            // 9. Robots Indexing Check
             const isIndexed = robotsVal.includes('index');
-            updateCheckItem('checkRobots', isIndexed, 'Pengaturan Indexing', 'Robot Google diizinkan mengindeks halaman ini (`index, follow`).', 'Halaman diset noindex (Google tidak akan menampilkan web ini).');
+            updateCheckItem('checkRobots', isIndexed, 'Pengaturan Indexing', 'Diizinkan terindeks (`index, follow`).', 'Diset noindex.');
 
-            // Overall Score Calculation (out of 100)
             let totalScore = 0;
             totalScore += titleScore;
             totalScore += descScore;
@@ -4421,7 +4375,6 @@ ${listLines.join('\n')}${fullTag}`;
             if (hasOgImage) totalScore += 10;
             if (isIndexed) totalScore += 10;
 
-            // Update Score Badge & Summary
             const badge = document.getElementById('yoastScoreBadge');
             const dot = document.getElementById('yoastScoreDot');
             const text = document.getElementById('yoastScoreText');
@@ -4432,16 +4385,16 @@ ${listLines.join('\n')}${fullTag}`;
 
             if (totalScore >= 80) {
               if (badge) badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-xs bg-emerald-100 text-emerald-800 border border-emerald-300';
-              if (dot) dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse';
-              if (text) text.textContent = `🟢 SEO: ${totalScore}/100 (Sangat Baik)`;
+              if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-600 animate-pulse';
+              if (text) text.textContent = `SEO: ${totalScore}/100 [Sangat Baik]`;
             } else if (totalScore >= 50) {
               if (badge) badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-xs bg-amber-100 text-amber-800 border border-amber-300';
-              if (dot) dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-600 animate-pulse';
-              if (text) text.textContent = `🟡 SEO: ${totalScore}/100 (Cukup Baik)`;
+              if (dot) dot.className = 'w-2 h-2 rounded-full bg-amber-600 animate-pulse';
+              if (text) text.textContent = `SEO: ${totalScore}/100 [Cukup Baik]`;
             } else {
               if (badge) badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-xs bg-rose-100 text-rose-800 border border-rose-300';
-              if (dot) dot.className = 'w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse';
-              if (text) text.textContent = `🔴 SEO: ${totalScore}/100 (Perlu Ditingkatkan)`;
+              if (dot) dot.className = 'w-2 h-2 rounded-full bg-rose-600 animate-pulse';
+              if (text) text.textContent = `SEO: ${totalScore}/100 [Perlu Ditingkatkan]`;
             }
           }
 
@@ -4461,8 +4414,15 @@ ${listLines.join('\n')}${fullTag}`;
             }
           }
 
-          // Attach event listeners for real-time Yoast SEO evaluation
           ['seoFocusKeyword', 'seoTitleInput', 'seoDescInput', 'ogTitleInput', 'ogDescInput', 'seoRobotsSelect'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+              el.addEventListener('input', evaluateYoastSeo);
+              el.addEventListener('change', evaluateYoastSeo);
+            }
+          });
+          document.addEventListener('DOMContentLoaded', evaluateYoastSeo);
+        </script>
             const el = document.getElementById(id);
             if (el) {
               el.addEventListener('input', evaluateYoastSeo);

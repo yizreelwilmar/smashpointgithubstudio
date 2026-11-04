@@ -362,32 +362,6 @@ if ($currentSession) {
     $sessionFinSummary = Finance::getSummary($sessionId);
     $sessionFinRecords = Finance::getAll(['session_id' => $sessionId]);
 
-    if (!empty($matches)) {
-        foreach ($matches as $m) {
-            if ($m['round_number'] > $latestRound) $latestRound = (int)$m['round_number'];
-        }
-        $activeRoundMatches = array_filter($matches, function($m) use ($latestRound) {
-            return $m['round_number'] == $latestRound;
-        });
-        $completedMatches = array_filter($matches, function($m) {
-            return $m['status'] === 'completed';
-        });
-
-        $playingIds = [];
-        foreach ($activeRoundMatches as $arm) {
-            $playingIds[] = (int)$arm['team_a_p1'];
-            $playingIds[] = (int)$arm['team_a_p2'];
-            $playingIds[] = (int)$arm['team_b_p1'];
-            $playingIds[] = (int)$arm['team_b_p2'];
-        }
-
-        foreach ($participants as $p) {
-            if ($p['is_present'] == 1 && !in_array((int)$p['player_id'], $playingIds)) {
-                $restingPlayerIds[] = $p;
-            }
-        }
-    }
-
     // Hitung berapa kali main setiap pemain pada sesi aktif ini
     $sessionMatchCounts = [];
     if (!empty($matches)) {
@@ -400,11 +374,80 @@ if ($currentSession) {
             }
         }
     }
+
+    $sessionCourts = max(1, (int)($currentSession['court_count'] ?? 1));
+    $courtStates = [];
+    $busyPlayerIds = [];
+    $completedMatches = [];
+
+    for ($c = 1; $c <= $sessionCourts; $c++) {
+        $courtStates[$c] = [
+            'court_number' => $c,
+            'active_match' => null,
+            'last_completed' => null,
+            'total_matches' => 0
+        ];
+    }
+
+    if (!empty($matches)) {
+        foreach ($matches as $m) {
+            if ((int)$m['round_number'] > $latestRound) $latestRound = (int)$m['round_number'];
+            $cNum = (int)($m['court_number'] ?? 1);
+
+            if ($m['status'] === 'playing') {
+                if (isset($courtStates[$cNum]) && $courtStates[$cNum]['active_match'] === null) {
+                    $courtStates[$cNum]['active_match'] = $m;
+                }
+                $busyPlayerIds[] = (int)$m['team_a_p1'];
+                $busyPlayerIds[] = (int)$m['team_a_p2'];
+                $busyPlayerIds[] = (int)$m['team_b_p1'];
+                $busyPlayerIds[] = (int)$m['team_b_p2'];
+            } elseif ($m['status'] === 'completed') {
+                $completedMatches[] = $m;
+                if (isset($courtStates[$cNum])) {
+                    if ($courtStates[$cNum]['last_completed'] === null || (int)$m['id'] > (int)$courtStates[$cNum]['last_completed']['id']) {
+                        $courtStates[$cNum]['last_completed'] = $m;
+                    }
+                }
+            }
+
+            if (isset($courtStates[$cNum])) {
+                $courtStates[$cNum]['total_matches']++;
+            }
+        }
+        $busyPlayerIds = array_unique($busyPlayerIds);
+
+        $activeRoundMatches = array_filter($matches, function($m) use ($latestRound) {
+            return $m['round_number'] == $latestRound;
+        });
+    }
+
+    // Pemain yang hadir dan SEDANG TIDAK BERMAIN di lapangan aktif mana pun (Antrean Istirahat)
+    $idlePresentPlayers = [];
+    foreach ($participants as $p) {
+        $pid = (int)$p['player_id'];
+        if ((int)$p['is_present'] === 1 && !in_array($pid, $busyPlayerIds)) {
+            $pCopy = $p;
+            $pCopy['play_count'] = $sessionMatchCounts[$pid] ?? 0;
+            $idlePresentPlayers[] = $pCopy;
+        }
+    }
+    // Urutkan antrean: pemain dengan jumlah main paling sedikit berada di posisi teratas
+    usort($idlePresentPlayers, function($a, $b) {
+        $cA = $a['play_count'];
+        $cB = $b['play_count'];
+        if ($cA !== $cB) return $cA <=> $cB;
+        return strcmp($a['name'], $b['name']);
+    });
+    $restingPlayerIds = $idlePresentPlayers;
 } else {
     $sessionPhotos = [];
     $sessionFinSummary = ['total_iuran_collected' => 0, 'total_iuran_pending' => 0, 'count_paid' => 0, 'count_unpaid' => 0, 'total_extra_income' => 0, 'total_income' => 0, 'total_expense' => 0, 'net_cashflow' => 0];
     $sessionFinRecords = [];
     $sessionMatchCounts = [];
+    $courtStates = [];
+    $busyPlayerIds = [];
+    $idlePresentPlayers = [];
 }
 
 // Session Leaderboard for Klasemen tab
@@ -572,128 +615,76 @@ $waitingListParticipants = array_filter($participants, function($p) {
       <!-- ======================================================== -->
       <?php if ($view === 'court'): ?>
         
-        <!-- Rotation Action Bar -->
         <?php 
-          $sessionCourts = max(1, (int)($currentSession['court_count'] ?? 1));
           $presentCount = (int)$paymentSummary['total_present'];
           $maxPossibleCourts = (int)floor($presentCount / 4);
           $neededPlayers = $sessionCourts * 4;
+          $busyCount = count($busyPlayerIds);
+          $idleCount = count($idlePresentPlayers);
+          $activeCourtCount = 0;
+          foreach ($courtStates as $cs) {
+              if ($cs['active_match'] !== null) $activeCourtCount++;
+          }
         ?>
 
-        <div class="bg-white border border-slate-200 p-4 mb-4 shadow-xs space-y-3">
+        <!-- 1. Live Operational Summary Header -->
+        <div class="bg-white border border-slate-200 p-3.5 sm:p-4 mb-4 shadow-xs space-y-3">
           
-          <!-- Court Capacity & Attendance Status Banner -->
-          <div class="p-3 bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="px-2.5 py-1 bg-[#0b1e36] text-amber-400 font-mono font-black text-xs border border-amber-400/30 flex items-center gap-1.5">
-                <span><?= $sessionCourts ?> Lapangan Disewa</span>
-              </span>
-              <span class="text-xs font-bold text-slate-800">
-                <?= $presentCount ?> Pemain Hadir (Maks <?= $maxPossibleCourts ?> Lapangan Aktif)
-              </span>
-            </div>
-            
-            <?php if ($presentCount < $neededPlayers): ?>
-              <div class="text-[11px] font-mono text-amber-800 bg-amber-50 px-2.5 py-1 border border-amber-300">
-                <strong>1 Lapangan Ganda = 4 Pemain</strong>. Saat ini <?= $presentCount ?> hadir (1 lapangan main, <?= $presentCount - 4 ?> istirahat). Butuh min. <strong><?= $neededPlayers ?> pemain hadir</strong> di tab <em>Pemain</em> untuk membuka <strong><?= $sessionCourts ?> lapangan sekaligus</strong>!
-              </div>
-            <?php else: ?>
-              <div class="text-[11px] font-mono text-emerald-800 bg-emerald-50 px-2.5 py-1 border border-emerald-300 font-bold">
-                ✓ Kuota pemain cukup untuk mengisi <?= $sessionCourts ?> lapangan (<?= $neededPlayers ?> pemain)!
-              </div>
-            <?php endif; ?>
-          </div>
-
-          <!-- Row 1: Match Status & Selesai Sesi Button -->
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-b border-slate-100 pb-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div>
-              <div class="flex items-center gap-2">
-                <span class="px-2.5 py-1 bg-[#0b1e36] text-amber-400 text-xs font-black font-mono border border-amber-400/30">
-                  RONDE #<?= $latestRound ?>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="px-2.5 py-1 bg-[#0b1e36] text-amber-400 font-mono font-black text-xs border border-amber-400/30">
+                  <?= $sessionCourts ?> LAPANGAN
                 </span>
-                <span class="text-xs font-bold text-slate-800">
-                  <?= count($activeRoundMatches) ?> Match Lapangan Berjalan
+                <span class="text-xs font-black text-slate-900">
+                  <?= $activeCourtCount ?> Bertanding • <?= $sessionCourts - $activeCourtCount ?> Kosong / Siap Rotasi
                 </span>
               </div>
               <p class="text-[11px] text-slate-500 mt-1">
-                Rotasi otomatis menyusun pasangan & lawan secara adil berdasarkan rating dan riwayat main.
+                Sistem rotasi bergulir independen: lapangan yang selesai duluan dapat langsung memanggil 4 pemain berikutnya tanpa menunggu lapangan lain.
               </p>
             </div>
 
             <?php if ($currentSession['status'] !== 'completed' && !$isPicFoto): ?>
               <button type="button" onclick="document.getElementById('modalCompleteSession').classList.remove('hidden')" class="self-start sm:self-center px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 font-black text-xs uppercase tracking-wider transition-all active:scale-95 whitespace-nowrap min-h-[40px] flex items-center justify-center gap-1.5 shadow-2xs">
-                <svg class="w-3.5 h-3.5 text-rose-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                 <span>Selesai Sesi Mabar</span>
               </button>
             <?php endif; ?>
           </div>
 
-          <!-- Row 2: Control Toolbar (Responsive Grid) -->
-          <form id="generateRoundForm" class="pt-1">
-            <input type="hidden" name="session_id" value="<?= $sessionId ?>">
-            
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-              
-              <!-- Court Count Selector -->
-              <div class="md:col-span-4">
-                <label for="courtCountSelect" class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1 font-mono">
-                  Pilih Lapangan Aktif:
-                </label>
-                <select name="court_count" id="courtCountSelect" data-no-search class="w-full bg-slate-50 hover:bg-white border border-slate-300 focus:border-[#0b1e36] px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none min-h-[44px] transition-colors shadow-2xs cursor-pointer">
-                  <?php for ($c = 1; $c <= $sessionCourts; $c++): 
-                    $reqP = $c * 4;
-                    $canPlay = ($presentCount >= $reqP);
-                  ?>
-                    <option value="<?= $c ?>" <?= ($c === min($sessionCourts, max(1, $maxPossibleCourts))) ? 'selected' : '' ?>>
-                      <?= $c ?> Lapangan <?= $canPlay ? "(Tersedia - {$reqP} Pemain)" : "(Kurang Pemain - Butuh {$reqP})" ?>
-                    </option>
-                  <?php endfor; ?>
-                </select>
-              </div>
-
-              <!-- Algorithm Selector -->
-              <div class="md:col-span-4">
-                <label for="algorithmSelect" class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1 font-mono">
-                  Strategi Pembagian Tim:
-                </label>
-                <select name="algorithm" id="algorithmSelect" data-no-search class="w-full bg-slate-50 hover:bg-white border border-slate-300 focus:border-[#0b1e36] px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none min-h-[44px] transition-colors shadow-2xs cursor-pointer">
-                  <option value="balanced_level" selected>Fair Level (Kombinasi Seimbang)</option>
-                  <option value="tiered_level">Selevel (Pure Tier Mahir/Pemula)</option>
-                  <option value="fair_social">Kocok Campur Merata</option>
-                </select>
-              </div>
-
-              <!-- Action Buttons (Acak Ronde Baru & Reset) -->
-              <div class="md:col-span-4 flex items-center gap-2">
-                <button type="submit" id="btnGenerate" class="flex-1 py-2.5 px-4 bg-[#0b1e36] hover:bg-[#071324] text-amber-400 hover:text-amber-300 font-black text-xs uppercase tracking-wider transition-all border border-amber-400/30 active:scale-95 whitespace-nowrap min-h-[44px] flex items-center justify-center gap-2 shadow-xs">
-                  <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                  <span>Acak Ronde Baru</span>
-                </button>
-                <?php if (!empty($activeRoundMatches)): ?>
-                  <button type="button" onclick="confirmDeleteRound(<?= $sessionId ?>, <?= $latestRound ?>)" class="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 active:scale-95 min-h-[44px] shrink-0" title="Hapus dan reset ronde ini">
-                    Reset
-                  </button>
-                <?php endif; ?>
-              </div>
-
+          <!-- Quick Capacity & Player Distribution Meter -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-0.5">
+            <div class="bg-slate-50 border border-slate-200 p-2.5">
+              <span class="text-[10px] font-mono uppercase text-slate-500 font-bold block">Pemain Hadir</span>
+              <div class="text-base font-black font-mono text-slate-900 mt-0.5"><?= $presentCount ?> Orang</div>
             </div>
-          </form>
+            <div class="bg-amber-50 border border-amber-200 p-2.5">
+              <span class="text-[10px] font-mono uppercase text-amber-800 font-bold block">Sedang Main</span>
+              <div class="text-base font-black font-mono text-amber-950 mt-0.5"><?= $busyCount ?> Orang</div>
+            </div>
+            <div class="bg-emerald-50 border border-emerald-200 p-2.5">
+              <span class="text-[10px] font-mono uppercase text-emerald-800 font-bold block">Antrean Bebas</span>
+              <div class="text-base font-black font-mono text-emerald-950 mt-0.5"><?= $idleCount ?> Orang</div>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 p-2.5">
+              <span class="text-[10px] font-mono uppercase text-slate-500 font-bold block">Total Game Selesai</span>
+              <div class="text-base font-black font-mono text-slate-900 mt-0.5"><?= count($completedMatches) ?> Match</div>
+            </div>
+          </div>
+
         </div>
 
-        <!-- Matches in Current Round -->
-        <div class="space-y-4">
-          <?php if (empty($activeRoundMatches)): ?>
-            <div class="bg-white border border-slate-200 p-8 text-center space-y-3">
-              <h3 class="text-sm font-bold text-slate-800">Belum Ada Ronde Aktif</h3>
-              <p class="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-                Pastikan pemain sudah dicentang hadir di tab <strong>Pemain</strong>, lalu klik tombol <strong>Acak Ronde Baru</strong> di atas untuk membagi pasangan otomatis ke lapangan secara adil.
-              </p>
-            </div>
-          <?php else: ?>
-            <?php foreach ($activeRoundMatches as $match): 
+        <!-- 2. PAPAN STATUS TIAP LAPANGAN (COURT CARDS) -->
+        <div class="space-y-4 mb-5">
+          <?php for ($c = 1; $c <= $sessionCourts; $c++): 
+            $cState = $courtStates[$c] ?? ['active_match' => null, 'last_completed' => null, 'total_matches' => 0];
+            $match = $cState['active_match'];
+            $lastMatch = $cState['last_completed'];
+            $hasActive = ($match !== null);
+          ?>
+            <?php if ($hasActive): 
               $isCompleted = ($match['status'] === 'completed');
               
-              // Calculate weights
               $wA1 = RotationEngine::levelWeight($match['team_a_p1_level']);
               $wA2 = RotationEngine::levelWeight($match['team_a_p2_level']);
               $wB1 = RotationEngine::levelWeight($match['team_b_p1_level']);
@@ -706,34 +697,26 @@ $waitingListParticipants = array_filter($participants, function($p) {
               $balanceStatus = ($diff === 0) ? 'Sangat Seimbang' : (($diff === 1) ? 'Seimbang' : 'Timpang +' . $diff);
               $balanceBadgeClass = ($diff === 0) ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : (($diff === 1) ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-amber-50 text-amber-800 border-amber-300');
             ?>
-              <!-- TOURNAMENT-GRADE BADMINTON MATCH CARD -->
-              <div class="bg-white border-2 <?= $isCompleted ? 'border-blue-400 shadow-md' : 'border-slate-300 shadow-sm' ?> rounded-md overflow-hidden" id="match_card_<?= $match['id'] ?>">
+              <!-- LAPANGAN ONGOING (SEDANG MAIN) -->
+              <div class="bg-white border-2 border-slate-300 shadow-sm rounded-sm overflow-hidden" id="match_card_<?= $match['id'] ?>">
                 
-                <!-- Match Top Bar -->
+                <!-- Court Card Header -->
                 <div class="bg-[#0b1e36] text-white px-3.5 py-2.5 flex items-center justify-between gap-2 border-b border-slate-800">
-                  <div class="flex items-center gap-2">
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-400 text-slate-950 font-black font-mono text-xs uppercase tracking-wider rounded-xs">
-                      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11H9v-2h2v2zm0-4H9V5h2v4z"/></svg>
-                      LAPANGAN <?= $match['court_number'] ?>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-400 text-slate-950 font-black font-mono text-xs uppercase tracking-wider">
+                      LAPANGAN <?= $c ?>
                     </span>
-                    <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-xs border <?= $balanceBadgeClass ?>">
-                      <?= $balanceStatus ?> (<?= $ratingA ?> vs <?= $ratingB ?>)
+                    <span class="px-2 py-0.5 text-[10px] font-mono font-black uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/40 animate-pulse">
+                      [SEDANG MAIN]
+                    </span>
+                    <span class="text-[10px] font-mono font-bold px-2 py-0.5 border <?= $balanceBadgeClass ?>">
+                      <?= $balanceStatus ?> (Rating <?= $ratingA ?> vs <?= $ratingB ?>)
                     </span>
                   </div>
 
                   <div class="flex items-center gap-2">
-                    <?php if ($isCompleted): ?>
-                      <span class="px-2.5 py-1 bg-blue-500/20 text-blue-300 border border-blue-400/40 text-[10px] font-mono font-black uppercase tracking-wider rounded-xs flex items-center gap-1">
-                        ✓ Skor: <?= $match['score_team_a'] ?> - <?= $match['score_team_b'] ?>
-                      </span>
-                    <?php else: ?>
-                      <span class="px-2.5 py-1 bg-amber-400/20 text-amber-400 border border-amber-400/40 text-[10px] font-mono font-black uppercase tracking-wider rounded-xs flex items-center gap-1.5 animate-pulse">
-                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                        Sedang Tanding
-                      </span>
-                    <?php endif; ?>
-                    <button type="button" onclick="confirmDeleteMatch(<?= $match['id'] ?>, <?= $match['court_number'] ?>)" class="text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 text-xs font-bold px-2 py-1 border border-rose-500/40 rounded-xs transition-colors" title="Hapus match ini">
-                      ✕ Hapus
+                    <button type="button" onclick="confirmDeleteMatch(<?= $match['id'] ?>, <?= $c ?>)" class="text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 text-xs font-bold px-2 py-1 border border-rose-500/40 transition-colors" title="Batalkan match lapangan ini">
+                      ✕ Batalkan
                     </button>
                   </div>
                 </div>
@@ -743,15 +726,15 @@ $waitingListParticipants = array_filter($participants, function($p) {
                   
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     
-                    <!-- Team A (Athletic Navy) -->
-                    <div class="bg-gradient-to-b from-blue-50/60 to-slate-50 p-3.5 border-2 <?= ((int)$match['score_team_a'] > (int)$match['score_team_b'] && $isCompleted) ? 'border-amber-400 ring-2 ring-amber-300' : 'border-blue-200' ?> rounded-sm flex flex-col justify-between">
+                    <!-- Team A -->
+                    <div class="bg-gradient-to-b from-blue-50/60 to-slate-50 p-3.5 border-2 border-blue-200 rounded-sm flex flex-col justify-between">
                       <div>
                         <div class="flex items-center justify-between text-xs font-mono font-black text-blue-950 uppercase tracking-wider border-b border-blue-200/80 pb-2 mb-2">
                           <span class="flex items-center gap-1.5">
                             <span class="w-2.5 h-2.5 bg-blue-600 rounded-full"></span>
                             <span>TIM A</span>
                           </span>
-                          <span class="text-blue-900 bg-blue-100/90 px-2 py-0.5 border border-blue-200 text-[10px] rounded-xs font-bold">Rating: <?= $ratingA ?></span>
+                          <span class="text-blue-900 bg-blue-100/90 px-2 py-0.5 border border-blue-200 text-[10px] font-bold">Rating: <?= $ratingA ?></span>
                         </div>
 
                         <!-- Player 1 -->
@@ -762,27 +745,27 @@ $waitingListParticipants = array_filter($participants, function($p) {
                         <div class="flex items-center justify-between gap-1.5 py-1.5 border-b border-slate-200/60">
                           <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
                             <span class="font-extrabold text-xs text-slate-900 truncate block"><?= htmlspecialchars($match['team_a_p1_name']) ?></span>
-                            <span class="text-[9px] font-bold font-mono uppercase text-blue-700 bg-blue-100/50 px-1 rounded-xs">[<?= htmlspecialchars($match['team_a_p1_level']) ?>]</span>
-                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2 rounded-xs" title="Jumlah main sesi ini"><?= $pA1Played ?>x Main</span>
+                            <span class="text-[9px] font-bold font-mono uppercase text-blue-700 bg-blue-100/50 px-1">[<?= htmlspecialchars($match['team_a_p1_level']) ?>]</span>
+                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2" title="Jumlah main sesi ini"><?= $pA1Played ?>x Main</span>
                           </div>
-                          <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_a_p1', '<?= htmlspecialchars(addslashes($match['team_a_p1_name'])) ?>', <?= (int)$match['team_a_p1'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 rounded-xs shadow-2xs" title="Tukar Pemain">Tukar</button>
+                          <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_a_p1', '<?= htmlspecialchars(addslashes($match['team_a_p1_name'])) ?>', <?= (int)$match['team_a_p1'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 shadow-2xs" title="Tukar Pemain">Tukar</button>
                         </div>
 
                         <!-- Player 2 -->
                         <div class="flex items-center justify-between gap-1.5 py-1.5">
                           <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
                             <span class="font-extrabold text-xs text-slate-900 truncate block"><?= htmlspecialchars($match['team_a_p2_name']) ?></span>
-                            <span class="text-[9px] font-bold font-mono uppercase text-blue-700 bg-blue-100/50 px-1 rounded-xs">[<?= htmlspecialchars($match['team_a_p2_level']) ?>]</span>
-                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2 rounded-xs" title="Jumlah main sesi ini"><?= $pA2Played ?>x Main</span>
+                            <span class="text-[9px] font-bold font-mono uppercase text-blue-700 bg-blue-100/50 px-1">[<?= htmlspecialchars($match['team_a_p2_level']) ?>]</span>
+                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2" title="Jumlah main sesi ini"><?= $pA2Played ?>x Main</span>
                           </div>
-                          <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_a_p2', '<?= htmlspecialchars(addslashes($match['team_a_p2_name'])) ?>', <?= (int)$match['team_a_p2'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 rounded-xs shadow-2xs" title="Tukar Pemain">Tukar</button>
+                          <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_a_p2', '<?= htmlspecialchars(addslashes($match['team_a_p2_name'])) ?>', <?= (int)$match['team_a_p2'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 shadow-2xs" title="Tukar Pemain">Tukar</button>
                         </div>
                       </div>
 
-                      <!-- Stepper Controller Score A (Zero Auto-Clear on Focus/Type) -->
-                      <div class="flex items-center justify-center gap-2 mt-3 pt-2.5 border-t border-blue-200/60 bg-white p-2 rounded-xs shadow-inner">
+                      <!-- Stepper Controller Score A -->
+                      <div class="flex items-center justify-center gap-2 mt-3 pt-2.5 border-t border-blue-200/60 bg-white p-2 shadow-inner">
                         <span class="text-xs font-mono font-bold text-slate-600 mr-1">Skor:</span>
-                        <button type="button" onclick="decrementScore('a', <?= $match['id'] ?>)" class="w-12 h-11 bg-slate-100 hover:bg-slate-200 active:scale-90 text-slate-900 font-black text-2xl flex items-center justify-center select-none border border-slate-300 rounded-xs transition-transform">-</button>
+                        <button type="button" onclick="decrementScore('a', <?= $match['id'] ?>)" class="w-12 h-11 bg-slate-100 hover:bg-slate-200 active:scale-90 text-slate-900 font-black text-2xl flex items-center justify-center select-none border border-slate-300 transition-transform">-</button>
                         <input type="number" 
                                id="score_a_<?= $match['id'] ?>" 
                                value="<?= (int)$match['score_team_a'] ?>" 
@@ -790,20 +773,20 @@ $waitingListParticipants = array_filter($participants, function($p) {
                                onfocus="if(this.value==='0') this.value='';" 
                                onblur="if(this.value==='') this.value='0';" 
                                oninput="if(this.value.length > 1 && this.value.startsWith('0')) this.value = parseInt(this.value, 10);"
-                               class="w-16 h-11 text-center bg-white border-2 border-slate-400 font-mono font-black text-2xl text-slate-900 focus:outline-none focus:border-[#0b1e36] rounded-xs shadow-xs">
-                        <button type="button" onclick="incrementScore('a', <?= $match['id'] ?>)" class="w-12 h-11 bg-[#0b1e36] hover:bg-[#071324] active:scale-90 text-amber-400 font-black text-2xl flex items-center justify-center select-none border border-amber-400/40 rounded-xs transition-transform">+</button>
+                               class="w-16 h-11 text-center bg-white border-2 border-slate-400 font-mono font-black text-2xl text-slate-900 focus:outline-none focus:border-[#0b1e36] shadow-xs">
+                        <button type="button" onclick="incrementScore('a', <?= $match['id'] ?>)" class="w-12 h-11 bg-[#0b1e36] hover:bg-[#071324] active:scale-90 text-amber-400 font-black text-2xl flex items-center justify-center select-none border border-amber-400/40 transition-transform">+</button>
                       </div>
                     </div>
 
-                    <!-- Team B (Athletic Crimson) -->
-                    <div class="bg-gradient-to-b from-rose-50/60 to-slate-50 p-3.5 border-2 <?= ((int)$match['score_team_b'] > (int)$match['score_team_a'] && $isCompleted) ? 'border-amber-400 ring-2 ring-amber-300' : 'border-rose-200' ?> rounded-sm flex flex-col justify-between">
+                    <!-- Team B -->
+                    <div class="bg-gradient-to-b from-rose-50/60 to-slate-50 p-3.5 border-2 border-rose-200 rounded-sm flex flex-col justify-between">
                       <div>
                         <div class="flex items-center justify-between text-xs font-mono font-black text-rose-950 uppercase tracking-wider border-b border-rose-200/80 pb-2 mb-2">
                           <span class="flex items-center gap-1.5">
                             <span class="w-2.5 h-2.5 bg-rose-600 rounded-full"></span>
                             <span>TIM B</span>
                           </span>
-                          <span class="text-rose-900 bg-rose-100/90 px-2 py-0.5 border border-rose-200 text-[10px] rounded-xs font-bold">Rating: <?= $ratingB ?></span>
+                          <span class="text-rose-900 bg-rose-100/90 px-2 py-0.5 border border-rose-200 text-[10px] font-bold">Rating: <?= $ratingB ?></span>
                         </div>
 
                         <!-- Player 1 -->
@@ -814,27 +797,27 @@ $waitingListParticipants = array_filter($participants, function($p) {
                         <div class="flex items-center justify-between gap-1.5 py-1.5 border-b border-slate-200/60">
                           <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
                             <span class="font-extrabold text-xs text-slate-900 truncate block"><?= htmlspecialchars($match['team_b_p1_name']) ?></span>
-                            <span class="text-[9px] font-bold font-mono uppercase text-rose-700 bg-rose-100/50 px-1 rounded-xs">[<?= htmlspecialchars($match['team_b_p1_level']) ?>]</span>
-                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2 rounded-xs" title="Jumlah main sesi ini"><?= $pB1Played ?>x Main</span>
+                            <span class="text-[9px] font-bold font-mono uppercase text-rose-700 bg-rose-100/50 px-1">[<?= htmlspecialchars($match['team_b_p1_level']) ?>]</span>
+                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2" title="Jumlah main sesi ini"><?= $pB1Played ?>x Main</span>
                           </div>
-                          <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_b_p1', '<?= htmlspecialchars(addslashes($match['team_b_p1_name'])) ?>', <?= (int)$match['team_b_p1'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 rounded-xs shadow-2xs" title="Tukar Pemain">Tukar</button>
+                          <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_b_p1', '<?= htmlspecialchars(addslashes($match['team_b_p1_name'])) ?>', <?= (int)$match['team_b_p1'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 shadow-2xs" title="Tukar Pemain">Tukar</button>
                         </div>
 
                         <!-- Player 2 -->
                         <div class="flex items-center justify-between gap-1.5 py-1.5">
                           <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
                             <span class="font-extrabold text-xs text-slate-900 truncate block"><?= htmlspecialchars($match['team_b_p2_name']) ?></span>
-                            <span class="text-[9px] font-bold font-mono uppercase text-rose-700 bg-rose-100/50 px-1 rounded-xs">[<?= htmlspecialchars($match['team_b_p2_level']) ?>]</span>
-                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2 rounded-xs" title="Jumlah main sesi ini"><?= $pB2Played ?>x Main</span>
+                            <span class="text-[9px] font-bold font-mono uppercase text-rose-700 bg-rose-100/50 px-1">[<?= htmlspecialchars($match['team_b_p2_level']) ?>]</span>
+                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2" title="Jumlah main sesi ini"><?= $pB2Played ?>x Main</span>
                           </div>
-                          <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_b_p2', '<?= htmlspecialchars(addslashes($match['team_b_p2_name'])) ?>', <?= (int)$match['team_b_p2'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 rounded-xs shadow-2xs" title="Tukar Pemain">Tukar</button>
+                          <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_b_p2', '<?= htmlspecialchars(addslashes($match['team_b_p2_name'])) ?>', <?= (int)$match['team_b_p2'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 shadow-2xs" title="Tukar Pemain">Tukar</button>
                         </div>
                       </div>
 
-                      <!-- Stepper Controller Score B (Zero Auto-Clear on Focus/Type) -->
-                      <div class="flex items-center justify-center gap-2 mt-3 pt-2.5 border-t border-rose-200/60 bg-white p-2 rounded-xs shadow-inner">
+                      <!-- Stepper Controller Score B -->
+                      <div class="flex items-center justify-center gap-2 mt-3 pt-2.5 border-t border-rose-200/60 bg-white p-2 shadow-inner">
                         <span class="text-xs font-mono font-bold text-slate-600 mr-1">Skor:</span>
-                        <button type="button" onclick="decrementScore('b', <?= $match['id'] ?>)" class="w-12 h-11 bg-slate-100 hover:bg-slate-200 active:scale-90 text-slate-900 font-black text-2xl flex items-center justify-center select-none border border-slate-300 rounded-xs transition-transform">-</button>
+                        <button type="button" onclick="decrementScore('b', <?= $match['id'] ?>)" class="w-12 h-11 bg-slate-100 hover:bg-slate-200 active:scale-90 text-slate-900 font-black text-2xl flex items-center justify-center select-none border border-slate-300 transition-transform">-</button>
                         <input type="number" 
                                id="score_b_<?= $match['id'] ?>" 
                                value="<?= (int)$match['score_team_b'] ?>" 
@@ -842,46 +825,224 @@ $waitingListParticipants = array_filter($participants, function($p) {
                                onfocus="if(this.value==='0') this.value='';" 
                                onblur="if(this.value==='') this.value='0';" 
                                oninput="if(this.value.length > 1 && this.value.startsWith('0')) this.value = parseInt(this.value, 10);"
-                               class="w-16 h-11 text-center bg-white border-2 border-slate-400 font-mono font-black text-2xl text-slate-900 focus:outline-none focus:border-[#0b1e36] rounded-xs shadow-xs">
-                        <button type="button" onclick="incrementScore('b', <?= $match['id'] ?>)" class="w-12 h-11 bg-[#0b1e36] hover:bg-[#071324] active:scale-90 text-amber-400 font-black text-2xl flex items-center justify-center select-none border border-amber-400/40 rounded-xs transition-transform">+</button>
+                               class="w-16 h-11 text-center bg-white border-2 border-slate-400 font-mono font-black text-2xl text-slate-900 focus:outline-none focus:border-[#0b1e36] shadow-xs">
+                        <button type="button" onclick="incrementScore('b', <?= $match['id'] ?>)" class="w-12 h-11 bg-[#0b1e36] hover:bg-[#071324] active:scale-90 text-amber-400 font-black text-2xl flex items-center justify-center select-none border border-amber-400/40 transition-transform">+</button>
                       </div>
                     </div>
 
                   </div>
 
-                  <!-- Save / Update Score Button (Min 48px Touch Target) -->
-                  <button type="submit" class="w-full min-h-[48px] py-3 bg-[#0b1e36] hover:bg-[#071324] text-amber-400 hover:text-amber-300 font-black text-xs uppercase tracking-wider transition-all border border-amber-400/30 active:scale-[0.99] flex items-center justify-center gap-2 shadow-sm rounded-xs">
-                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                    <span><?= $isCompleted ? 'Perbarui Skor Pertandingan' : 'Simpan Skor Ronde Ini' ?></span>
+                  <!-- Save Score Button -->
+                  <button type="submit" class="w-full min-h-[48px] py-3 bg-[#0b1e36] hover:bg-[#071324] text-amber-400 hover:text-amber-300 font-black text-xs uppercase tracking-wider transition-all border border-amber-400/30 active:scale-[0.99] flex items-center justify-center gap-2 shadow-sm">
+                    <span>Simpan Skor & Selesaikan Lapangan <?= $c ?></span>
                   </button>
                 </form>
 
               </div>
-            <?php endforeach; ?>
+            <?php else: ?>
+              <!-- LAPANGAN KOSONG / SIAP ROTASI BERGULIR -->
+              <div class="bg-white border-2 border-dashed border-emerald-300 shadow-xs p-4 sm:p-5 space-y-4">
+                
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-1 bg-[#0b1e36] text-amber-400 font-mono font-black text-xs uppercase tracking-wider">
+                      LAPANGAN <?= $c ?>
+                    </span>
+                    <span class="px-2.5 py-0.5 text-[10px] font-mono font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300">
+                      [KOSONG / SIAP ROTASI]
+                    </span>
+                  </div>
+
+                  <?php if ($lastMatch): ?>
+                    <span class="text-[11px] font-mono text-slate-500">
+                      Match Terakhir: <?= htmlspecialchars($lastMatch['team_a_p1_name']) ?>/<?= htmlspecialchars($lastMatch['team_a_p2_name']) ?> (<?= $lastMatch['score_team_a'] ?>) vs <?= htmlspecialchars($lastMatch['team_b_p1_name']) ?>/<?= htmlspecialchars($lastMatch['team_b_p2_name']) ?> (<?= $lastMatch['score_team_b'] ?>)
+                    </span>
+                  <?php endif; ?>
+                </div>
+
+                <!-- Callout explanation & Priority Queue Preview -->
+                <div class="bg-emerald-50/60 border border-emerald-200 p-3.5 space-y-2.5">
+                  <div class="text-xs font-bold text-emerald-950 flex items-center justify-between">
+                    <span>Lapangan <?= $c ?> Siap Digunakan!</span>
+                    <span class="font-mono text-[11px] text-emerald-800"><?= $idleCount ?> pemain menganggur</span>
+                  </div>
+
+                  <?php 
+                    $preview4 = array_slice($idlePresentPlayers, 0, 4);
+                  ?>
+
+                  <?php if (count($preview4) >= 4): ?>
+                    <div>
+                      <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-900 block mb-1">
+                        4 Pemain Prioritas Utama Antrean (Paling Sedikit Main):
+                      </span>
+                      <div class="flex flex-wrap gap-1.5">
+                        <?php foreach ($preview4 as $pIdx => $pItem): ?>
+                          <span class="px-2 py-1 bg-white border border-emerald-300 text-slate-900 text-xs font-bold inline-flex items-center gap-1 shadow-2xs">
+                            <span class="font-mono text-emerald-800 text-[10px] font-black">#<?= $pIdx + 1 ?></span>
+                            <span><?= htmlspecialchars($pItem['name']) ?></span>
+                            <span class="text-[9px] font-mono text-slate-500">[<?= htmlspecialchars($pItem['level'] ?: 'Int') ?>]</span>
+                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 px-1"><?= $pItem['play_count'] ?>x</span>
+                          </span>
+                        <?php endforeach; ?>
+                      </div>
+                    </div>
+
+                    <!-- Rolling Dispatch Action Button -->
+                    <button type="button" onclick="generateSingleCourt(<?= $sessionId ?>, <?= $c ?>)" class="w-full min-h-[48px] py-3 bg-[#0b1e36] hover:bg-[#071324] text-amber-400 hover:text-amber-300 font-black text-xs uppercase tracking-wider transition-all border border-amber-400/40 active:scale-[0.99] flex items-center justify-center gap-2 shadow-md">
+                      <span>+ Panggil 4 Pemain Berikutnya ke Lapangan <?= $c ?></span>
+                    </button>
+                  <?php else: ?>
+                    <div class="text-xs text-amber-900 leading-relaxed">
+                      Saat ini hanya tersisa <strong><?= count($preview4) ?> pemain bebas</strong> di antrean istirahat. Butuh minimal <strong>4 pemain bebas</strong> untuk mengisi Lapangan <?= $c ?>. Pemain dari lapangan lain akan otomatis masuk antrean segera setelah pertandingannya selesai dicatat skornya.
+                    </div>
+                  <?php endif; ?>
+                </div>
+
+              </div>
+            <?php endif; ?>
+          <?php endfor; ?>
+        </div>
+
+        <!-- 3. LIVE ANTREAN ISTIRAHAT (QUEUE PANEL) -->
+        <div class="bg-white border border-slate-200 p-4 mb-5 shadow-xs space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-100 pb-2.5">
+            <div>
+              <h3 class="text-xs font-black uppercase tracking-wider font-mono text-slate-900">
+                Antrean Pemain Istirahat (<?= count($idlePresentPlayers) ?> Orang)
+              </h3>
+              <p class="text-[11px] text-slate-500 mt-0.5">
+                Diurutkan otomatis dari yang paling sedikit main agar seluruh peserta mendapat porsi bertanding yang adil.
+              </p>
+            </div>
+            <span class="text-[10px] font-mono text-slate-400 font-bold self-start sm:self-center">
+              Top 4 = Prioritas Lapangan Berikutnya
+            </span>
+          </div>
+
+          <?php if (empty($idlePresentPlayers)): ?>
+            <div class="p-6 text-center text-xs text-slate-500 bg-slate-50 border border-slate-200">
+              Seluruh pemain yang hadir saat ini sedang berada di lapangan bertanding.
+            </div>
+          <?php else: ?>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              <?php foreach ($idlePresentPlayers as $idx => $rp): 
+                $isNextUp = ($idx < 4);
+              ?>
+                <div class="p-2.5 border <?= $isNextUp ? 'bg-amber-50/60 border-amber-300 shadow-2xs' : 'bg-slate-50 border-slate-200' ?> flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-6 h-6 flex items-center justify-center font-mono font-black text-xs <?= $isNextUp ? 'bg-[#0b1e36] text-amber-400' : 'bg-slate-200 text-slate-700' ?> shrink-0">
+                      <?= $idx + 1 ?>
+                    </span>
+                    <div class="min-w-0">
+                      <div class="font-bold text-xs text-slate-900 truncate"><?= htmlspecialchars($rp['name']) ?></div>
+                      <div class="text-[10px] text-slate-500 font-mono flex items-center gap-1.5">
+                        <span>[<?= htmlspecialchars($rp['level'] ?: 'Int') ?>]</span>
+                        <span class="font-bold <?= $rp['play_count'] > 0 ? 'text-blue-900' : 'text-emerald-700' ?>"><?= $rp['play_count'] ?>x main</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <?php if ($isNextUp): ?>
+                    <span class="text-[9px] font-mono font-black uppercase tracking-wider px-1.5 py-0.5 bg-amber-400 text-slate-950 shrink-0">
+                      NEXT
+                    </span>
+                  <?php endif; ?>
+                </div>
+              <?php endforeach; ?>
+            </div>
           <?php endif; ?>
         </div>
 
-        <!-- Resting / Queue Players (Pemain Istirahat) -->
-        <?php if (!empty($restingPlayerIds)): ?>
-          <div class="mt-5 p-3.5 bg-amber-50 border border-amber-200">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-black text-amber-950 uppercase tracking-wider font-mono">
-                Istirahat Ronde Ini (<?= count($restingPlayerIds) ?> Orang)
-              </span>
-              <span class="text-[10px] text-amber-800 font-semibold font-mono">Prioritas main di ronde berikutnya</span>
+        <!-- 4. PENGATURAN ROTASI SERENTAK (BATCH GENERATE SEMUA LAPANGAN) -->
+        <details class="bg-white border border-slate-200 shadow-xs mb-4 group">
+          <summary class="p-3.5 cursor-pointer flex items-center justify-between text-xs font-black uppercase tracking-wider font-mono text-slate-800 hover:bg-slate-50 transition-colors select-none">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-300 text-[10px]">OPSI LAIN</span>
+              <span>Acak Semua Lapangan Sekaligus (Rotasi Serentak Ronde)</span>
             </div>
-            <div class="flex flex-wrap gap-1.5">
-              <?php foreach ($restingPlayerIds as $rp): 
-                $rpCount = $sessionMatchCounts[(int)$rp['player_id']] ?? 0;
-              ?>
-                <span class="px-2 py-1 bg-white border border-amber-300 text-slate-800 text-xs font-bold inline-flex items-center gap-1">
-                  <span><?= htmlspecialchars($rp['name']) ?></span>
-                  <span class="text-[9px] font-mono text-slate-500 font-normal">[<?= htmlspecialchars($rp['level']) ?>]</span>
-                  <span class="text-[9px] font-mono font-bold bg-amber-100 text-amber-950 px-1 rounded-xs"><?= $rpCount ?>x Main</span>
-                </span>
+            <span class="text-xs text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+          </summary>
+
+          <div class="p-4 border-t border-slate-100 bg-slate-50/50 space-y-3">
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Gunakan opsi ini hanya jika ingin memulai ronde serentak untuk semua lapangan sekaligus (misalnya di awal pembukaan sesi mabar).
+            </p>
+
+            <form id="generateRoundForm" class="pt-1">
+              <input type="hidden" name="session_id" value="<?= $sessionId ?>">
+              
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                <div class="md:col-span-4">
+                  <label for="courtCountSelect" class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1 font-mono">
+                    Pilih Jumlah Lapangan:
+                  </label>
+                  <select name="court_count" id="courtCountSelect" data-no-search class="w-full bg-white border border-slate-300 px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none min-h-[44px]">
+                    <?php for ($c = 1; $c <= $sessionCourts; $c++): 
+                      $reqP = $c * 4;
+                      $canPlay = ($presentCount >= $reqP);
+                    ?>
+                      <option value="<?= $c ?>" <?= ($c === min($sessionCourts, max(1, $maxPossibleCourts))) ? 'selected' : '' ?>>
+                        <?= $c ?> Lapangan <?= $canPlay ? "(Cukup - {$reqP} Pemain)" : "(Kurang Pemain - Butuh {$reqP})" ?>
+                      </option>
+                    <?php endfor; ?>
+                  </select>
+                </div>
+
+                <div class="md:col-span-4">
+                  <label for="algorithmSelect" class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1 font-mono">
+                    Strategi Pembagian Tim:
+                  </label>
+                  <select name="algorithm" id="algorithmSelect" data-no-search class="w-full bg-white border border-slate-300 px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none min-h-[44px]">
+                    <option value="balanced_level" selected>Fair Level (Kombinasi Seimbang)</option>
+                    <option value="tiered_level">Selevel (Pure Tier Mahir/Pemula)</option>
+                    <option value="fair_social">Kocok Campur Merata</option>
+                  </select>
+                </div>
+
+                <div class="md:col-span-4 flex items-center gap-2">
+                  <button type="submit" id="btnGenerate" class="flex-1 py-2.5 px-4 bg-[#0b1e36] hover:bg-[#071324] text-amber-400 font-black text-xs uppercase tracking-wider transition-all border border-amber-400/30 active:scale-95 whitespace-nowrap min-h-[44px] flex items-center justify-center gap-2 shadow-xs">
+                    <span>Acak Semua Lapangan</span>
+                  </button>
+                  <?php if (!empty($activeRoundMatches)): ?>
+                    <button type="button" onclick="confirmDeleteRound(<?= $sessionId ?>, <?= $latestRound ?>)" class="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 active:scale-95 min-h-[44px] shrink-0" title="Hapus dan reset ronde ini">
+                      Reset
+                    </button>
+                  <?php endif; ?>
+                </div>
+              </div>
+            </form>
+          </div>
+        </details>
+
+        <!-- 5. RIWAYAT PERTANDINGAN SELESAI (ACCORDION) -->
+        <?php if (!empty($completedMatches)): ?>
+          <details class="bg-white border border-slate-200 shadow-xs mb-5 group">
+            <summary class="p-3.5 cursor-pointer flex items-center justify-between text-xs font-black uppercase tracking-wider font-mono text-slate-800 hover:bg-slate-50 transition-colors select-none">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-bold">ARSIP</span>
+                <span>Riwayat Pertandingan Selesai (<?= count($completedMatches) ?> Match)</span>
+              </div>
+              <span class="text-xs text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+
+            <div class="p-4 border-t border-slate-100 space-y-2.5 divide-y divide-slate-100">
+              <?php foreach (array_reverse($completedMatches) as $cm): ?>
+                <div class="pt-2.5 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div class="text-xs">
+                    <span class="font-mono font-bold text-slate-500 mr-2">Lap. <?= $cm['court_number'] ?> • Game #<?= $cm['round_number'] ?></span>
+                    <span class="font-bold text-slate-900"><?= htmlspecialchars($cm['team_a_p1_name']) ?> & <?= htmlspecialchars($cm['team_a_p2_name']) ?></span>
+                    <span class="font-mono font-black text-blue-900 bg-blue-100 px-1.5 py-0.5 mx-1.5"><?= $cm['score_team_a'] ?> - <?= $cm['score_team_b'] ?></span>
+                    <span class="font-bold text-slate-900"><?= htmlspecialchars($cm['team_b_p1_name']) ?> & <?= htmlspecialchars($cm['team_b_p2_name']) ?></span>
+                  </div>
+                  <div class="flex items-center gap-2 self-end sm:self-center">
+                    <span class="text-[10px] font-mono text-slate-400"><?= !empty($cm['completed_at']) ? date('H:i', strtotime($cm['completed_at'])) . ' WIB' : 'Selesai' ?></span>
+                    <button type="button" onclick="confirmDeleteMatch(<?= $cm['id'] ?>, <?= $cm['court_number'] ?>)" class="text-rose-600 hover:text-rose-800 text-[11px] font-bold px-1.5 py-0.5 hover:bg-rose-50 transition-colors">Hapus</button>
+                  </div>
+                </div>
               <?php endforeach; ?>
             </div>
-          </div>
+          </details>
         <?php endif; ?>
 
       <!-- ======================================================== -->
@@ -2282,6 +2443,37 @@ $waitingListParticipants = array_filter($participants, function($p) {
         } else {
           hideAppLoader();
           showToast(data.error ? data.error.message : 'Gagal mereset ronde.', false);
+        }
+      } catch (err) {
+        hideAppLoader();
+        showToast('Koneksi terputus.', false);
+      }
+    }
+
+    // Generate Single Court (Rolling Dispatch per Lapangan)
+    async function generateSingleCourt(sessionId, courtNum, algorithm = 'balanced_level') {
+      const algoEl = document.getElementById('algorithmSelect');
+      if (algoEl) algorithm = algoEl.value;
+
+      showAppLoader(`Menyusun Lapangan ${courtNum}...`, 'Memilih 4 pemain dengan jumlah main paling sedikit dari antrean...');
+
+      try {
+        const fd = new FormData();
+        fd.append('session_id', sessionId);
+        fd.append('court_number', courtNum);
+        fd.append('algorithm', algorithm);
+
+        const res = await fetch(API_BASE + '?action=generate_single_court', {
+          method: 'POST',
+          body: fd
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message, true);
+          setTimeout(() => window.location.reload(), 400);
+        } else {
+          hideAppLoader();
+          showToast(data.error ? data.error.message : 'Gagal menyusun pemain lapangan.', false);
         }
       } catch (err) {
         hideAppLoader();
