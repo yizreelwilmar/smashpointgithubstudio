@@ -10,7 +10,7 @@ Rencana komprehensif untuk menyempurnakan alur kerja aplikasi operasional mabar 
 > **Keputusan Kunci Sesuai Permintaan Pengguna:**
 > 1. **Anti-Select-Search di HP**: Seluruh kontrol input pemilihan level, status sesi, dan aksi operasional diubah menjadi tombol tap fisik besar (*touch-friendly button groups* min. 44px) yang nyaman ditekan dengan jempol tanpa memicu popup keyboard atau pencarian dropdown yang rumit.
 > 2. **Impor List WhatsApp Murni ke Sesi Utama**: Teks list mabar yang ditempel (*paste*) akan langsung memasukkan seluruh nama bernomor ke **Pemain Sesi Utama** secara transparan tanpa pembatasan kuota otomatis. Hanya jika teks WA secara eksplisit memiliki sub-header "Waiting List:" barulah nama di bawahnya masuk waiting list.
-> 3. **Aksi Kehadiran & Edit**: Baris pemain di Sesi Utama menyediakan tombol **Hadir** dan **Ga Hadir** langsung dengan indikator warna tegas, serta tombol **Edit** untuk mengatur Nama, No. HP, Level (Beginner / Intermediate / Advance), dan status (Pemain Sesi Utama vs Waiting List).
+> 3. **Aksi Kehadiran & Edit**: Baris pemain di Sesi Utama menyediakan tombol **Hadir** dan **Tidak Hadir** langsung dengan indikator warna tegas, serta tombol **Edit** untuk mengatur Nama, No. HP, Level (Beginner / Intermediate / Advance), dan status (Pemain Sesi Utama vs Waiting List).
 > 4. **Pelacakan "Berapa Kali Main"**: Menghitung dan menampilkan secara real-time frekuensi bermain (*games played counter*, misal `2x Main`) di:
 >    - **Tab Pemain**: Di samping nama pemain pada daftar Sesi Utama dan Waiting List.
 >    - **Tab Rotasi / Lapangan**: Pada kartu pertandingan Tim A & Tim B setelah diacak, serta pada daftar pemain istirahat (*bench queue*).

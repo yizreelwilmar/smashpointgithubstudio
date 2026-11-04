@@ -181,8 +181,11 @@ class Participant {
             if ($playerId > 0) {
                 if ($currentSection === 'confirmed') {
                     $hasMainPlayers = true;
+                    // Pemain yang diimpor dari list WA otomatis hadir di Sesi Utama (is_present = 1)
+                    self::add($sessionId, $playerId, 'unpaid', $fee, 'confirmed');
+                } else {
+                    self::add($sessionId, $playerId, 'unpaid', $fee, 'waiting_list');
                 }
-                self::add($sessionId, $playerId, 'unpaid', $fee, $currentSection);
                 $importedNames[] = [
                     'name' => $nameCandidate,
                     'level' => $level,

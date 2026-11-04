@@ -122,10 +122,20 @@ class RotationEngine {
             $matches = self::optimizeBalancedLevelPairings($selectedPlayers, $effectiveCourts, $partnerHistory, $opponentHistory);
         }
 
-        // Annotate each match with balance rating info
+        // Annotate each match with balance rating info and played_count for transparency
         foreach ($matches as &$mat) {
-            $rA = self::levelWeight($mat['team_a'][0]['level']) + self::levelWeight($mat['team_a'][1]['level']);
-            $rB = self::levelWeight($mat['team_b'][0]['level']) + self::levelWeight($mat['team_b'][1]['level']);
+            $pA1 = &$mat['team_a'][0];
+            $pA2 = &$mat['team_a'][1];
+            $pB1 = &$mat['team_b'][0];
+            $pB2 = &$mat['team_b'][1];
+
+            $pA1['played_count'] = $workload[$pA1['id']]['played'] ?? 0;
+            $pA2['played_count'] = $workload[$pA2['id']]['played'] ?? 0;
+            $pB1['played_count'] = $workload[$pB1['id']]['played'] ?? 0;
+            $pB2['played_count'] = $workload[$pB2['id']]['played'] ?? 0;
+
+            $rA = self::levelWeight($pA1['level']) + self::levelWeight($pA2['level']);
+            $rB = self::levelWeight($pB1['level']) + self::levelWeight($pB2['level']);
             $diff = abs($rA - $rB);
 
             $mat['rating_a'] = $rA;
@@ -142,6 +152,10 @@ class RotationEngine {
                 $mat['balance_label'] = 'Selisih +' . $diff . ' (Perlu Intervensi)';
                 $mat['balance_class'] = 'bg-amber-50 text-amber-800 border-amber-200';
             }
+        }
+
+        foreach ($restingPlayers as &$rp) {
+            $rp['played_count'] = $workload[$rp['id']]['played'] ?? 0;
         }
 
         return [
@@ -171,7 +185,7 @@ class RotationEngine {
         $bestCourts = [];
         $shuffled = $players;
 
-        $iterations = 80;
+        $iterations = 200;
         for ($i = 0; $i < $iterations; $i++) {
             shuffle($shuffled);
             $penalty = 0;

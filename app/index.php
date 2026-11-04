@@ -387,10 +387,24 @@ if ($currentSession) {
             }
         }
     }
+
+    // Hitung berapa kali main setiap pemain pada sesi aktif ini
+    $sessionMatchCounts = [];
+    if (!empty($matches)) {
+        foreach ($matches as $m) {
+            foreach ([$m['team_a_p1'], $m['team_a_p2'], $m['team_b_p1'], $m['team_b_p2']] as $pid) {
+                $pid = (int)$pid;
+                if ($pid > 0) {
+                    $sessionMatchCounts[$pid] = ($sessionMatchCounts[$pid] ?? 0) + 1;
+                }
+            }
+        }
+    }
 } else {
     $sessionPhotos = [];
     $sessionFinSummary = ['total_iuran_collected' => 0, 'total_iuran_pending' => 0, 'count_paid' => 0, 'count_unpaid' => 0, 'total_extra_income' => 0, 'total_income' => 0, 'total_expense' => 0, 'net_cashflow' => 0];
     $sessionFinRecords = [];
+    $sessionMatchCounts = [];
 }
 
 // Session Leaderboard for Klasemen tab
@@ -572,7 +586,7 @@ $waitingListParticipants = array_filter($participants, function($p) {
           <div class="p-3 bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div class="flex items-center gap-2 flex-wrap">
               <span class="px-2.5 py-1 bg-[#0b1e36] text-amber-400 font-mono font-black text-xs border border-amber-400/30 flex items-center gap-1.5">
-                <span>🏸 <?= $sessionCourts ?> Lapangan Disewa</span>
+                <span><?= $sessionCourts ?> Lapangan Disewa</span>
               </span>
               <span class="text-xs font-bold text-slate-800">
                 <?= $presentCount ?> Pemain Hadir (Maks <?= $maxPossibleCourts ?> Lapangan Aktif)
@@ -581,7 +595,7 @@ $waitingListParticipants = array_filter($participants, function($p) {
             
             <?php if ($presentCount < $neededPlayers): ?>
               <div class="text-[11px] font-mono text-amber-800 bg-amber-50 px-2.5 py-1 border border-amber-300">
-                ℹ️ <strong>1 Lapangan Ganda = 4 Pemain</strong>. Saat ini <?= $presentCount ?> hadir (1 lapangan main, <?= $presentCount - 4 ?> istirahat). Butuh min. <strong><?= $neededPlayers ?> pemain hadir</strong> di tab <em>Pemain</em> untuk membuka <strong><?= $sessionCourts ?> lapangan sekaligus</strong>!
+                <strong>1 Lapangan Ganda = 4 Pemain</strong>. Saat ini <?= $presentCount ?> hadir (1 lapangan main, <?= $presentCount - 4 ?> istirahat). Butuh min. <strong><?= $neededPlayers ?> pemain hadir</strong> di tab <em>Pemain</em> untuk membuka <strong><?= $sessionCourts ?> lapangan sekaligus</strong>!
               </div>
             <?php else: ?>
               <div class="text-[11px] font-mono text-emerald-800 bg-emerald-50 px-2.5 py-1 border border-emerald-300 font-bold">
@@ -741,19 +755,25 @@ $waitingListParticipants = array_filter($participants, function($p) {
                         </div>
 
                         <!-- Player 1 -->
+                        <?php 
+                          $pA1Played = $sessionMatchCounts[(int)$match['team_a_p1']] ?? 0;
+                          $pA2Played = $sessionMatchCounts[(int)$match['team_a_p2']] ?? 0;
+                        ?>
                         <div class="flex items-center justify-between gap-1.5 py-1.5 border-b border-slate-200/60">
-                          <div class="min-w-0">
+                          <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
                             <span class="font-extrabold text-xs text-slate-900 truncate block"><?= htmlspecialchars($match['team_a_p1_name']) ?></span>
                             <span class="text-[9px] font-bold font-mono uppercase text-blue-700 bg-blue-100/50 px-1 rounded-xs">[<?= htmlspecialchars($match['team_a_p1_level']) ?>]</span>
+                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2 rounded-xs" title="Jumlah main sesi ini"><?= $pA1Played ?>x Main</span>
                           </div>
                           <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_a_p1', '<?= htmlspecialchars(addslashes($match['team_a_p1_name'])) ?>', <?= (int)$match['team_a_p1'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 rounded-xs shadow-2xs" title="Tukar Pemain">Tukar</button>
                         </div>
 
                         <!-- Player 2 -->
                         <div class="flex items-center justify-between gap-1.5 py-1.5">
-                          <div class="min-w-0">
+                          <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
                             <span class="font-extrabold text-xs text-slate-900 truncate block"><?= htmlspecialchars($match['team_a_p2_name']) ?></span>
                             <span class="text-[9px] font-bold font-mono uppercase text-blue-700 bg-blue-100/50 px-1 rounded-xs">[<?= htmlspecialchars($match['team_a_p2_level']) ?>]</span>
+                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2 rounded-xs" title="Jumlah main sesi ini"><?= $pA2Played ?>x Main</span>
                           </div>
                           <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_a_p2', '<?= htmlspecialchars(addslashes($match['team_a_p2_name'])) ?>', <?= (int)$match['team_a_p2'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 rounded-xs shadow-2xs" title="Tukar Pemain">Tukar</button>
                         </div>
@@ -787,19 +807,25 @@ $waitingListParticipants = array_filter($participants, function($p) {
                         </div>
 
                         <!-- Player 1 -->
+                        <?php 
+                          $pB1Played = $sessionMatchCounts[(int)$match['team_b_p1']] ?? 0;
+                          $pB2Played = $sessionMatchCounts[(int)$match['team_b_p2']] ?? 0;
+                        ?>
                         <div class="flex items-center justify-between gap-1.5 py-1.5 border-b border-slate-200/60">
-                          <div class="min-w-0">
+                          <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
                             <span class="font-extrabold text-xs text-slate-900 truncate block"><?= htmlspecialchars($match['team_b_p1_name']) ?></span>
                             <span class="text-[9px] font-bold font-mono uppercase text-rose-700 bg-rose-100/50 px-1 rounded-xs">[<?= htmlspecialchars($match['team_b_p1_level']) ?>]</span>
+                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2 rounded-xs" title="Jumlah main sesi ini"><?= $pB1Played ?>x Main</span>
                           </div>
                           <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_b_p1', '<?= htmlspecialchars(addslashes($match['team_b_p1_name'])) ?>', <?= (int)$match['team_b_p1'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 rounded-xs shadow-2xs" title="Tukar Pemain">Tukar</button>
                         </div>
 
                         <!-- Player 2 -->
                         <div class="flex items-center justify-between gap-1.5 py-1.5">
-                          <div class="min-w-0">
+                          <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
                             <span class="font-extrabold text-xs text-slate-900 truncate block"><?= htmlspecialchars($match['team_b_p2_name']) ?></span>
                             <span class="text-[9px] font-bold font-mono uppercase text-rose-700 bg-rose-100/50 px-1 rounded-xs">[<?= htmlspecialchars($match['team_b_p2_level']) ?>]</span>
+                            <span class="text-[9px] font-mono font-bold bg-[#0b1e36] text-amber-300 border border-amber-400/40 px-1.5 py-0.2 rounded-xs" title="Jumlah main sesi ini"><?= $pB2Played ?>x Main</span>
                           </div>
                           <button type="button" onclick="openSwapModal(<?= $match['id'] ?>, 'team_b_p2', '<?= htmlspecialchars(addslashes($match['team_b_p2_name'])) ?>', <?= (int)$match['team_b_p2'] ?>)" class="text-[11px] text-slate-700 hover:text-slate-950 font-bold px-2.5 py-1 border border-slate-300 bg-white hover:bg-slate-100 active:scale-95 shrink-0 rounded-xs shadow-2xs" title="Tukar Pemain">Tukar</button>
                         </div>
@@ -845,9 +871,13 @@ $waitingListParticipants = array_filter($participants, function($p) {
               <span class="text-[10px] text-amber-800 font-semibold font-mono">Prioritas main di ronde berikutnya</span>
             </div>
             <div class="flex flex-wrap gap-1.5">
-              <?php foreach ($restingPlayerIds as $rp): ?>
-                <span class="px-2 py-1 bg-white border border-amber-300 text-slate-800 text-xs font-bold">
-                  <?= htmlspecialchars($rp['name']) ?> <span class="text-[9px] font-mono text-slate-500 font-normal">[<?= htmlspecialchars($rp['level']) ?>]</span>
+              <?php foreach ($restingPlayerIds as $rp): 
+                $rpCount = $sessionMatchCounts[(int)$rp['player_id']] ?? 0;
+              ?>
+                <span class="px-2 py-1 bg-white border border-amber-300 text-slate-800 text-xs font-bold inline-flex items-center gap-1">
+                  <span><?= htmlspecialchars($rp['name']) ?></span>
+                  <span class="text-[9px] font-mono text-slate-500 font-normal">[<?= htmlspecialchars($rp['level']) ?>]</span>
+                  <span class="text-[9px] font-mono font-bold bg-amber-100 text-amber-950 px-1 rounded-xs"><?= $rpCount ?>x Main</span>
                 </span>
               <?php endforeach; ?>
             </div>
@@ -915,6 +945,7 @@ $waitingListParticipants = array_filter($participants, function($p) {
                 $lvl = $p['level'] ?: 'Intermediate';
                 $lvlBadge = ($lvl === 'Advance') ? 'bg-amber-100 text-amber-900 border-amber-300' : (($lvl === 'Beginner') ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-blue-100 text-blue-900 border-blue-300');
                 $pid = (int)$p['player_id'];
+                $playCount = $sessionMatchCounts[$pid] ?? 0;
               ?>
                 <div class="participant-row bg-white border border-slate-200 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-xs" data-name="<?= strtolower(htmlspecialchars($p['name'])) ?>">
                   
@@ -927,6 +958,7 @@ $waitingListParticipants = array_filter($participants, function($p) {
                         <div class="font-extrabold text-sm text-slate-900 break-words leading-snug"><?= htmlspecialchars($p['name']) ?></div>
                         <div class="text-[11px] text-slate-500 flex items-center flex-wrap gap-1.5 mt-1">
                           <span class="px-1.5 py-0.5 rounded border text-[9px] font-mono font-bold <?= $lvlBadge ?>"><?= htmlspecialchars($lvl) ?></span>
+                          <span class="px-2 py-0.5 rounded border text-[9px] font-mono font-bold <?= $playCount > 0 ? 'bg-[#0b1e36] text-amber-300 border-amber-400/30' : 'bg-slate-100 text-slate-600 border-slate-200' ?>"><?= $playCount ?>x Main</span>
                           <?php if (!empty($p['phone'])): ?>
                             <span class="font-mono text-[10px] text-slate-500"><?= htmlspecialchars($p['phone']) ?></span>
                           <?php endif; ?>
@@ -938,15 +970,10 @@ $waitingListParticipants = array_filter($participants, function($p) {
                     </span>
                   </div>
 
-                  <div class="grid grid-cols-4 sm:flex items-center gap-1.5 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-slate-100 shrink-0">
-                    <!-- Hadir Button -->
-                    <button type="button" id="btn_hadir_<?= $pid ?>" onclick="setAttendance(<?= $sessionId ?>, <?= $pid ?>, 1)" class="min-h-[40px] px-2.5 rounded-lg text-[11px] sm:text-xs font-black uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center <?= $isPresent ? 'bg-[#0b1e36] text-amber-400 border border-amber-400/40 shadow-xs' : 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200' ?>">
-                      Hadir
-                    </button>
-
-                    <!-- Tidak Hadir Button -->
-                    <button type="button" id="btn_absen_<?= $pid ?>" onclick="setAttendance(<?= $sessionId ?>, <?= $pid ?>, 0)" class="min-h-[40px] px-2 rounded-lg text-[11px] sm:text-xs font-bold active:scale-95 transition-all flex items-center justify-center whitespace-nowrap <?= !$isPresent ? 'bg-rose-600 text-white border border-rose-700 shadow-xs' : 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200' ?>">
-                      Tidak Hadir
+                  <div class="grid grid-cols-3 sm:flex items-center gap-1.5 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-slate-100 shrink-0">
+                    <!-- Single Unified Attendance Toggle Button -->
+                    <button type="button" id="btn_att_<?= $pid ?>" onclick="promptToggleAttendance(<?= $sessionId ?>, <?= $pid ?>, '<?= htmlspecialchars(addslashes($p['name'])) ?>', <?= $isPresent ? 1 : 0 ?>)" class="min-h-[40px] px-3 rounded-lg text-[11px] sm:text-xs font-black uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center <?= $isPresent ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300' ?>" title="Ubah status kehadiran">
+                      <?= $isPresent ? 'Hadir' : 'Tidak Hadir' ?>
                     </button>
 
                     <!-- Edit Player Button (Level & Waiting List) -->
@@ -982,6 +1009,7 @@ $waitingListParticipants = array_filter($participants, function($p) {
               $lvl = $wp['level'] ?: 'Intermediate';
               $lvlBadge = ($lvl === 'Advance') ? 'bg-amber-100 text-amber-900 border-amber-300' : (($lvl === 'Beginner') ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-blue-100 text-blue-900 border-blue-300');
               $pid = (int)$wp['player_id'];
+              $playCount = $sessionMatchCounts[$pid] ?? 0;
             ?>
               <div class="participant-row bg-amber-50/40 border border-amber-200 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-xs" data-name="<?= strtolower(htmlspecialchars($wp['name'])) ?>">
                 
@@ -995,6 +1023,7 @@ $waitingListParticipants = array_filter($participants, function($p) {
                       <div class="text-[11px] text-slate-500 flex items-center flex-wrap gap-1.5 mt-1">
                         <span class="px-1.5 py-0.5 rounded border text-[9px] font-mono font-bold <?= $lvlBadge ?>"><?= htmlspecialchars($lvl) ?></span>
                         <span class="text-[9px] font-mono font-bold text-amber-900 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">WAITING LIST</span>
+                        <span class="px-2 py-0.5 rounded border text-[9px] font-mono font-bold <?= $playCount > 0 ? 'bg-[#0b1e36] text-amber-300 border-amber-400/30' : 'bg-slate-100 text-slate-600 border-slate-200' ?>"><?= $playCount ?>x Main</span>
                         <?php if (!empty($wp['phone'])): ?>
                           <span class="font-mono text-[10px] text-slate-500"><?= htmlspecialchars($wp['phone']) ?></span>
                         <?php endif; ?>
@@ -1006,15 +1035,10 @@ $waitingListParticipants = array_filter($participants, function($p) {
                   </span>
                 </div>
 
-                <div class="grid grid-cols-4 sm:flex items-center gap-1.5 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-amber-200/60 shrink-0">
-                  <!-- Hadir Button -->
-                  <button type="button" id="btn_hadir_<?= $pid ?>" onclick="setAttendance(<?= $sessionId ?>, <?= $pid ?>, 1)" class="min-h-[40px] px-2.5 rounded-lg text-[11px] sm:text-xs font-black uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center <?= $isPresent ? 'bg-[#0b1e36] text-amber-400 border border-amber-400/40 shadow-xs' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-100' ?>">
-                    Hadir
-                  </button>
-
-                  <!-- Tidak Hadir Button -->
-                  <button type="button" id="btn_absen_<?= $pid ?>" onclick="setAttendance(<?= $sessionId ?>, <?= $pid ?>, 0)" class="min-h-[40px] px-2 rounded-lg text-[11px] sm:text-xs font-bold active:scale-95 transition-all flex items-center justify-center whitespace-nowrap <?= !$isPresent ? 'bg-rose-600 text-white border border-rose-700 shadow-xs' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-100' ?>">
-                    Tidak Hadir
+                <div class="grid grid-cols-3 sm:flex items-center gap-1.5 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-amber-200/60 shrink-0">
+                  <!-- Single Unified Attendance Toggle Button -->
+                  <button type="button" id="btn_att_<?= $pid ?>" onclick="promptToggleAttendance(<?= $sessionId ?>, <?= $pid ?>, '<?= htmlspecialchars(addslashes($wp['name'])) ?>', <?= $isPresent ? 1 : 0 ?>)" class="min-h-[40px] px-3 rounded-lg text-[11px] sm:text-xs font-black uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center <?= $isPresent ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 shadow-xs' : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-300' ?>" title="Ubah status kehadiran">
+                    <?= $isPresent ? 'Hadir' : 'Tidak Hadir' ?>
                   </button>
 
                   <!-- Edit Player Button -->
@@ -1408,7 +1432,7 @@ $waitingListParticipants = array_filter($participants, function($p) {
               </div>
               <input type="file" name="photo_files[]" multiple accept="image/*" class="w-full bg-slate-50 border border-slate-300 px-3 py-2 text-xs text-slate-700 file:mr-3 file:py-1 file:px-2.5 file:border-0 file:text-xs file:font-bold file:bg-[#0b1e36] file:text-white cursor-pointer rounded-xs">
               <span class="text-[10px] text-slate-500 mt-1 block font-sans">
-                💡 <em>Tip di HP:</em> Anda bisa tap beberapa foto atau tahan foto untuk memilih lebih dari 1 file sekaligus. Format: JPG/PNG/WEBP (Maks 10MB per foto).
+                <em>Tip di HP:</em> Anda bisa tap beberapa foto atau tahan foto untuk memilih lebih dari 1 file sekaligus. Format: JPG/PNG/WEBP (Maks 10MB per foto).
               </span>
             </div>
 
@@ -1905,6 +1929,59 @@ $waitingListParticipants = array_filter($participants, function($p) {
     </div>
   </div>
 
+  <!-- ======================================================== -->
+  <!-- MODAL: KONFIRMASI UBAH KEHADIRAN (DENGAN PROGRESS BAR UX) -->
+  <!-- ======================================================== -->
+  <div id="attendanceConfirmModal" class="hidden fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs transition-opacity duration-200" onclick="if(event.target===this) cancelAttendancePrompt(false)">
+    <div class="bg-white border border-slate-300 max-w-sm w-full p-5 shadow-2xl space-y-4 rounded-xl" onclick="event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between pb-2.5 border-b border-slate-100">
+        <div>
+          <span class="text-[10px] font-mono uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">
+            Konfirmasi Perubahan
+          </span>
+          <h3 class="text-sm font-black text-slate-900 mt-1">Ubah Status Kehadiran</h3>
+        </div>
+        <button type="button" onclick="cancelAttendancePrompt(false)" class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 text-sm font-bold">&times;</button>
+      </div>
+
+      <!-- Player & Status Change Info -->
+      <div class="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-2">
+        <div class="text-[11px] text-slate-500 font-medium">Pemain:</div>
+        <div id="attPromptPlayerName" class="text-sm font-extrabold text-slate-900 break-words leading-snug"></div>
+
+        <div class="flex items-center gap-2 pt-2 border-t border-slate-200">
+          <span id="attPromptFromBadge" class="px-2.5 py-1 rounded text-xs font-mono font-bold"></span>
+          <span class="text-xs text-slate-400 font-bold">➔</span>
+          <span id="attPromptToBadge" class="px-2.5 py-1 rounded text-xs font-mono font-bold"></span>
+        </div>
+      </div>
+
+      <!-- UX Progress Bar Indicator -->
+      <div class="space-y-1.5 pt-0.5">
+        <div class="flex items-center justify-between text-[11px] font-mono text-slate-500">
+          <span id="attPromptProgressLabel">Batal otomatis dalam</span>
+          <span id="attPromptCountdown" class="font-bold text-slate-800">4.0s</span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
+          <div id="attPromptProgressBar" class="h-full bg-amber-400 rounded-full transition-all ease-linear" style="width: 100%;"></div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button type="button" onclick="cancelAttendancePrompt(false)" class="min-h-[44px] py-2.5 px-3 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-lg border border-slate-300 transition-all flex items-center justify-center">
+          Batal
+        </button>
+        <button type="button" id="attPromptConfirmBtn" onclick="executeAttendanceChange()" class="min-h-[44px] py-2.5 px-3 bg-[#0b1e36] hover:bg-[#071324] active:scale-95 text-amber-400 font-black text-xs uppercase tracking-wider rounded-lg border border-amber-400/40 shadow-xs transition-all flex items-center justify-center">
+          Ya, Ubah
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ========================================== -->
   <!-- CUSTOM ATHLETIC DIALOG MODAL (CONFIRM/ALERT) -->
   <!-- ========================================== -->
@@ -1937,9 +2014,9 @@ $waitingListParticipants = array_filter($participants, function($p) {
         <div class="absolute inset-0 rounded-full border-4 border-amber-400/30 animate-ping"></div>
         <!-- Spinning Ring -->
         <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-[#0b1e36] border-r-amber-400 animate-spin"></div>
-        <!-- Center Icon -->
-        <div class="w-10 h-10 bg-[#0b1e36] rounded-full flex items-center justify-center shadow-inner select-none text-xl">
-          🏸
+        <!-- Center Core -->
+        <div class="w-8 h-8 bg-[#0b1e36] rounded-full flex items-center justify-center shadow-inner">
+          <div class="w-3 h-3 bg-amber-400 rounded-full animate-pulse"></div>
         </div>
       </div>
 
@@ -2486,43 +2563,153 @@ $waitingListParticipants = array_filter($participants, function($p) {
       });
     }
 
-    // Explicit Attendance Setter (Hadir = 1, Tidak Hadir = 0)
-    async function setAttendance(sessionId, playerId, isPresent) {
-      const btnHadir = document.getElementById('btn_hadir_' + playerId);
-      const btnAbsen = document.getElementById('btn_absen_' + playerId);
-      const badge = document.getElementById('att_badge_' + playerId);
-      if (btnHadir) btnHadir.disabled = true;
-      if (btnAbsen) btnAbsen.disabled = true;
+    // Single Button Attendance Toggle with Animated Progress Alert UX
+    let pendingAttendance = null;
+    let attendanceProgressInterval = null;
+
+    function promptToggleAttendance(sessionId, playerId, playerName, currentIsPresent) {
+      cancelAttendancePrompt(false);
+
+      const curVal = parseInt(currentIsPresent, 10);
+      const targetIsPresent = (curVal === 1) ? 0 : 1;
+      pendingAttendance = {
+        sessionId: sessionId,
+        playerId: playerId,
+        playerName: playerName,
+        targetIsPresent: targetIsPresent,
+        currentIsPresent: curVal
+      };
+
+      const modal = document.getElementById('attendanceConfirmModal');
+      const nameEl = document.getElementById('attPromptPlayerName');
+      const fromBadge = document.getElementById('attPromptFromBadge');
+      const toBadge = document.getElementById('attPromptToBadge');
+      const confirmBtn = document.getElementById('attPromptConfirmBtn');
+      const progressLabel = document.getElementById('attPromptProgressLabel');
+      const countdownEl = document.getElementById('attPromptCountdown');
+      const progressBar = document.getElementById('attPromptProgressBar');
+
+      if (!modal) return;
+
+      nameEl.innerText = playerName;
+
+      if (curVal === 1) {
+        fromBadge.innerText = 'Hadir';
+        fromBadge.className = 'px-2.5 py-1 rounded text-xs font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300';
+        toBadge.innerText = 'Tidak Hadir';
+        toBadge.className = 'px-2.5 py-1 rounded text-xs font-mono font-bold bg-slate-100 text-slate-700 border border-slate-300';
+        confirmBtn.innerText = 'Ya, Ubah ke Tidak Hadir';
+        confirmBtn.className = 'min-h-[44px] py-2.5 px-3 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-lg border border-slate-700 shadow-xs transition-all flex items-center justify-center';
+      } else {
+        fromBadge.innerText = 'Tidak Hadir';
+        fromBadge.className = 'px-2.5 py-1 rounded text-xs font-mono font-bold bg-slate-100 text-slate-700 border border-slate-300';
+        toBadge.innerText = 'Hadir';
+        toBadge.className = 'px-2.5 py-1 rounded text-xs font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300';
+        confirmBtn.innerText = 'Ya, Ubah ke Hadir';
+        confirmBtn.className = 'min-h-[44px] py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-lg border border-emerald-700 shadow-xs transition-all flex items-center justify-center';
+      }
+
+      confirmBtn.disabled = false;
+      progressLabel.innerText = 'Batal otomatis dalam';
+      countdownEl.innerText = '4.0s';
+      progressBar.style.width = '100%';
+      progressBar.className = 'h-full bg-amber-400 rounded-full transition-all ease-linear';
+
+      modal.classList.remove('hidden');
+
+      // 4-second safety countdown progress bar
+      const totalDuration = 4000;
+      const intervalMs = 50;
+      let remainingMs = totalDuration;
+
+      attendanceProgressInterval = setInterval(() => {
+        remainingMs -= intervalMs;
+        if (remainingMs <= 0) {
+          clearInterval(attendanceProgressInterval);
+          attendanceProgressInterval = null;
+          cancelAttendancePrompt(true);
+        } else {
+          const pct = Math.max(0, (remainingMs / totalDuration) * 100);
+          progressBar.style.width = pct + '%';
+          countdownEl.innerText = (remainingMs / 1000).toFixed(1) + 's';
+        }
+      }, intervalMs);
+    }
+
+    function cancelAttendancePrompt(showToastMsg = false) {
+      if (attendanceProgressInterval) {
+        clearInterval(attendanceProgressInterval);
+        attendanceProgressInterval = null;
+      }
+      const modal = document.getElementById('attendanceConfirmModal');
+      if (modal) modal.classList.add('hidden');
+      if (showToastMsg && pendingAttendance) {
+        showToast('Waktu habis, perubahan kehadiran dibatalkan.', false);
+      }
+      pendingAttendance = null;
+    }
+
+    async function executeAttendanceChange() {
+      if (!pendingAttendance) return;
+      if (attendanceProgressInterval) {
+        clearInterval(attendanceProgressInterval);
+        attendanceProgressInterval = null;
+      }
+
+      const { sessionId, playerId, playerName, targetIsPresent } = pendingAttendance;
+      const confirmBtn = document.getElementById('attPromptConfirmBtn');
+      const progressLabel = document.getElementById('attPromptProgressLabel');
+      const countdownEl = document.getElementById('attPromptCountdown');
+      const progressBar = document.getElementById('attPromptProgressBar');
+
+      if (confirmBtn) confirmBtn.disabled = true;
+      if (progressLabel) progressLabel.innerText = 'Menerapkan perubahan status...';
+      if (countdownEl) countdownEl.innerText = '100%';
+      if (progressBar) {
+        progressBar.style.width = '100%';
+        progressBar.className = 'h-full bg-emerald-500 rounded-full animate-pulse';
+      }
 
       try {
         const fd = new FormData();
         fd.append('session_id', sessionId);
         fd.append('player_id', playerId);
-        fd.append('is_present', isPresent);
+        fd.append('is_present', targetIsPresent);
 
         const res = await fetch(API_BASE + '?action=toggle_attendance', {
           method: 'POST',
           body: fd
         });
         const data = await res.json();
+
+        cancelAttendancePrompt(false);
+
         if (data.success) {
-          showToast(isPresent === 1 ? 'Pemain ditandai Hadir' : 'Pemain ditandai Tidak Hadir', true);
-          if (btnHadir) {
-            btnHadir.className = 'min-h-[40px] px-2.5 rounded-lg text-[11px] sm:text-xs font-black uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center ' + (isPresent === 1
-              ? 'bg-[#0b1e36] text-amber-400 border border-amber-400/40 shadow-xs'
-              : 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200');
+          const isHadir = (targetIsPresent === 1);
+          showToast(`Status ${playerName} diubah menjadi ${isHadir ? 'Hadir' : 'Tidak Hadir'}`, true);
+
+          // Update the single button
+          const btn = document.getElementById('btn_att_' + playerId);
+          if (btn) {
+            btn.innerText = isHadir ? 'Hadir' : 'Tidak Hadir';
+            btn.className = 'min-h-[40px] px-3 rounded-lg text-[11px] sm:text-xs font-black uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center ' +
+              (isHadir 
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 shadow-xs' 
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300');
+            btn.onclick = () => promptToggleAttendance(sessionId, playerId, playerName, targetIsPresent);
           }
-          if (btnAbsen) {
-            btnAbsen.className = 'min-h-[40px] px-2 rounded-lg text-[11px] sm:text-xs font-bold active:scale-95 transition-all flex items-center justify-center whitespace-nowrap ' + (isPresent === 0
-              ? 'bg-rose-600 text-white border border-rose-700 shadow-xs'
-              : 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200');
-          }
+
+          // Update row badge
+          const badge = document.getElementById('att_badge_' + playerId);
           if (badge) {
-            badge.innerText = isPresent === 1 ? 'Hadir' : 'Tidak Hadir';
-            badge.className = 'shrink-0 px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ' + (isPresent === 1
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-              : 'bg-rose-50 text-rose-700 border border-rose-200');
+            badge.innerText = isHadir ? 'Hadir' : 'Tidak Hadir';
+            badge.className = 'shrink-0 px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ' +
+              (isHadir 
+                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
+                : 'bg-rose-50 text-rose-700 border border-rose-200');
           }
+
+          // Update header KPI count
           if (data.summary && document.getElementById('kpiPresentCount')) {
             document.getElementById('kpiPresentCount').innerText = data.summary.total_present;
           }
@@ -2530,11 +2717,14 @@ $waitingListParticipants = array_filter($participants, function($p) {
           showToast(data.error ? data.error.message : 'Gagal update kehadiran.', false);
         }
       } catch (err) {
-        showToast('Gagal update kehadiran.', false);
-      } finally {
-        if (btnHadir) btnHadir.disabled = false;
-        if (btnAbsen) btnAbsen.disabled = false;
+        cancelAttendancePrompt(false);
+        showToast('Koneksi terputus.', false);
       }
+    }
+
+    // Fallback direct setter if ever invoked
+    async function setAttendance(sessionId, playerId, isPresent) {
+      promptToggleAttendance(sessionId, playerId, 'Pemain', isPresent === 1 ? 0 : 1);
     }
 
     // Toggle Payment AJAX
@@ -2544,7 +2734,7 @@ $waitingListParticipants = array_filter($participants, function($p) {
       if (!btn || btn.disabled) return;
       btn.disabled = true;
       const origText = btn.innerText;
-      btn.innerHTML = '<span class="inline-block animate-spin mr-1">⌛</span>';
+      btn.innerHTML = '...';
 
       try {
         const fd = new FormData();
