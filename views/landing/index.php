@@ -472,51 +472,81 @@ $igUrl = (strpos($igRaw, 'http') === 0) ? $igRaw : 'https://instagram.com/' . lt
     </div>
   </header>
 
-  <!-- Hero Section (Editorial Sports Club Style: Crisp, Structured, Zero AI Slop) -->
-  <section class="relative bg-white border-b border-slate-200 pt-10 pb-16 overflow-hidden">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+  <!-- Hero Section: Immersive Cinematic Video Background Teaser (Anti-AI Slop, Zero Clutter) -->
+  <section class="relative min-h-[580px] sm:min-h-[640px] lg:min-h-[700px] flex items-center justify-center border-b border-slate-900 bg-slate-950 text-white overflow-hidden">
+    
+    <!-- Video Background Loop (Full Width & Height Ambient Teaser) -->
+    <div class="absolute inset-0 w-full h-full overflow-hidden select-none pointer-events-none">
+      <video id="bgTeaserVideo" 
+             class="w-full h-full object-cover object-center transition-opacity duration-1000 opacity-75"
+             autoplay muted loop playsinline preload="auto"
+             poster="<?= $baseDir ?>/public/assets/videos/badmin1_poster.jpg">
+        <source src="<?= $baseDir ?>/public/assets/videos/badmin1.mp4" type="video/mp4">
+        <source src="<?= $baseDir ?>/assets/videos/badmin1.mp4" type="video/mp4">
+      </video>
+    </div>
+
+    <!-- Cinematic Overlays: Dual Gradient & Vignette for Crystal Clear Text Contrast -->
+    <div class="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-slate-950/50 pointer-events-none"></div>
+    <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/60 pointer-events-none"></div>
+
+    <!-- Sound Control Floating Pill (Top-Right of Hero) -->
+    <div class="absolute top-4 right-4 sm:top-6 sm:right-8 z-30">
+      <button type="button" id="bgSoundToggle" onclick="toggleTeaserSound()" aria-label="Toggle Audio" class="px-3.5 py-1.5 bg-black/60 hover:bg-black/85 text-white text-xs font-mono font-bold border border-white/20 backdrop-blur-md transition-all active:scale-95 flex items-center gap-2">
+        <span id="bgSoundIcon">🔇</span>
+        <span id="bgSoundLabel" class="text-[11px] uppercase tracking-wider">Audio Muted</span>
+      </button>
+    </div>
+
+    <!-- Hero Content Overlay (Editorial, High-Contrast, Direct Impact) -->
+    <div class="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 w-full">
+      <div class="max-w-3xl space-y-6">
         
-        <!-- Left Hero Content -->
-        <div class="lg:col-span-7 space-y-5">
-          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-950 tracking-tight leading-[1.12]">
-            <?= htmlspecialchars(!empty($settings['hero_title']) ? $settings['hero_title'] : 'Main Badminton Bareng Tanpa Repot Cari Lawan & Lapangan.') ?>
-          </h1>
-
-          <p class="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl font-normal">
-            <?= nl2br(htmlspecialchars(!empty($settings['hero_subtitle']) ? $settings['hero_subtitle'] : 'Selamat datang di Powershoot Badminton Club. Kami menyelenggarakan sesi main bareng ganda 4 kali setiap pekan di berbagai GOR terbaik Jakarta Selatan. Cukup daftar ke PIC WhatsApp, datang ke arena, dan nikmati pertandingan dengan pembagian giliran main yang teratur.')) ?>
-          </p>
-
-          <!-- Action Buttons (Sharp Architectural, Anti-AI Slop) -->
-          <div class="pt-2 flex flex-wrap items-center gap-3">
-            <a href="#jadwal" class="px-6 py-3.5 bg-[#0b1e36] hover:bg-[#071324] text-amber-400 hover:text-amber-300 font-extrabold text-xs uppercase tracking-wider transition-all btn-tactile border border-amber-400/30">
-              <?= htmlspecialchars(!empty($settings['hero_cta_text']) ? $settings['hero_cta_text'] : 'Pilih Jadwal & Daftar via WhatsApp PIC →') ?>
-            </a>
-            <a href="#cara-ikut" class="px-5 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-all border border-slate-300">
-              Cara Kerja Mabar
-            </a>
-          </div>
-
+        <!-- Live Community Status Badge -->
+        <div class="inline-flex items-center gap-2 px-3 py-1 bg-amber-400 text-slate-950 text-xs font-black font-mono uppercase tracking-wider border border-amber-300 shadow-md">
+          <span class="w-2 h-2 rounded-full bg-slate-950 animate-pulse"></span>
+          <span>KOMUNITAS MABAR BADMINTON RESMI • <?= strtoupper(htmlspecialchars($baseCityName)) ?></span>
         </div>
 
-        <!-- Right Hero Visual (Sharp Architectural Frame - Anti-AI Slop, No Rounded Pill/Corners) -->
-        <div class="lg:col-span-5 relative">
-          <div class="border-2 border-[#0b1e36] bg-[#0b1e36] p-1.5 shadow-sm relative">
-            <?php 
-              $heroImg = !empty($settings['hero_image_url']) 
-                ? $settings['hero_image_url'] 
-                : 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=800&q=80';
-            ?>
-            <img src="<?= htmlspecialchars($heroImg) ?>" alt="<?= htmlspecialchars($settings['community_name']) ?>" class="w-full h-80 sm:h-96 object-cover">
-            <div class="mt-1.5 bg-[#071324] border-t border-slate-800 px-3 py-2 flex items-center justify-between text-xs text-slate-300">
-              <span class="font-mono font-bold uppercase tracking-wider text-amber-400 text-[11px]"><?= htmlspecialchars($settings['community_name']) ?></span>
-              <span class="font-mono text-[10px] text-slate-400 tracking-wider">OFFICIAL SESSIONS • <?= strtoupper(htmlspecialchars($baseCityName)) ?></span>
-            </div>
+        <!-- Main Headline -->
+        <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.08] drop-shadow-md">
+          <?= htmlspecialchars(!empty($settings['hero_title']) ? $settings['hero_title'] : 'Main Badminton Bareng Tanpa Repot Cari Lawan & Lapangan.') ?>
+        </h1>
+
+        <!-- Subtitle -->
+        <p class="text-base sm:text-xl text-slate-200 leading-relaxed font-normal max-w-2xl drop-shadow-sm">
+          <?= nl2br(htmlspecialchars(!empty($settings['hero_subtitle']) ? $settings['hero_subtitle'] : 'Selamat datang di Powershoot Badminton Club. Kami menyelenggarakan sesi main bareng ganda 4 kali setiap pekan di berbagai GOR terbaik Jakarta Selatan. Cukup daftar ke PIC WhatsApp, datang ke arena, dan nikmati pertandingan dengan pembagian giliran main yang teratur.')) ?>
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="pt-3 flex flex-wrap items-center gap-3">
+          <a href="#jadwal" class="px-7 py-4 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider transition-all btn-tactile shadow-xl border border-amber-300">
+            <?= htmlspecialchars(!empty($settings['hero_cta_text']) ? $settings['hero_cta_text'] : 'Pilih Jadwal & Daftar via WhatsApp PIC →') ?>
+          </a>
+          <a href="#cara-ikut" class="px-6 py-4 bg-slate-900/80 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider transition-all border border-slate-700 backdrop-blur-md">
+            Cara Kerja Mabar
+          </a>
+        </div>
+
+        <!-- Real-Time Metrics Strip -->
+        <div class="pt-6 border-t border-white/15 grid grid-cols-3 gap-4 sm:gap-8 max-w-lg text-slate-300">
+          <div>
+            <div class="text-xl sm:text-2xl font-black text-white font-mono">4x / Mgg</div>
+            <div class="text-[11px] text-slate-400 font-medium">Sesi Rutin GOR</div>
+          </div>
+          <div>
+            <div class="text-xl sm:text-2xl font-black text-amber-400 font-mono">Fair Play</div>
+            <div class="text-[11px] text-slate-400 font-medium">Rotasi Digital Adil</div>
+          </div>
+          <div>
+            <div class="text-xl sm:text-2xl font-black text-emerald-400 font-mono">Bulu Angsa</div>
+            <div class="text-[11px] text-slate-400 font-medium">Kok Turnamen BWF</div>
           </div>
         </div>
 
       </div>
     </div>
+
   </section>
 
   <!-- Section 1: Cara Ikut Mabar (3 Langkah Mudah) -->
@@ -1289,6 +1319,50 @@ $igUrl = (strpos($igRaw, 'http') === 0) ? $igRaw : 'https://instagram.com/' . lt
   <!-- Interactive JavaScript System (Mobile Drawer, Accordion, Scroll Reveal, Dynamic Leaderboard) -->
   <script>
     window.API_BASE = '<?= $baseDir ?>/api/';
+
+    // 0. Cinematic Background Video Teaser Engine (Auto-Rotates badmin1 & badmin2 seamlessly)
+    const bgTeaserVideo = document.getElementById('bgTeaserVideo');
+    const bgSoundBtn = document.getElementById('bgSoundToggle');
+    const bgSoundIcon = document.getElementById('bgSoundIcon');
+    const bgSoundLabel = document.getElementById('bgSoundLabel');
+
+    const videoTeaserSources = [
+      '<?= $baseDir ?>/public/assets/videos/badmin1.mp4',
+      '<?= $baseDir ?>/public/assets/videos/badmin2.mp4'
+    ];
+    let currentTeaserIndex = 0;
+    let isTeaserMuted = true;
+
+    if (bgTeaserVideo) {
+      // Loop smoothly through badmin1 -> badmin2 -> badmin1
+      bgTeaserVideo.addEventListener('ended', () => {
+        currentTeaserIndex = (currentTeaserIndex + 1) % videoTeaserSources.length;
+        bgTeaserVideo.style.opacity = '0.4';
+        setTimeout(() => {
+          bgTeaserVideo.src = videoTeaserSources[currentTeaserIndex];
+          bgTeaserVideo.load();
+          bgTeaserVideo.muted = isTeaserMuted;
+          bgTeaserVideo.play().then(() => {
+            bgTeaserVideo.style.opacity = '0.75';
+          }).catch(() => {});
+        }, 300);
+      });
+    }
+
+    function toggleTeaserSound() {
+      if (!bgTeaserVideo) return;
+      isTeaserMuted = !isTeaserMuted;
+      bgTeaserVideo.muted = isTeaserMuted;
+      if (bgSoundIcon && bgSoundLabel) {
+        if (isTeaserMuted) {
+          bgSoundIcon.textContent = '🔇';
+          bgSoundLabel.textContent = 'Audio Muted';
+        } else {
+          bgSoundIcon.textContent = '🔊';
+          bgSoundLabel.textContent = 'Audio On';
+        }
+      }
+    }
 
     // 1. Mobile Menu Drawer Toggle with Morphing Hamburger
     const mobileBtn = document.getElementById('mobileMenuBtn');
