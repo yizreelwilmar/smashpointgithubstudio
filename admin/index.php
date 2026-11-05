@@ -5908,7 +5908,7 @@ ${listLines.join('\n')}${fullTag}`;
   <!-- ========================================== -->
   <!-- CUSTOM ATHLETIC DIALOG MODAL (CONFIRM/ALERT) -->
   <!-- ========================================== -->
-  <div id="adminDialogModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs transition-opacity duration-200" onclick="if(event.target===this) closeAdminDialog(false)">
+  <div id="adminDialogModal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs transition-opacity duration-200" onclick="if(event.target===this) closeAdminDialog(false)">
     <div class="bg-white border border-slate-300 max-w-sm w-full p-5 shadow-2xl space-y-4" onclick="event.stopPropagation()">
       <div class="flex items-start gap-3">
         <div id="adminDialogIconContainer" class="w-10 h-10 shrink-0 flex items-center justify-center border">
@@ -5931,7 +5931,7 @@ ${listLines.join('\n')}${fullTag}`;
   </div>
 
   <!-- Toast Notification System (Top Center) -->
-  <div id="adminToast" class="hidden fixed top-4 inset-x-4 max-w-sm mx-auto z-50 px-4 py-3 shadow-2xl text-xs font-bold flex items-center justify-between border transition-all">
+  <div id="adminToast" class="hidden fixed top-4 inset-x-4 max-w-sm mx-auto z-[10000] px-4 py-3 shadow-2xl text-xs font-bold flex items-center justify-between border transition-all">
     <div class="flex items-center gap-2">
       <span id="adminToastIcon"></span>
       <span id="adminToastText"></span>
@@ -5949,7 +5949,7 @@ ${listLines.join('\n')}${fullTag}`;
       if (!toast) return;
       if (toastText) toastText.innerText = msg;
       if (toastIcon) toastIcon.innerText = isSuccess ? '✓' : '⚠️';
-      toast.className = `fixed top-4 inset-x-4 max-w-sm mx-auto z-50 px-4 py-3 shadow-2xl text-xs font-bold flex items-center justify-between border transition-all ${isSuccess ? 'bg-[#0b1e36] border-amber-400 text-amber-400' : 'bg-rose-950 border-rose-600 text-rose-200'}`;
+      toast.className = `fixed top-4 inset-x-4 max-w-sm mx-auto z-[10000] px-4 py-3 shadow-2xl text-xs font-bold flex items-center justify-between border transition-all ${isSuccess ? 'bg-[#0b1e36] border-amber-400 text-amber-400' : 'bg-rose-950 border-rose-600 text-rose-200'}`;
       toast.classList.remove('hidden');
       setTimeout(() => toast.classList.add('hidden'), 3000);
     }
