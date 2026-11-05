@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan to completely redesign the PIC Accounts & Session Assignment page (/admin/?tab=pic_accounts) using an interactive split-panel layout, bulk multi-select session assignment, and compact PIC account cards with avatar badges and quick actions.",
-  "updatedAt": "2026-11-05T06:42:26.641871691Z",
+  "summary": "Plan for full SaaS-ready Manual Book guide and Admin Password Change feature.",
+  "updatedAt": "2026-11-05T07:41:36.587695637Z",
   "requestFeedback": true,
   "userFacing": true
 }

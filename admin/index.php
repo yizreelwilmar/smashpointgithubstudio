@@ -488,6 +488,20 @@ if ($isLoggedIn && $reqMethod === 'POST' && isset($_POST['form_action'])) {
             }
 
             $successMsg = "Akun PIC Demo berhasil dibuat otomatis! Username: [ {$demoUsername} ] | Password: [ {$demoPassword} ]{$schInfoText}. Siap didemokan langsung ke klien.";
+        } elseif ($formAction === 'update_admin_password') {
+            $current = $_POST['current_password'];
+            $new = $_POST['new_password'];
+            $confirm = $_POST['confirm_password'];
+            
+            if ($new !== $confirm) {
+                $errorMsg = "Konfirmasi kata sandi baru tidak cocok.";
+            } elseif (strlen($new) < 6) {
+                $errorMsg = "Kata sandi baru minimal 6 karakter.";
+            } elseif (Auth::updatePassword(Auth::id(), $current, $new)) {
+                $successMsg = "Kata sandi admin berhasil diperbarui!";
+            } else {
+                $errorMsg = "Kata sandi saat ini salah.";
+            }
         } elseif ($formAction === 'assign_pic_session') {
             $sessionId = (int)$_POST['session_id'];
             $picId = !empty($_POST['pic_id']) ? (int)$_POST['pic_id'] : null;
@@ -1020,14 +1034,18 @@ if ($isLoggedIn && $tab === 'finance' && isset($_GET['export']) && $_GET['export
                   <span>Profil & Web Settings</span>
                 </a>
 
+                </a>
+
+                <a href="?tab=security" class="flex items-center gap-3 px-3 py-2 rounded-md text-xs font-semibold transition-colors <?= $tab === 'security' ? 'bg-[#132b4f] text-amber-400 font-bold border-l-4 border-amber-400 shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' ?>">
+                  <svg class="w-4 h-4 shrink-0 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                  <span>Keamanan Akun</span>
+                </a>
+
                 <a href="?tab=manual_book" class="flex items-center justify-between px-3 py-2 rounded-md text-xs font-semibold transition-colors <?= $tab === 'manual_book' ? 'bg-[#132b4f] text-amber-400 font-bold border-l-4 border-amber-400 shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' ?>">
                   <div class="flex items-center gap-3">
                     <svg class="w-4 h-4 shrink-0 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                     <span>Buku Panduan & Demo</span>
                   </div>
-                  <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-black">
-                    PDF
-                  </span>
                 </a>
               </div>
             </div>
@@ -5073,6 +5091,30 @@ ${listLines.join('\n')}${fullTag}`;
       <!-- ======================================================== -->
       <!-- TAB: MANUAL BOOK & DEMO PLAYBOOK (PDF)                  -->
       <!-- ======================================================== -->
+      <?php elseif ($tab === 'security'): ?>
+        <div class="max-w-2xl bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h3 class="text-lg font-black text-slate-900 mb-1">Keamanan Akun Admin</h3>
+          <p class="text-sm text-slate-500 mb-6">Ubah kata sandi untuk melindungi akses portal CMS komunitas Anda.</p>
+          <form method="POST" action="?tab=security" class="space-y-4">
+            <input type="hidden" name="form_action" value="update_admin_password">
+            <div>
+              <label for="current_password" class="block text-xs font-bold text-slate-700 mb-1.5">Kata Sandi Saat Ini</label>
+              <input type="password" id="current_password" name="current_password" required class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+            </div>
+            <div>
+              <label for="new_password" class="block text-xs font-bold text-slate-700 mb-1.5">Kata Sandi Baru</label>
+              <input type="password" id="new_password" name="new_password" required class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+            </div>
+            <div>
+              <label for="confirm_password" class="block text-xs font-bold text-slate-700 mb-1.5">Konfirmasi Kata Sandi Baru</label>
+              <input type="password" id="confirm_password" name="confirm_password" required class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+            </div>
+            <button type="submit" class="w-full h-11 bg-[#0b1e36] hover:bg-[#132b4f] text-amber-400 font-black text-xs uppercase tracking-wider rounded-lg transition-all active:scale-95">
+              Simpan Kata Sandi Baru
+            </button>
+          </form>
+        </div>
+
       <?php elseif ($tab === 'manual_book'): ?>
         
         <div class="space-y-6">

@@ -73,7 +73,23 @@ class Auth {
         return false;
     }
 
+    public static function updatePassword(int $adminId, string $currentPassword, string $newPassword): bool {
+        self::init();
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("SELECT password_hash FROM `admins` WHERE `id` = ? LIMIT 1");
+        $stmt->execute([$adminId]);
+        $admin = $stmt->fetch();
+
+        if ($admin && password_verify($currentPassword, $admin['password_hash'])) {
+            $newHash = password_hash($newPassword, PASSWORD_BCRYPT);
+            $stmtUpdate = $pdo->prepare("UPDATE `admins` SET `password_hash` = ? WHERE `id` = ?");
+            return $stmtUpdate->execute([$newHash, $adminId]);
+        }
+        return false;
+    }
+
     public static function logout() {
+
         self::init();
         unset($_SESSION['smashpoint_admin_id']);
         unset($_SESSION['smashpoint_admin_user']);

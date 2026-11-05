@@ -1,101 +1,83 @@
-# Redesign Admin PIC Accounts & Session Assignment Interface (`/admin/?tab=pic_accounts`)
+# Manual Book SaaS Komprehensif & Fitur Ubah Kata Sandi Admin
 
-Completely redesigning the **Penugasan PIC & Akun Lapangan** admin view (`/admin/?tab=pic_accounts`) into a modern, high-craftsmanship split-panel layout with bulk session assignment, clean status badges, and compact PIC operator cards.
-
----
+Rencana pengembangan **Panduan Operasional SaaS Lengkap (Manual Book)** yang mencakup seluruh alur kerja CMS Admin dan Aplikasi Field PIC, serta pembuatan **Fitur Ubah Kata Sandi Admin** yang aman di portal CMS.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> Based on your confirmed choices in the clarification step, the new interface will feature a **Dual Split-Panel Layout** (Session List on the Left, PIC Cards & Batch Assignment on the Right), **Bulk Multi-Select Assignment** (selecting multiple court sessions at once and assigning them to a chosen PIC operator in 1 click), and **Compact PIC Account Cards** with avatar badges, active session counts, and quick credentials access.
-
-- **Confirmed Decision 1 (Split-Panel Architecture)**: Left side displays a filterable list of all court mabar sessions with selection checkboxes and status badges; Right side displays compact PIC account cards and the Bulk Assignment Action Bar.
-- **Confirmed Decision 2 (Bulk Session Assignment Workflow)**: Check multiple sessions on the left, pick the target PIC from a quick dropdown on the right/bottom action bar, and assign all selected sessions in a single click.
-- **Confirmed Decision 3 (Compact PIC Account Styling)**: Modern cards with avatar initials, role badge, phone/WhatsApp direct link, assigned session badges, 1-Click Demo Generator, and quick edit/reset actions.
+> Berdasarkan jawaban klarifikasi yang telah disetujui:
+> 1. **Format Manual Book**: Kombinasi **Panduan Interaktif Bertahap** di portal Admin + **Opsi Export/Cetak PDF Standalone** (`/admin/manual-book-pdf.php`) yang siap cetak/simpan PDF dengan tata letak visual profesional.
+> 2. **Lokasi Ubah Kata Sandi**: Tab khusus **Profil & Keamanan Akun** di CMS Admin (`/admin/?tab=security`) dengan validasi kata sandi lama, indikator kekuatan kata sandi baru, dan pembaharuan hash kata sandi aman.
 
 ---
 
 ## 1. Overview & Core Concept
 
-- **What It Does**: Streamlines how community super-admins manage field PIC operators and assign court sessions across branches. Eliminates messy table lists and individual form saves by introducing batch selection, real-time search, and a clear visual breakdown of unassigned vs assigned sessions.
-- **Target Audience**: Community Super-Admins managing multiple GOR branches, session hosts, and PIC accounts.
-- **Key Value**: Reduces PIC assignment time from minutes to seconds, prevents unassigned session errors with prominent status alerts, and provides a polished, modern dashboard experience.
+- **Tujuan Utama**: Menyediakan dokumentasi panduan penggunaan aplikasi end-to-end (White-Label / Ready-to-Sell) sehingga pembeli aplikasi dapat langsung menjalankan komunitas badminton tanpa perlu bantuan penjelasan manual.
+- **Cakupan Manual Book**:
+  1. **CMS Website Profile**: Mengedit nama komunitas, hero banner, teks promosi, FAQ, link WhatsApp, dan galeri foto.
+  2. **Kelola Jadwal & Sesi Mabar**: Membuat jadwal mabar, kuota slot, harga iuran, lokasi GOR, dan jumlah lapangan.
+  3. **Manajemen PIC & Akun Lapangan**: Membuat akun PIC, penugasan sesi tunggal/bulk, dan hak akses operasional.
+  4. **Keuangan & Buku Kas Komunitas**: Mencatat uang masuk/keluar, rekapitulasi laba-rugi per sesi, dan tindak lanjut piutang pemain.
+  5. **Master Roster & Leaderboard**: Mengelola database pemain, level keahlian (Beginner/Intermediate/Advance), dan reset poin leaderboard bulanan.
+  6. **Aplikasi Operasional Field PIC (`/app`)**: Cara PIC membuka sesi di GOR, check-in kehadiran, sistem rotasi ganda otomatis, pencatatan iuran lunas, dan penguncian sesi selesai.
+- **Fitur Ubah Kata Sandi**:
+  - Menyediakan tab "Keamanan Akun" di Admin Portal.
+  - Memungkinkan Admin mengubah password login dengan verifikasi password lama & validasi minimal 6 karakter.
 
 ---
 
 ## 2. User Experience & Visual Design
 
-- **Split-Panel Composition (Desktop 1440px / Mobile Stacking)**:
-  - **Header & Metric Bar**: Top summary bar displaying 4 KPI metrics (*Total PIC Accounts*, *Total Sessions*, *Assigned Sessions*, *Unassigned Sessions Needing PIC*).
-  - **Left Panel (Daftar Sesi Mabar & Bulk Selector)**:
-    - Multi-select check-all toggle & status filter tabs (*Semua Sesi*, *Perlu PIC*, *Sudah Ada PIC*, *Sesi Aktif*).
-    - Session list cards featuring day badge, calendar date, venue name, branch area, court count, time range, and current assigned PIC chip.
-    - Checkbox selection on each session card for instant bulk action.
-  - **Right Panel (Manajemen Akun PIC & Toolbar)**:
-    - **Bulk Assign Action Bar**: Appears prominently when 1 or more sessions are checked, allowing 1-click assignment to any PIC account.
-    - **1-Click Demo PIC Generator**: Prominent emerald button to instantly generate a demo PIC account linked to open sessions.
-    - **Compact PIC Cards**: Clean cards with avatar badges, contact links, assigned session chips, and quick action options (Edit, Assign, Delete).
-- **Color Palette & Visual Tokens**:
-  - Dark Slate `#0b1e36` for brand containers, Amber `#f59e0b` for highlight badges, Emerald `#10b981` for active assignments, and Slate `#f8fafc` for clean background fields.
+### Manual Book Interaktif (`/guide.php` & Embed Admin `/admin/?tab=manual_book`)
+- **Visual Mockups & UI Step-by-Step**: Menggunakan UI mockup card dengan tangkapan layar simulasi interface asli, badge bernomor bertahap (Langkah 1, 2, 3), serta tips khusus ("Tips Admin" & "Peringatan").
+- **Navigasi Cepat per Modul**: Sidebar/Tab navigasi sticky di sebelah kiri untuk berpindah modul secara instan (Profile CMS, Sesi Mabar, PIC, Kas, Roster, Aplikasi Field PIC).
+- **Cetak & Export PDF**: Tombol "Cetak / Export PDF" yang membuka tampilan khusus print-ready tanpa sidebar/header interaktif (`@media print` clean layout).
+
+### Fitur Ubah Kata Sandi Admin (`/admin/?tab=security`)
+- **Formulir Keamanan Ringkas**: Card dengan desain athletic slate khas aplikasi (`bg-white` dengan border halus `border-slate-200`).
+- **Input Fields**:
+  - Kata Sandi Saat Ini (`current_password`)
+  - Kata Sandi Baru (`new_password`)
+  - Konfirmasi Kata Sandi Baru (`confirm_password`)
+- **Sistem Umpan Balik**: Toast notification sukses "✓ Kata sandi admin berhasil diperbarui" atau pesan error merah yang jelas jika kata sandi lama salah atau konfirmasi tidak cocok.
 
 ---
 
 ## 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Bulk Multi-Select Session Assignment vs Single Dropdown per Row**
-  - *Chosen Approach*: Multi-select checkboxes on session cards + bulk assignment panel + inline quick dropdowns.
-  - *Why*: Allows admins to assign 4–8 sessions for an entire weekend to a single PIC host in just 2 clicks, while still allowing 1-click single-session updates.
-- **Decision 2: Split-Panel View vs Full Page Navigation**
-  - *Chosen Approach*: Responsive split-panel layout on desktop (`grid-cols-12`: 7 cols session list, 5 cols PIC accounts) that cleanly stacks on mobile screens.
-  - *Why*: Gives admins full context of available PICs while scanning through the schedule without having to navigate between tabs or pages.
+- **Penggabungan PDF & Interaktif**:
+  - *Keputusan*: Membuat satu modul data manual yang merender baik tampilan interaktif berbasis web (`/guide.php` & embed tab admin) maupun tampilan khusus cetak PDF (`/admin/manual-book-pdf.php`).
+  - *Alasan*: Menjamin pembeli aplikasi selalu mendapatkan informasi yang 100% konsisten baik saat membaca di layar komputer/HP maupun saat mencetaknya sebagai dokumen fisik/PDF.
+- **Penyimpanan Password Hash Aman**:
+  - *Keputusan*: Menggunakan `password_hash($newPassword, PASSWORD_DEFAULT)` dan verifikasi `password_verify($currentPassword, $hashFromDb)`.
+  - *Alasan*: Menjamin standar keamanan industri untuk akun super admin.
 
 ---
 
 ## 4. Technical Architecture & Data Strategy
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                 /admin/?tab=pic_accounts (Split Panel UI)                   │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                       │
-        ┌──────────────────────────────┴──────────────────────────────┐
-        ▼                                                             ▼
-┌──────────────────────────────────────────┐    ┌─────────────────────────────┐
-│ LEFT PANEL (col-span-7)                  │    │ RIGHT PANEL (col-span-5)    │
-│ - Metric Bar (Assigned vs Unassigned)    │    │ - Bulk Assign Action Bar    │
-│ - Session Search & Status Filter         │    │ - 1-Click Demo PIC Generator│
-│ - Multi-Select Checkboxes                │    │ - Compact PIC Account Cards │
-│ - Interactive Session Cards              │    │ - Quick Credentials Modal   │
-└────────────────────┬─────────────────────┘    └──────────────┬──────────────┘
-                     │                                         │
-                     └────────────────────┬────────────────────┘
-                                          ▼
-                      ┌──────────────────────────────────────┐
-                      │ PHP Backend Action Handler           │
-                      │ - form_action: assign_pic_session    │
-                      │ - form_action: bulk_assign_pic       │
-                      │ - form_action: create_pic_account    │
-                      └──────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                        ADMIN CMS PORTAL (/admin)                       │
+├────────────────────────────────────────────────────────────────────────┤
+│ ├── Tab "Keamanan Akun" (?tab=security)                                │
+│ │   └── POST form_action=update_admin_password                         │
+│ │       ├── Validasi current_password via password_verify()            │
+│ │       └── Update password_hash di database                           │
+│ │                                                                      │
+│ ├── Tab "Manual Book" (?tab=manual_book)                               │
+│ │   ├── Navigasi Modul Interaktif (CMS, Sesi, PIC, Kas, Roster, App)  │
+│ │   └── Tombol Export PDF -> Redirect ke /admin/manual-book-pdf.php    │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Database & Handler Operations**:
-  - Support `bulk_assign_pic` action in POST request handling to process array of `session_ids[]` and assign target `pic_id` in a single SQL transaction.
-  - Support single `assign_pic_session` inline update for fast quick edits.
-
----
-
-## 5. Execution Steps
-
-1. **Backend POST Handler Update (`/admin/index.php`)**:
-   - Add handler for `form_action === 'bulk_assign_pic'` to update `pic_id`, `pic_name`, and `pic_whatsapp` for multiple selected session IDs.
-
-2. **Redesign `tab === 'pic_accounts'` View (`/admin/index.php`)**:
-   - Replace old cluttered UI with the new **Dual Split-Panel Architecture**.
-   - Build 4 compact KPI metric cards at the top.
-   - Build Left Panel: Multi-select session list cards with clear unassigned/assigned visual badges.
-   - Build Right Panel: Sticky Bulk Assignment bar, 1-Click Demo PIC button, and Compact PIC Account cards with avatar initials.
-   - Implement client-side JavaScript for Check-All selection, dynamic selected count badge, and seamless sub-tab switching.
-
-3. **Verification & Testing**:
-   - Verify PHP syntax with `php -l admin/index.php`.
-   - Execute `compile_applet` and test HTTP status 200 via dev server.
+### Rencana Perubahan Berkas:
+1. **`/admin/index.php`**:
+   - Tambahkan handler `form_action === 'update_admin_password'` untuk memproses pengubahan kata sandi.
+   - Tambahkan menu navigasi tab `security` (Keamanan Akun) di sidebar Admin.
+   - Perbarui konten Tab `manual_book` dengan modul panduan lengkap 100% dari CMS hingga Aplikasi Field.
+2. **`/admin/manual-book-pdf.php`**:
+   - Perbarui dokumen cetak PDF agar menyajikan seluruh langkah lengkap penggunaan CMS, Pengaturan Profile, PIC, Kas, Roster, dan Aplikasi Lapangan.
+3. **`/guide.php`**:
+   - Perbarui halaman standalone manual book interaktif.

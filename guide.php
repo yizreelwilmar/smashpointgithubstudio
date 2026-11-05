@@ -167,7 +167,7 @@ $adminUrl = $baseDir . '/admin/';
     </div>
 
     <!-- MODULE 1: SUPER ADMIN CMS CONTROL PANEL -->
-    <section class="guide-topic-card bg-white border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs" data-category="cms" data-keywords="admin cms pengaturan seo jadwal wa kas pic">
+    <section class="guide-topic-card bg-white border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs" data-category="cms" data-keywords="admin cms pengaturan seo profil website komunitas jadwal sesi mabar iuran kas piutang roster pemain">
       
       <div class="flex items-center justify-between border-b border-slate-100 pb-4">
         <div class="flex items-center gap-3">
@@ -176,107 +176,40 @@ $adminUrl = $baseDir . '/admin/';
           </span>
           <div>
             <h3 class="text-xl font-black text-slate-950 tracking-tight">
-              MODUL 1: Super Admin CMS Control Panel (`/admin/`)
+              MODUL 1: Super Admin CMS Control Panel
             </h3>
             <p class="text-xs text-slate-500 font-normal">
-              Digunakan oleh Super Admin / Pengurus Komunitas untuk kelola profil, SEO, jadwal, kas, dan akun PIC.
-            </p>
-          </div>
-        </div>
-        <span class="text-xs font-mono font-bold text-amber-700 bg-amber-50 px-2.5 py-1 border border-amber-200">
-          Akses: Admin Only
-        </span>
-      </div>
-
-      <!-- Feature 1.1: Pengaturan Profil Komunitas & SEO -->
-      <div class="space-y-4">
-        <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
-          <span>1.1 Mengatur Profil Komunitas & SEO Google (Yoast Engine)</span>
-        </h4>
-        <p class="text-xs text-slate-600 leading-relaxed font-normal">
-          Menu <strong>Profil & Web Settings</strong> di CMS (`/admin/?tab=settings`) memungkinkan Admin mengubah nama klub, tagline, WhatsApp default, serta optimasi Yoast-style SEO real-time.
-        </p>
-
-        <!-- Visual Screenshot Mockup Card -->
-        <div class="border border-slate-300 bg-slate-900 text-white p-4 sm:p-6 rounded-none space-y-4 font-sans shadow-md">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-3 text-xs font-mono">
-            <span class="text-amber-400 font-bold">🖥️ TANGKAPAN LAYAR UI: CMS Admin — Profil & Web Settings</span>
-            <span class="text-slate-400">/admin/?tab=settings</span>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <div class="bg-slate-950 p-4 border border-slate-800 space-y-3">
-              <span class="text-[11px] font-mono text-amber-400 font-bold uppercase block">[1] Form Pengaturan Profil</span>
-              <div class="space-y-2 text-slate-300 font-mono">
-                <div>
-                  <label class="text-[10px] text-slate-500 block">NAMA KOMUNITAS:</label>
-                  <input type="text" value="<?= htmlspecialchars($settings['community_name']) ?>" class="w-full bg-slate-900 border border-slate-700 px-2 py-1 text-white text-xs font-bold" readonly>
-                </div>
-                <div>
-                  <label class="text-[10px] text-slate-500 block">TAGLINE & KOTA BASE:</label>
-                  <input type="text" value="<?= htmlspecialchars($settings['tagline']) ?>" class="w-full bg-slate-900 border border-slate-700 px-2 py-1 text-white text-xs" readonly>
-                </div>
-              </div>
-            </div>
-
-            <div class="bg-slate-950 p-4 border border-slate-800 space-y-3">
-              <span class="text-[11px] font-mono text-emerald-400 font-bold uppercase block">[2] Yoast SEO Real-Time Scorecard</span>
-              <div class="bg-emerald-950/60 border border-emerald-700 p-3 text-emerald-200 font-mono text-[11px] space-y-1">
-                <div class="font-black text-amber-400">🟢 SEO SCORE: GOOD (92/100)</div>
-                <div>• Meta Title: ✅ 58 Karakter</div>
-                <div>• Meta Description: ✅ 148 Karakter (Ideal)</div>
-                <div>• Focus Keyword: ✅ Terdeteksi di Judul & Deskripsi</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-slate-50 border-l-4 border-amber-500 p-4 text-xs text-slate-700 space-y-1">
-          <strong>💡 Tips Admin:</strong> Perubahan teks hero title dan announcement di form ini akan otomatis mengupdate landing page tanpa memerlukan pembaharuan sistem.
-        </div>
-      </div>
-
-      <!-- Feature 1.2: Manajemen Jadwal Sesi & WhatsApp Import -->
-      <div class="space-y-4 pt-4 border-t border-slate-100">
-        <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
-          <span>1.2 Membuat Jadwal Sesi Baru & Impor List Peserta WhatsApp</span>
-        </h4>
-        <p class="text-xs text-slate-600 leading-relaxed font-normal">
-          Admin dapat menambah sesi mabar baru di GOR, menyalin template broadcast WhatsApp, serta mengimpor list pendaftar dari pesan grup WA secara otomatis.
-        </p>
-
-        <!-- Step-by-Step Walkthrough -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <div class="border border-slate-200 p-4 bg-slate-50 space-y-2">
-            <span class="font-mono font-bold text-amber-600 block text-[11px]">LANGKAH 1</span>
-            <h5 class="font-bold text-slate-900">1-Click Buka Sesi Pekan Depan</h5>
-            <p class="text-slate-600 text-[11px]">
-              Klik tombol <strong>"+ Buka Sesi Pekan Depan (+7 Hari)"</strong> pada kartu sesi mabar rutin. Sistem otomatis menduplikasi data venue dan jam main untuk pekan berikutnya.
-            </p>
-          </div>
-
-          <div class="border border-slate-200 p-4 bg-slate-50 space-y-2">
-            <span class="font-mono font-bold text-amber-600 block text-[11px]">LANGKAH 2</span>
-            <h5 class="font-bold text-slate-900">Tempel List Grup WhatsApp</h5>
-            <p class="text-slate-600 text-[11px]">
-              Buka modal <strong>"Template WA & Import"</strong>. Salin list nomor urut pemain dari grup WhatsApp, lalu klik <strong>Impor Peserta</strong>.
-            </p>
-          </div>
-
-          <div class="border border-slate-200 p-4 bg-slate-50 space-y-2">
-            <span class="font-mono font-bold text-amber-600 block text-[11px]">LANGKAH 3</span>
-            <h5 class="font-bold text-slate-900">Penugasan Akun PIC</h5>
-            <p class="text-slate-600 text-[11px]">
-              Pilih nama PIC penanggung jawab pada dropdown jadwal. PIC yang ditugaskan dapat langsung memegang kendali sesi begitu login ke `/app/`.
+              Pusat komando pengelolaan komunitas dari profil web, jadwal sesi, keuangan, hingga daftar roster pemain.
             </p>
           </div>
         </div>
       </div>
 
+      <div class="space-y-6 text-xs text-slate-700 leading-relaxed">
+        <div class="space-y-2">
+          <h4 class="font-bold text-slate-900 text-sm">1.1 Mengedit Profil Website & Branding</h4>
+          <p>Buka tab <strong>Pengaturan</strong>. Anda dapat mengubah: Nama komunitas, tagline, deskripsi web, logo, foto hero banner, tautan Instagram, serta nomor WhatsApp default untuk pendaftaran. Perubahan ini langsung tampil di landing page publik.</p>
+        </div>
+        
+        <div class="space-y-2">
+          <h4 class="font-bold text-slate-900 text-sm">1.2 Kelola Jadwal Sesi Mabar</h4>
+          <p>Pada tab <strong>Jadwal</strong>, klik "+ Buat Jadwal" untuk mengatur lokasi GOR, jam main, harga iuran per orang, dan kuota maksimal. Gunakan fitur "Duplikasi Sesi" untuk sesi mabar rutin pekan berikutnya agar hemat waktu.</p>
+        </div>
+
+        <div class="space-y-2">
+          <h4 class="font-bold text-slate-900 text-sm">1.3 Manajemen PIC & Akun Operasional</h4>
+          <p>Pada tab <strong>Akun PIC</strong>, buat akun baru untuk setiap PIC lapangan. Penugasan sesi dilakukan secara 1-to-1: pilih PIC lalu hubungkan dengan jadwal sesi tertentu. PIC akan login menggunakan akun ini di aplikasi lapangan (`/app/`).</p>
+        </div>
+
+        <div class="space-y-2">
+          <h4 class="font-bold text-slate-900 text-sm">1.4 Keuangan Kas & Buku Piutang</h4>
+          <p>Pada tab <strong>Laporan Keuangan</strong>, catat setiap pemasukan (uang iuran lunas) dan pengeluaran (sewa lapangan, kok). Sistem otomatis menghitung saldo surplus/defisit dan menampilkan piutang pemain yang belum bayar iuran.</p>
+        </div>
+      </div>
     </section>
 
     <!-- MODULE 2: PIC SESI LAPANGAN (COURTSIDE APP) -->
-    <section class="guide-topic-card bg-white border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs" data-category="pic" data-keywords="pic aplikasi lapangan absensi lunas unpaid rotasi skor">
+    <section class="guide-topic-card bg-white border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs" data-category="pic" data-keywords="pic aplikasi lapangan absensi lunas unpaid rotasi skor skor ganda">
       
       <div class="flex items-center justify-between border-b border-slate-100 pb-4">
         <div class="flex items-center gap-3">
@@ -285,137 +218,31 @@ $adminUrl = $baseDir . '/admin/';
           </span>
           <div>
             <h3 class="text-xl font-black text-slate-950 tracking-tight">
-              MODUL 2: Aplikasi Lapangan PIC Sesi (`/app/`)
+              MODUL 2: Aplikasi Field PIC (`/app/`)
             </h3>
             <p class="text-xs text-slate-500 font-normal">
-              Digunakan oleh Host PIC di tepi lapangan untuk absensi pemain, status bayar iuran, generator rotasi adil, dan input skor.
+              Tool operasional mobile-first di lapangan: absensi, rotasi ganda, dan input skor.
             </p>
           </div>
         </div>
-        <span class="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 border border-emerald-200">
-          Akses: PIC Sesi
-        </span>
       </div>
 
-      <!-- Feature 2.1: Status Pembayaran Iuran & Absensi -->
-      <div class="space-y-4">
-        <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
-          <span>2.1 Absensi Kehadiran & Verifikasi Pembayaran Iuran (Paid / Unpaid)</span>
-        </h4>
-        <p class="text-xs text-slate-600 leading-relaxed font-normal">
-          Di lokasi GOR, PIC cukup membuka browser HP pada alamat `/app/`. Seluruh nama pemain yang terdaftar akan muncul dalam daftar absensi.
-        </p>
-
-        <!-- Visual Screenshot Mockup Card -->
-        <div class="border border-slate-300 bg-slate-900 text-white p-4 sm:p-6 rounded-none space-y-4 font-sans shadow-md">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-3 text-xs font-mono">
-            <span class="text-amber-400 font-bold">📱 TANGKAPAN LAYAR UI: Mobile PIC App — Absensi & Status Bayar</span>
-            <span class="text-slate-400">/app/</span>
-          </div>
-
-          <div class="space-y-2 font-mono text-xs">
-            <div class="p-3 bg-slate-950 border border-slate-800 flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <span class="w-6 h-6 bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center">1</span>
-                <div>
-                  <div class="font-bold text-white">Budi Santoso</div>
-                  <div class="text-[10px] text-slate-400">Intermediate • Joined 20:00</div>
-                </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="px-2 py-1 bg-emerald-600 text-white font-bold text-[10px] rounded">[1] HADIR</span>
-                <span class="px-2 py-1 bg-amber-400 text-slate-950 font-black text-[10px] rounded">[2] LUNAS (PAID)</span>
-              </div>
-            </div>
-
-            <div class="p-3 bg-slate-950 border border-slate-800 flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <span class="w-6 h-6 bg-slate-800 text-slate-400 font-black text-xs flex items-center justify-center">2</span>
-                <div>
-                  <div class="font-bold text-white">Rian Ardianto</div>
-                  <div class="text-[10px] text-slate-400">Advance • Joined 20:05</div>
-                </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="px-2 py-1 bg-emerald-600 text-white font-bold text-[10px] rounded">HADIR</span>
-                <span class="px-2 py-1 bg-rose-600 text-white font-bold text-[10px] rounded">[3] UNPAID</span>
-              </div>
-            </div>
-          </div>
+      <div class="space-y-6 text-xs text-slate-700 leading-relaxed">
+        <div class="space-y-2">
+          <h4 class="font-bold text-slate-900 text-sm">2.1 Absensi & Status Pembayaran</h4>
+          <p>PIC login ke `/app/` menggunakan kredensial PIC. Daftar pemain hadir terlihat otomatis. Tandai pemain yang hadir dan konfirmasi status pembayaran (LUNAS/BELUM LUNAS). Data ini otomatis memperbarui laporan kas admin.</p>
+        </div>
+        
+        <div class="space-y-2">
+          <h4 class="font-bold text-slate-900 text-sm">2.2 Sistem Rotasi Ganda Otomatis</h4>
+          <p>Setelah absensi, klik "Acak Rotasi". Sistem akan mengelompokkan 4 pemain per court secara adil (berdasarkan level & riwayat main). PIC cukup membacakan pasangan lapangan dari layar HP.</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-600">
-          <div class="bg-slate-50 p-3 border border-slate-200">
-            <strong>[1] Kehadiran (Hadir / Absen):</strong> Hanya pemain berstatus <em>Hadir</em> yang akan diikutsertakan oleh algoritma ke dalam ronde pertandingan ganda.
-          </div>
-          <div class="bg-slate-50 p-3 border border-slate-200">
-            <strong>[2] Status Lunas (Paid):</strong> Pembayaran berstatus Lunas otomatis masuk ke dalam rekapitulasi pemasukan laporan keuangan kas admin.
-          </div>
+        <div class="space-y-2">
+          <h4 class="font-bold text-slate-900 text-sm">2.3 Input Skor & Selesai Sesi</h4>
+          <p>Setelah reli selesai, masukkan skor pertandingan di aplikasi. Poin otomatis terakumulasi ke Leaderboard Pemain. Sesi otomatis terkunci saat ditandai selesai oleh PIC.</p>
         </div>
       </div>
-
-      <!-- Feature 2.2: Generator Rotasi Otomatis & Input Skor -->
-      <div class="space-y-4 pt-4 border-t border-slate-100">
-        <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
-          <span>2.2 Generasi Ronde Rotasi Otomatis & Input Skor Pertandingan</span>
-        </h4>
-        <p class="text-xs text-slate-600 leading-relaxed font-normal">
-          Setelah absensi siap, PIC mengeklik <strong>"⚡ Generate Ronde Berikutnya"</strong>. Algoritma aplikasi secara otomatis membagi 4 pemain per court secara seimbang.
-        </p>
-
-        <!-- Visual Screenshot Mockup Card -->
-        <div class="border border-slate-300 bg-slate-900 text-white p-4 sm:p-6 rounded-none space-y-4 font-sans shadow-md">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-3 text-xs font-mono">
-            <span class="text-amber-400 font-bold">📱 TANGKAPAN LAYAR UI: Generator Rotasi & Input Skor</span>
-            <span class="text-slate-400">Court 1 & Court 2</span>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
-            <!-- Match Card 1 -->
-            <div class="bg-slate-950 p-4 border border-slate-800 space-y-3">
-              <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span class="font-bold text-amber-400">LAPANGAN 1 • RONDE 2</span>
-                <span class="text-[10px] text-emerald-400 font-bold">LIVE MATCH</span>
-              </div>
-              <div class="space-y-2">
-                <div class="flex justify-between items-center text-slate-200">
-                  <span>Tim A: Budi & Hendra</span>
-                  <input type="number" value="21" class="w-12 bg-amber-400 text-slate-950 text-center font-black py-0.5 text-xs">
-                </div>
-                <div class="flex justify-between items-center text-slate-200">
-                  <span>Tim B: Rian & Fajar</span>
-                  <input type="number" value="18" class="w-12 bg-slate-800 text-white text-center font-bold py-0.5 text-xs">
-                </div>
-              </div>
-              <button class="w-full py-1.5 bg-emerald-600 text-white font-bold text-[11px] uppercase tracking-wider">
-                ✓ SIMPAN SKOR RONDE
-              </button>
-            </div>
-
-            <!-- Match Card 2 -->
-            <div class="bg-slate-950 p-4 border border-slate-800 space-y-3">
-              <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span class="font-bold text-amber-400">LAPANGAN 2 • RONDE 2</span>
-                <span class="text-[10px] text-slate-400 font-bold">READY</span>
-              </div>
-              <div class="space-y-2">
-                <div class="flex justify-between items-center text-slate-200">
-                  <span>Tim A: Ahsan & Kevin</span>
-                  <input type="number" value="0" class="w-12 bg-slate-800 text-white text-center font-bold py-0.5 text-xs">
-                </div>
-                <div class="flex justify-between items-center text-slate-200">
-                  <span>Tim B: Marcus & Gideon</span>
-                  <input type="number" value="0" class="w-12 bg-slate-800 text-white text-center font-bold py-0.5 text-xs">
-                </div>
-              </div>
-              <button class="w-full py-1.5 bg-slate-800 text-slate-300 font-bold text-[11px] uppercase tracking-wider">
-                SIMPAN SKOR
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
     </section>
 
     <!-- MODULE 3: FOTO & VIDEO DOKUMENTASI GALERI -->
