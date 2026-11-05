@@ -132,6 +132,8 @@ try {
             `title` VARCHAR(150) NOT NULL,
             `image_url` VARCHAR(255) NOT NULL,
             `caption` VARCHAR(255) NULL,
+            `session_id` INT NULL,
+            `activity_date` DATE NULL,
             `display_order` INT NOT NULL DEFAULT 0,
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -153,7 +155,26 @@ try {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
 
-    // 8. Admins Table
+    // 8. Financial Records Table
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `financial_records` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `session_id` INT NULL,
+            `type` ENUM('income', 'expense') NOT NULL DEFAULT 'expense',
+            `category` VARCHAR(100) NOT NULL DEFAULT 'Lain-lain',
+            `amount` INT NOT NULL DEFAULT 0,
+            `title` VARCHAR(200) NOT NULL,
+            `notes` TEXT NULL,
+            `record_date` DATE NOT NULL,
+            `created_by` INT NULL,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX `idx_fin_session` (`session_id`),
+            INDEX `idx_fin_date` (`record_date`),
+            INDEX `idx_fin_type` (`type`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    // 9. Admins Table
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS `admins` (
             `id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -374,6 +395,15 @@ try {
         $pdo->exec("
             ALTER TABLE `settings` 
               ADD COLUMN IF NOT EXISTS `hero_animation_enabled` TINYINT(1) NOT NULL DEFAULT 1;
+        ");
+        $pdo->exec("
+            ALTER TABLE `gallery` 
+              ADD COLUMN IF NOT EXISTS `session_id` INT NULL AFTER `caption`,
+              ADD COLUMN IF NOT EXISTS `activity_date` DATE NULL AFTER `session_id`;
+        ");
+        $pdo->exec("
+            ALTER TABLE `financial_records`
+              ADD COLUMN IF NOT EXISTS `created_by` INT NULL AFTER `record_date`;
         ");
     } catch (Exception $ign) {
         // Ignored if columns already present or db engine doesn't support IF NOT EXISTS in ALTER

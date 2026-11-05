@@ -1956,7 +1956,30 @@ $igUrl = (strpos($igRaw, 'http') === 0) ? $igRaw : 'https://instagram.com/' . lt
       </div>
 
     </div>
-  </div>
+  <!-- Floating Mobile Quick Navigation Bar (Ergonomic Thumb-Zone, Zero-Clutter) -->
+  <nav aria-label="Mobile Quick Nav" class="lg:hidden fixed bottom-3 left-3 right-3 z-40 bg-[#0b1e36]/90 backdrop-blur-xl border border-white/20 text-white rounded-2xl shadow-2xl p-2 transition-transform duration-300">
+    <div class="grid grid-cols-4 gap-1 text-center">
+      <a href="#jadwal" class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl hover:bg-white/10 text-amber-400 font-bold transition-all active:scale-95">
+        <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span class="text-[10px] font-mono tracking-tight">Jadwal</span>
+      </a>
+
+      <a href="#cara-ikut" class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl hover:bg-white/10 text-slate-200 font-medium transition-all active:scale-95">
+        <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span class="text-[10px] font-mono tracking-tight">Cara Mabar</span>
+      </a>
+
+      <a href="#leaderboard" class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl hover:bg-white/10 text-slate-200 font-medium transition-all active:scale-95">
+        <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        <span class="text-[10px] font-mono tracking-tight">Top Scorers</span>
+      </a>
+
+      <a href="<?= $appUrl ?>" target="_blank" class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl bg-amber-400 text-slate-950 font-black transition-all active:scale-95 shadow-sm">
+        <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        <span class="text-[10px] font-mono tracking-tight">App PIC</span>
+      </a>
+    </div>
+  </nav>
 
 </body>
 </html>

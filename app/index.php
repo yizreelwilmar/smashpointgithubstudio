@@ -310,6 +310,16 @@ if ($currentSession) {
             Schedule::completeSession($sessionId);
             $appMessage = "Sesi mabar berhasil diflag selesai! Rekapitulasi kas dan riwayat pertandingan telah dicatat di sistem.";
             $currentSession = Schedule::find($sessionId);
+        } elseif ($_POST['form_action'] === 'duplicate_next_week') {
+            $newId = Schedule::duplicateForNextWeek($sessionId);
+            if ($newId) {
+                $_SESSION['courtside_session_id'] = $newId;
+                $_SESSION['courtside_flash_msg'] = "Berhasil membuat sesi mabar pekan depan! Sesi baru telah aktif dan siap menerima pendaftaran.";
+                header("Location: ?view=court", true, 302);
+                exit;
+            } else {
+                $appError = "Gagal menduplikasi sesi untuk pekan depan.";
+            }
         } elseif ($_POST['form_action'] === 'add_session_finance') {
             $amount = (int)preg_replace('/[^0-9]/', '', (string)($_POST['amount'] ?? ''));
             $title = trim((string)($_POST['title'] ?? ''));
@@ -651,11 +661,17 @@ $waRecapFullText = implode("\n", $waRecapLines);
             </div>
             
             <div class="flex items-center gap-2 flex-wrap">
+              <form method="POST" action="" class="inline">
+                <input type="hidden" name="form_action" value="duplicate_next_week">
+                <button type="submit" class="px-3 py-2 bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider rounded-lg shadow-xs transition-all flex items-center justify-center gap-1 border border-amber-300" title="Buat & Pindah ke Sesi Pekan Depan">
+                  ⚡ Buat Sesi Pekan Depan →
+                </button>
+              </form>
               <button type="button" onclick="copyWhatsappRecap()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-lg shadow-xs transition-all flex items-center justify-center">
-                Salin Rekap WhatsApp
+                Salin Rekap WA
               </button>
               <button type="button" onclick="openSessionSheet()" class="px-3 py-2 bg-[#0b1e36] hover:bg-[#071324] active:scale-95 text-amber-400 font-black text-xs uppercase tracking-wider rounded-lg border border-amber-400/30 transition-all flex items-center justify-center">
-                Ganti Sesi Lain
+                Pilih Sesi Lain
               </button>
             </div>
           </div>
@@ -2048,8 +2064,11 @@ $waRecapFullText = implode("\n", $waRecapLines);
   <!-- MODERN MOBILE BOTTOM SHEET: GANTI SESI      -->
   <!-- ========================================== -->
   <?php
-    $otherSessions = array_filter($allSchedules, function($sch) use ($sessionId) {
-        return (int)$sch['id'] !== (int)$sessionId;
+    $activeSessionsList = array_filter($allSchedules, function($sch) use ($sessionId) {
+        return (int)$sch['id'] !== (int)$sessionId && ($sch['status'] ?? 'open') !== 'completed';
+    });
+    $completedSessionsList = array_filter($allSchedules, function($sch) use ($sessionId) {
+        return (int)$sch['id'] !== (int)$sessionId && ($sch['status'] ?? 'open') === 'completed';
     });
   ?>
   <div id="sessionBottomSheet" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/80 backdrop-blur-sm transition-opacity duration-200" onclick="if(event.target===this) closeSessionSheet()">
@@ -2061,8 +2080,8 @@ $waRecapFullText = implode("\n", $waRecapLines);
       <!-- Header -->
       <div class="flex items-center justify-between pb-3 border-b border-slate-700/80">
         <div>
-          <h3 class="text-sm font-black text-white uppercase tracking-wider font-mono">
-            Pindah ke Sesi Lain
+          <h3 class="text-sm font-black text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
+            <span>Pindah ke Sesi Lain</span>
           </h3>
           <p class="text-[11px] text-slate-400 mt-0.5">
             Sesi aktif: <strong class="text-amber-400"><?= htmlspecialchars($currentSession ? $currentSession['venue_name'] : '-') ?></strong>
@@ -2073,44 +2092,95 @@ $waRecapFullText = implode("\n", $waRecapLines);
         </button>
       </div>
 
-      <!-- Sessions List (Excluding Already Selected Session) -->
-      <div class="overflow-y-auto py-3 space-y-2.5 max-h-[55vh]">
-        <?php if (empty($otherSessions)): ?>
+      <!-- Sessions List (Grouped: Active vs Completed) -->
+      <div class="overflow-y-auto py-3 space-y-3 max-h-[55vh]">
+        
+        <!-- SECTION 1: SESI MABAR AKTIF -->
+        <?php if (!empty($activeSessionsList)): ?>
+          <div>
+            <div class="text-[10px] font-mono font-black text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-1.5 px-1">
+              <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+              <span>⚡ SESI MABAR AKTIF LAPANGAN (<?= count($activeSessionsList) ?>)</span>
+            </div>
+            <div class="space-y-2">
+              <?php foreach ($activeSessionsList as $sch): 
+                $tS = isset($sch['time_start']) ? $sch['time_start'] : (isset($sch['start_time']) ? $sch['start_time'] : '20:00');
+                $tDisplay = substr($tS, 0, 5) . ' WIB';
+              ?>
+                <a href="?view=<?= htmlspecialchars($view) ?>&switch=<?= urlencode(Security::hashId((int)$sch['id'])) ?>" class="flex items-center justify-between p-3.5 bg-[#071324] hover:bg-slate-800 border border-amber-400/30 rounded-xl active:scale-98 transition-all group shadow-xs">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-lg bg-amber-400/10 border border-amber-400/40 text-amber-400 flex items-center justify-center font-black text-xs font-mono shrink-0">
+                      <?= strtoupper(substr($sch['day_name'], 0, 3)) ?>
+                    </div>
+                    <div class="min-w-0 text-left">
+                      <div class="font-extrabold text-xs sm:text-sm text-white group-hover:text-amber-400 transition-colors truncate">
+                        <?= htmlspecialchars($sch['venue_name']) ?>
+                      </div>
+                      <div class="text-[11px] text-slate-300 flex items-center gap-1.5 mt-0.5 font-mono truncate">
+                        <span class="text-amber-300 font-bold"><?= htmlspecialchars($sch['day_name']) ?></span>
+                        <span>•</span>
+                        <span><?= $tDisplay ?></span>
+                        <?php if (!empty($sch['branch_area'])): ?>
+                          <span>•</span>
+                          <span class="truncate"><?= htmlspecialchars($sch['branch_area']) ?></span>
+                        <?php endif; ?>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="text-amber-400 text-xs font-black shrink-0 px-2.5 py-1 rounded bg-amber-400/10 border border-amber-400/30 group-hover:bg-amber-400 group-hover:text-slate-950 transition-all font-mono">
+                    Pindah &rarr;
+                  </div>
+                </a>
+              <?php endforeach; ?>
+            </div>
+          </div>
+        <?php endif; ?>
+
+        <!-- SECTION 2: RIWAYAT SESI SELESAI (ARCHIVED) -->
+        <?php if (!empty($completedSessionsList)): ?>
+          <div class="<?= !empty($activeSessionsList) ? 'pt-3 border-t border-slate-800' : '' ?>">
+            <div class="text-[10px] font-mono font-black text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5 px-1">
+              <span>📁 RIWAYAT SESI SELESAI / TERKUNCI (<?= count($completedSessionsList) ?>)</span>
+            </div>
+            <div class="space-y-2">
+              <?php foreach ($completedSessionsList as $sch): 
+                $tS = isset($sch['time_start']) ? $sch['time_start'] : (isset($sch['start_time']) ? $sch['start_time'] : '20:00');
+                $tDisplay = substr($tS, 0, 5) . ' WIB';
+              ?>
+                <a href="?view=<?= htmlspecialchars($view) ?>&switch=<?= urlencode(Security::hashId((int)$sch['id'])) ?>" class="flex items-center justify-between p-3 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 rounded-xl active:scale-98 transition-all group opacity-85">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-9 h-9 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 flex items-center justify-center font-bold text-xs font-mono shrink-0">
+                      ✓
+                    </div>
+                    <div class="min-w-0 text-left">
+                      <div class="font-bold text-xs text-slate-300 group-hover:text-white transition-colors truncate">
+                        <?= htmlspecialchars($sch['venue_name']) ?>
+                      </div>
+                      <div class="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5 font-mono truncate">
+                        <span><?= htmlspecialchars($sch['day_name']) ?></span>
+                        <span>•</span>
+                        <span><?= $tDisplay ?></span>
+                        <span class="text-emerald-400 font-bold bg-emerald-950/60 px-1 py-0.2 border border-emerald-800/60 rounded-xs">[Selesai]</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="text-slate-400 text-[11px] font-semibold shrink-0 px-2 py-1 rounded bg-slate-800 group-hover:text-white transition-all font-mono">
+                    Lihat Arsip
+                  </div>
+                </a>
+              <?php endforeach; ?>
+            </div>
+          </div>
+        <?php endif; ?>
+
+        <?php if (empty($activeSessionsList) && empty($completedSessionsList)): ?>
           <div class="p-6 text-center text-xs text-slate-400">
             Tidak ada sesi mabar lain yang tersedia saat ini.
           </div>
-        <?php else: ?>
-          <?php foreach ($otherSessions as $sch): 
-            $tS = isset($sch['time_start']) ? $sch['time_start'] : (isset($sch['start_time']) ? $sch['start_time'] : '20:00');
-            $tDisplay = substr($tS, 0, 5) . ' WIB';
-          ?>
-            <a href="?view=<?= htmlspecialchars($view) ?>&switch=<?= urlencode(Security::hashId((int)$sch['id'])) ?>" class="flex items-center justify-between p-3.5 bg-[#071324] hover:bg-slate-800 border border-slate-700/80 rounded-xl active:scale-98 transition-all group shadow-xs">
-              <div class="flex items-center gap-3 min-w-0">
-                <div class="w-10 h-10 rounded-lg bg-amber-400/10 border border-amber-400/30 text-amber-400 flex items-center justify-center font-black text-xs font-mono shrink-0">
-                  <?= strtoupper(substr($sch['day_name'], 0, 3)) ?>
-                </div>
-                <div class="min-w-0 text-left">
-                  <div class="font-extrabold text-xs sm:text-sm text-white group-hover:text-amber-400 transition-colors truncate">
-                    <?= htmlspecialchars($sch['venue_name']) ?>
-                  </div>
-                  <div class="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5 font-mono truncate">
-                    <span class="text-amber-300 font-bold"><?= htmlspecialchars($sch['day_name']) ?></span>
-                    <span>•</span>
-                    <span><?= $tDisplay ?></span>
-                    <?php if (!empty($sch['branch_area'])): ?>
-                      <span>•</span>
-                      <span class="truncate"><?= htmlspecialchars($sch['branch_area']) ?></span>
-                    <?php endif; ?>
-                  </div>
-                </div>
-              </div>
-
-              <div class="text-amber-400 text-xs font-black shrink-0 px-2 py-1 rounded bg-amber-400/10 border border-amber-400/20 group-hover:bg-amber-400 group-hover:text-slate-950 transition-all font-mono">
-                Pindah &rarr;
-              </div>
-            </a>
-          <?php endforeach; ?>
         <?php endif; ?>
+
       </div>
 
       <!-- Footer Close Button -->

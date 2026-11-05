@@ -18,6 +18,9 @@ function startMariaDBIfNeeded() {
         try {
           execSync('mysqladmin ping', { stdio: 'ignore' });
           console.log('MariaDB is alive and ready.');
+          try {
+            execSync("mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED VIA mysql_native_password USING ''; GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION; CREATE USER IF NOT EXISTS 'root'@'127.0.0.1'; GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1'; FLUSH PRIVILEGES;\"", { stdio: 'ignore' });
+          } catch (_) {}
           break;
         } catch (_) {
           execSync('sleep 0.5');

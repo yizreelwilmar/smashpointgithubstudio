@@ -300,8 +300,9 @@ class Player {
 
     /**
      * Get players with their branch/cabang participation breakdown
+     * Supports filtering by session status: 'all', 'active' (open/in_progress), 'completed'
      */
-    public static function getPlayersWithBranches($filterSessionId = null, $filterBranch = null) {
+    public static function getPlayersWithBranches($filterSessionId = null, $filterBranch = null, string $sessionStatusFilter = 'all') {
         $pdo = Database::getConnection();
         
         $sql = "
@@ -313,7 +314,8 @@ class Player {
                 GROUP_CONCAT(DISTINCT s.id) as session_ids,
                 SUM(CASE WHEN sp.payment_status = 'paid' THEN 1 ELSE 0 END) as paid_sessions,
                 SUM(CASE WHEN sp.payment_status = 'unpaid' THEN 1 ELSE 0 END) as unpaid_sessions,
-                MAX(s.schedule_date) as last_played_date
+                MAX(s.schedule_date) as last_played_date,
+                GROUP_CONCAT(DISTINCT s.status) as session_statuses
             FROM `players` p
             LEFT JOIN `session_participants` sp ON p.id = sp.player_id
             LEFT JOIN `schedules` s ON sp.session_id = s.id
@@ -330,6 +332,12 @@ class Player {
         if (!empty($filterBranch)) {
             $where[] = "(s.branch_area LIKE :branch OR s.venue_name LIKE :branch)";
             $params[':branch'] = "%{$filterBranch}%";
+        }
+
+        if ($sessionStatusFilter === 'active') {
+            $where[] = "s.status IN ('open', 'in_progress')";
+        } elseif ($sessionStatusFilter === 'completed') {
+            $where[] = "s.status = 'completed'";
         }
 
         if (!empty($where)) {

@@ -87,7 +87,7 @@ class Finance {
         $pdo = Database::getConnection();
 
         // 1. Participant fee calculations (from session_participants)
-        $pWhere = ["sp.status = 'confirmed'"];
+        $pWhere = ["1=1"];
         $pParams = [];
 
         if ($sessionId > 0) {
@@ -178,7 +178,7 @@ class Finance {
                 COALESCE(fin.total_session_expense, 0) as expense_total,
                 COALESCE(fin.total_session_extra_income, 0) as extra_income_total
             FROM `schedules` s
-            LEFT JOIN `session_participants` sp ON s.id = sp.session_id AND sp.status = 'confirmed'
+            LEFT JOIN `session_participants` sp ON s.id = sp.session_id
             LEFT JOIN (
                 SELECT 
                     session_id,
@@ -252,7 +252,7 @@ class Finance {
             SELECT DATE_FORMAT(s.schedule_date, '%Y-%m') AS ym, COALESCE(SUM(sp.payment_amount), 0) AS total
             FROM `session_participants` sp
             JOIN `schedules` s ON sp.session_id = s.id
-            WHERE sp.status = 'confirmed' AND sp.payment_status = 'paid' AND s.schedule_date >= ?
+            WHERE sp.payment_status = 'paid' AND s.schedule_date >= ?
             GROUP BY ym
         ");
         $iuran->execute([$startMonth]);
@@ -312,7 +312,7 @@ class Finance {
      */
     public static function getUnpaidParticipants(int $sessionId = 0, string $month = '', int $limit = 200): array {
         $pdo = Database::getConnection();
-        $where = ["sp.status = 'confirmed'", "sp.payment_status = 'unpaid'"];
+        $where = ["sp.payment_status = 'unpaid'"];
         $params = [];
 
         if ($sessionId > 0) {

@@ -435,7 +435,7 @@ if ($isLoggedIn && $reqMethod === 'POST' && isset($_POST['form_action'])) {
             }
 
             $roleLabel = ($role === 'pic_foto') ? 'PIC Foto / Dokumentasi' : 'PIC Lapangan';
-            $successMsg = "Akun {$roleLabel} '{$name}' (@{$username}) berhasil dibuat!";
+            $successMsg = "Akun {$roleLabel} '{$name}' (@{$username}) berhasil dibuat! Penugasan cabang dapat Anda atur pada sub-tab Penugasan Sesi.";
         } elseif ($formAction === 'quick_demo_pic') {
             $pdo = Database::getConnection();
             
@@ -620,12 +620,13 @@ foreach ($picAccounts as &$pa) {
 }
 unset($pa);
 
-// Roster Filter state (Supports Hash Token)
+// Roster Filter state (Supports Hash Token & Active vs Completed Session Status)
 $rawRosterSession = isset($_GET['roster_session']) ? (string)$_GET['roster_session'] : '';
 $filterRosterSession = is_numeric($rawRosterSession) ? (int)$rawRosterSession : Security::decodeId($rawRosterSession);
 $filterRosterBranch = isset($_GET['roster_branch']) ? trim($_GET['roster_branch']) : '';
+$filterRosterStatus = isset($_GET['roster_status']) ? trim($_GET['roster_status']) : 'active';
 $currentFilterSession = $filterRosterSession > 0 ? Schedule::find($filterRosterSession) : null;
-$rosterPlayers = Player::getPlayersWithBranches($filterRosterSession, $filterRosterBranch);
+$rosterPlayers = Player::getPlayersWithBranches($filterRosterSession, $filterRosterBranch, $filterRosterStatus);
 
 // Edit Schedule state (Supports Hash Token)
 $editSchedule = null;
@@ -3042,8 +3043,8 @@ ${listLines.join('\n')}${fullTag}`;
           <form method="GET" action="" class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
             <input type="hidden" name="tab" value="roster">
 
-            <div class="sm:col-span-6">
-              <label class="block text-xs font-bold text-slate-700 mb-1">Filter Berdasarkan Sesi / GOR & Tanggal Main:</label>
+            <div class="sm:col-span-5">
+              <label class="block text-xs font-bold text-slate-700 mb-1">Filter Sesi / GOR & Tanggal Main:</label>
               <select name="roster_session" onchange="this.form.submit()" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500">
                 <option value="all">-- Seluruh Cabang (Buku Kontak Master Komunitas) --</option>
                 <?php foreach ($allSchedules as $sch): 
@@ -3058,17 +3059,26 @@ ${listLines.join('\n')}${fullTag}`;
               </select>
             </div>
 
-            <div class="sm:col-span-4">
-              <label class="block text-xs font-bold text-slate-700 mb-1">Filter Kata Kunci Cabang / Area:</label>
-              <input type="text" name="roster_branch" value="<?= htmlspecialchars($filterRosterBranch) ?>" placeholder="Misal: Pancoran, Fatmawati, Tebet..." class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900 font-semibold focus:outline-none">
+            <div class="sm:col-span-3">
+              <label class="block text-xs font-bold text-slate-700 mb-1">Status Sesi Roster:</label>
+              <select name="roster_status" onchange="this.form.submit()" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none">
+                <option value="active" <?= $filterRosterStatus === 'active' ? 'selected' : '' ?>>⚡ Sesi Aktif Sahaja (Bersih)</option>
+                <option value="completed" <?= $filterRosterStatus === 'completed' ? 'selected' : '' ?>>📁 Riwayat Sesi Selesai (Arsip)</option>
+                <option value="all" <?= $filterRosterStatus === 'all' ? 'selected' : '' ?>>🌐 Master (Semua Sesi)</option>
+              </select>
             </div>
 
-            <div class="sm:col-span-2 flex gap-2">
-              <button type="submit" class="w-full py-2.5 bg-[#0b1e36] hover:bg-[#132b4f] text-amber-400 font-bold text-xs uppercase tracking-wider rounded-md transition-all border border-amber-400/30">
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-700 mb-1">Area / Cabang:</label>
+              <input type="text" name="roster_branch" value="<?= htmlspecialchars($filterRosterBranch) ?>" placeholder="Pancoran, Tebet..." class="w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-900 font-semibold focus:outline-none">
+            </div>
+
+            <div class="sm:col-span-2 flex gap-1.5">
+              <button type="submit" class="w-full py-2 bg-[#0b1e36] hover:bg-[#132b4f] text-amber-400 font-bold text-xs uppercase tracking-wider rounded-md transition-all border border-amber-400/30">
                 Filter
               </button>
-              <?php if ($filterRosterSession > 0 || !empty($filterRosterBranch)): ?>
-                <a href="?tab=roster" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md text-xs font-bold transition-all" title="Reset Filter">
+              <?php if ($filterRosterSession > 0 || !empty($filterRosterBranch) || $filterRosterStatus !== 'active'): ?>
+                <a href="?tab=roster" class="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md text-xs font-bold transition-all flex items-center justify-center" title="Reset Filter">
                   Reset
                 </a>
               <?php endif; ?>
@@ -3859,71 +3869,80 @@ ${listLines.join('\n')}${fullTag}`;
                     }
                   }
                 ?>
-                  <div class="p-3.5 space-y-2.5">
+                  <div class="p-4 space-y-3 bg-white">
+                    <!-- Session Header Info -->
                     <div class="flex items-start justify-between gap-2">
-                      <div class="min-w-0">
+                      <div class="min-w-0 space-y-1">
                         <div class="flex items-center gap-1.5 flex-wrap">
-                          <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#0b1e36] text-amber-300">
+                          <span class="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-[#0b1e36] text-amber-300">
                             <?= htmlspecialchars($sch['day_name']) ?>
                           </span>
                           <span class="text-xs font-bold text-slate-900 font-mono">
                             <?= date('d M Y', strtotime($sch['schedule_date'])) ?>
                           </span>
-                          <span class="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                            <?= substr($tS, 0, 5) ?> - <?= substr($tE, 0, 5) ?>
+                          <span class="text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                            <?= substr($tS, 0, 5) ?> - <?= substr($tE, 0, 5) ?> WIB
                           </span>
                         </div>
-                        <h4 class="font-extrabold text-slate-900 text-sm mt-1 truncate">
+                        <h4 class="font-black text-slate-900 text-sm mt-1">
                           <?= htmlspecialchars($sch['venue_name']) ?>
                         </h4>
                         <div class="text-[11px] text-slate-500">
-                          Cabang: <strong class="text-slate-700"><?= htmlspecialchars($sch['branch_area'] ?: 'Pusat') ?></strong> • <?= $sch['court_count'] ?> Lap
+                          Cabang: <strong class="text-slate-800"><?= htmlspecialchars($sch['branch_area'] ?: 'Pusat') ?></strong> • <?= $sch['court_count'] ?> Lapangan
                         </div>
                       </div>
 
-                      <span class="shrink-0 px-2 py-0.5 rounded text-[9px] font-mono font-black uppercase tracking-wider <?= $isCompleted ? 'bg-slate-100 text-slate-700 border border-slate-300' : 'bg-emerald-50 text-emerald-800 border border-emerald-300' ?>">
-                        <?= $isCompleted ? 'SELESAI' : 'AKTIF' ?>
+                      <span class="shrink-0 px-2.5 py-1 rounded text-[10px] font-mono font-black uppercase tracking-wider <?= $isCompleted ? 'bg-slate-100 text-slate-700 border border-slate-300' : 'bg-emerald-50 text-emerald-800 border border-emerald-300' ?>">
+                        <?= $isCompleted ? 'Selesai' : 'Aktif' ?>
                       </span>
                     </div>
 
-                    <!-- PIC Status Bar & Form -->
-                    <div class="pt-2 border-t border-slate-100 bg-slate-50/60 p-2.5 rounded-lg space-y-2">
-                      <div class="flex items-center justify-between text-xs">
-                        <span class="text-[11px] font-semibold text-slate-500">PIC Bertugas:</span>
-                        <?php if ($assignedPicObj): ?>
-                          <span class="font-bold text-slate-900 flex items-center gap-1 text-xs">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            <?= htmlspecialchars($assignedPicObj['name']) ?>
-                            <?php if (!empty($assignedPicObj['phone'])): ?>
-                              <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $assignedPicObj['phone']) ?>" target="_blank" class="text-blue-700 font-mono text-[10px] ml-1 underline">WA</a>
-                            <?php endif; ?>
-                          </span>
-                        <?php else: ?>
-                          <span class="font-mono text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                            Belum Ada PIC
-                          </span>
-                        <?php endif; ?>
-                      </div>
+                    <!-- Current Assigned PIC Info Box -->
+                    <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between text-xs">
+                      <span class="text-[11px] font-medium text-slate-500">PIC Bertugas:</span>
+                      <?php if ($assignedPicObj): ?>
+                        <div class="font-bold text-slate-900 flex items-center gap-1.5 text-xs">
+                          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                          <span><?= htmlspecialchars($assignedPicObj['name']) ?></span>
+                          <?php if (!empty($assignedPicObj['phone'])): ?>
+                            <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $assignedPicObj['phone']) ?>" target="_blank" class="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-mono text-[10px] rounded hover:underline">
+                              WA PIC
+                            </a>
+                          <?php endif; ?>
+                        </div>
+                      <?php else: ?>
+                        <span class="font-mono text-[10px] font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded border border-rose-200">
+                          Belum Ditugaskan
+                        </span>
+                      <?php endif; ?>
+                    </div>
 
-                      <!-- Quick Assign Form Mobile -->
-                      <form method="POST" action="?tab=pic_accounts" class="flex items-center gap-1.5 pt-1">
-                        <input type="hidden" name="form_action" value="assign_pic_session">
-                        <input type="hidden" name="session_id" value="<?= $sch['id'] ?>">
-                        <select name="pic_id" class="flex-1 min-h-[38px] bg-white border border-slate-300 rounded-lg px-2.5 text-xs font-bold text-slate-800 focus:outline-none">
-                          <option value="">-- Lepas PIC --</option>
+                    <!-- Friendly Form: Clean Vertical Stack without Overlap -->
+                    <form method="POST" action="?tab=pic_accounts" class="space-y-2 pt-1">
+                      <input type="hidden" name="form_action" value="assign_pic_session">
+                      <input type="hidden" name="session_id" value="<?= $sch['id'] ?>">
+                      
+                      <div>
+                        <label class="text-[11px] font-mono font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                          Pilih / Ganti PIC Petugas:
+                        </label>
+                        <select name="pic_id" class="w-full min-h-[42px] bg-white border border-slate-300 rounded-xl px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0b1e36]">
+                          <option value="">-- Lepas Penugasan (Unassigned) --</option>
                           <?php foreach ($picAccounts as $p): 
                             $isSelected = ($assignedPicObj && (int)$assignedPicObj['id'] === (int)$p['id']);
                           ?>
                             <option value="<?= $p['id'] ?>" <?= $isSelected ? 'selected' : '' ?>>
-                              <?= htmlspecialchars($p['name']) ?> (<?= htmlspecialchars($p['username']) ?>)
+                              <?= htmlspecialchars($p['name']) ?> (@<?= htmlspecialchars($p['username']) ?>)
                             </option>
                           <?php endforeach; ?>
                         </select>
-                        <button type="submit" class="min-h-[38px] px-3 bg-[#0b1e36] text-amber-400 font-bold text-xs uppercase tracking-wider rounded-lg active:scale-95 transition-all shrink-0">
-                          Tugaskan
-                        </button>
-                      </form>
-                    </div>
+                      </div>
+
+                      <button type="submit" class="w-full min-h-[42px] px-4 bg-[#0b1e36] hover:bg-[#132b4f] text-amber-400 font-black text-xs uppercase tracking-wider rounded-xl active:scale-95 transition-all shadow-xs flex items-center justify-center gap-1.5 border border-amber-400/20">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <span>Simpan Penugasan PIC</span>
+                      </button>
+                    </form>
 
                   </div>
                 <?php endforeach; ?>
@@ -3934,11 +3953,11 @@ ${listLines.join('\n')}${fullTag}`;
                 <table class="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr class="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider text-[10px] font-mono border-b border-slate-200">
-                      <th class="py-3 px-4">Tanggal & Jam</th>
-                      <th class="py-3 px-4">Cabang / Venue GOR</th>
-                      <th class="py-3 px-4">Status</th>
-                      <th class="py-3 px-4">PIC Bertugas Saat Ini</th>
-                      <th class="py-3 px-4 text-right">Tugaskan PIC</th>
+                      <th class="py-3 px-4 w-[22%]">Jadwal & Tanggal</th>
+                      <th class="py-3 px-4 w-[25%]">Venue GOR & Cabang</th>
+                      <th class="py-3 px-4 w-[12%]">Status</th>
+                      <th class="py-3 px-4 w-[21%]">PIC Bertugas Saat Ini</th>
+                      <th class="py-3 px-4 w-[20%] text-right">Pilih & Simpan PIC</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-slate-100">
@@ -3958,48 +3977,51 @@ ${listLines.join('\n')}${fullTag}`;
                       }
                     ?>
                       <tr class="hover:bg-slate-50/80 transition-colors">
-                        <td class="py-3 px-4 font-mono">
-                          <span class="font-bold text-slate-900"><?= htmlspecialchars($sch['day_name']) ?></span>, <?= date('d M Y', strtotime($sch['schedule_date'])) ?>
-                          <div class="text-[10px] text-slate-500 font-bold mt-0.5">
+                        <td class="py-3.5 px-4 font-mono">
+                          <div class="font-bold text-slate-900"><?= htmlspecialchars($sch['day_name']) ?></div>
+                          <div class="text-[11px] text-slate-600"><?= date('d M Y', strtotime($sch['schedule_date'])) ?></div>
+                          <div class="text-[10px] text-slate-400 font-bold mt-0.5">
                             <?= substr($tS, 0, 5) ?> - <?= substr($tE, 0, 5) ?> WIB
                           </div>
                         </td>
 
-                        <td class="py-3 px-4">
-                          <div class="font-bold text-slate-900"><?= htmlspecialchars($sch['venue_name']) ?></div>
-                          <div class="text-[11px] text-slate-500">Cabang <?= htmlspecialchars($sch['branch_area'] ?: 'Pusat') ?> • <?= $sch['court_count'] ?> Lap</div>
+                        <td class="py-3.5 px-4">
+                          <div class="font-bold text-slate-900 text-sm"><?= htmlspecialchars($sch['venue_name']) ?></div>
+                          <div class="text-[11px] text-slate-500 mt-0.5">
+                            Cabang <?= htmlspecialchars($sch['branch_area'] ?: 'Pusat') ?> • <?= $sch['court_count'] ?> Lapangan
+                          </div>
                         </td>
 
-                        <td class="py-3 px-4">
-                          <span class="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase <?= $isCompleted ? 'bg-slate-100 text-slate-700 border border-slate-300' : 'bg-emerald-50 text-emerald-800 border border-emerald-300' ?>">
+                        <td class="py-3.5 px-4">
+                          <span class="inline-block px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase <?= $isCompleted ? 'bg-slate-100 text-slate-700 border border-slate-300' : 'bg-emerald-50 text-emerald-800 border border-emerald-300' ?>">
                             <?= $isCompleted ? 'Selesai' : 'Aktif' ?>
                           </span>
                         </td>
 
-                        <td class="py-3 px-4">
+                        <td class="py-3.5 px-4">
                           <?php if ($assignedPicObj): ?>
                             <div class="font-bold text-slate-900 flex items-center gap-1.5">
-                              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                              <?= htmlspecialchars($assignedPicObj['name']) ?>
-                              <span class="text-slate-400 font-mono text-[10px]">(@<?= htmlspecialchars($assignedPicObj['username']) ?>)</span>
+                              <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                              <span class="truncate"><?= htmlspecialchars($assignedPicObj['name']) ?></span>
                             </div>
-                            <?php if (!empty($assignedPicObj['phone'])): ?>
-                              <div class="text-[10px] font-mono text-slate-500 mt-0.5">
-                                WA: <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $assignedPicObj['phone']) ?>" target="_blank" class="text-blue-700 hover:underline"><?= htmlspecialchars($assignedPicObj['phone']) ?></a>
-                              </div>
-                            <?php endif; ?>
+                            <div class="text-[10px] font-mono text-slate-400 mt-0.5">
+                              @<?= htmlspecialchars($assignedPicObj['username']) ?>
+                              <?php if (!empty($assignedPicObj['phone'])): ?>
+                                &bull; <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $assignedPicObj['phone']) ?>" target="_blank" class="text-blue-700 hover:underline"><?= htmlspecialchars($assignedPicObj['phone']) ?></a>
+                              <?php endif; ?>
+                            </div>
                           <?php else: ?>
-                            <span class="text-[10px] font-mono font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                              Belum Ditugaskan
+                            <span class="text-[10px] font-mono font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded border border-rose-200 inline-block">
+                              Belum Ada PIC
                             </span>
                           <?php endif; ?>
                         </td>
 
-                        <td class="py-3 px-4 text-right">
-                          <form method="POST" action="?tab=pic_accounts" class="inline-flex items-center gap-1.5 justify-end">
+                        <td class="py-3.5 px-4 text-right">
+                          <form method="POST" action="?tab=pic_accounts" class="flex items-center justify-end gap-2">
                             <input type="hidden" name="form_action" value="assign_pic_session">
                             <input type="hidden" name="session_id" value="<?= $sch['id'] ?>">
-                            <select name="pic_id" class="bg-white border border-slate-300 rounded px-2.5 py-1 text-xs font-bold text-slate-800 focus:outline-none max-w-[170px]">
+                            <select name="pic_id" class="w-48 bg-white border border-slate-300 rounded-lg px-2.5 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0b1e36] shrink-0">
                               <option value="">-- Lepas PIC --</option>
                               <?php foreach ($picAccounts as $p): 
                                 $isSelected = ($assignedPicObj && (int)$assignedPicObj['id'] === (int)$p['id']);
@@ -4009,8 +4031,8 @@ ${listLines.join('\n')}${fullTag}`;
                                 </option>
                               <?php endforeach; ?>
                             </select>
-                            <button type="submit" class="px-2.5 py-1 bg-[#0b1e36] text-amber-400 font-bold text-xs uppercase tracking-wider rounded border border-amber-400/30 transition-colors shadow-xs">
-                              Tugaskan
+                            <button type="submit" class="px-3.5 py-2 bg-[#0b1e36] hover:bg-[#132b4f] text-amber-400 font-extrabold text-xs uppercase tracking-wider rounded-lg border border-amber-400/30 transition-all shadow-xs shrink-0 whitespace-nowrap active:scale-95">
+                              Simpan
                             </button>
                           </form>
                         </td>
@@ -4158,16 +4180,11 @@ ${listLines.join('\n')}${fullTag}`;
                   </div>
                 </div>
 
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">Sesi Ditugaskan (Opsional):</label>
-                  <select name="assigned_session_id" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none min-h-[40px]">
-                    <option value="">-- Pilih Nanti di Tab Penugasan --</option>
-                    <?php foreach ($allSchedules as $sch): ?>
-                      <option value="<?= $sch['id'] ?>">
-                        <?= htmlspecialchars($sch['day_name']) ?> — <?= htmlspecialchars($sch['venue_name']) ?>
-                      </option>
-                    <?php endforeach; ?>
-                  </select>
+                <div class="p-3 bg-amber-50/70 border border-amber-200/80 rounded-lg text-slate-700 text-xs flex items-start gap-2">
+                  <span class="text-amber-600 font-bold shrink-0">ℹ</span>
+                  <span class="text-[11px] leading-relaxed">
+                    <b>Catatan Penugasan:</b> Akun PIC dibuat murni terlebih dahulu. Penugasan jadwal dan cabang GOR diatur terpusat pada sub-tab <b>Penugasan Sesi</b>.
+                  </span>
                 </div>
 
                 <button type="submit" class="w-full py-3 bg-[#0b1e36] hover:bg-[#132b4f] text-amber-400 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-xs border border-amber-400/30 mt-1 min-h-[44px]">
