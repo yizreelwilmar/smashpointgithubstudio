@@ -22,7 +22,7 @@ class Community {
                 'hero_title' => 'Main Badminton Bareng Tanpa Repot Cari Lawan & Lapangan.',
                 'hero_subtitle' => 'Selamat datang di Powershoot Badminton Club. Kami menyelenggarakan sesi main bareng ganda di berbagai GOR pilihan Jakarta Selatan. Cukup konfirmasi ke PIC via WhatsApp, hadir di arena, dan nikmati pertandingan seru dengan rotasi lapangan teratur.',
                 'hero_cta_text' => 'Pilih Jadwal & Daftar via WhatsApp PIC →',
-                'announcement_text' => 'Komunitas Badminton Resmi Jakarta Selatan (Est. 2023)',
+                'announcement_text' => '',
                 'announcement_subtext' => 'Slot Dibuka Setiap Pekan',
                 'step_1_title' => 'Pilih Jadwal & Lokasi GOR',
                 'step_1_desc' => 'Cek daftar sesi mabar mingguan kami. Pilih hari, jam main, dan lokasi GOR yang paling sesuai dengan lokasi Anda.',
@@ -64,8 +64,8 @@ class Community {
         if (empty($row['hero_cta_text'])) {
             $row['hero_cta_text'] = 'Pilih Jadwal & Daftar via WhatsApp PIC →';
         }
-        if (empty($row['announcement_text'])) {
-            $row['announcement_text'] = 'Komunitas Badminton Resmi ' . $baseCity . ' (Est. ' . ($row['established_year'] ?? 2023) . ')';
+        if (!isset($row['announcement_text'])) {
+            $row['announcement_text'] = '';
         }
         if (empty($row['announcement_subtext'])) {
             $row['announcement_subtext'] = 'Slot Dibuka Setiap Pekan';

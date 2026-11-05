@@ -360,7 +360,9 @@ $igUrl = (strpos($igRaw, 'http') === 0) ? $igRaw : 'https://instagram.com/' . lt
             <div class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-amber-400 pulse-live shrink-0"></span>
         <span class="font-bold text-white tracking-wide uppercase text-[11px] sm:text-xs"><?= htmlspecialchars($settings['community_name']) ?></span>
-        <span class="text-slate-400 hidden md:inline">• <?= htmlspecialchars(!empty($settings['announcement_text']) ? $settings['announcement_text'] : 'Komunitas Badminton Resmi ' . $settings['base_city'] . ' (Est. ' . $settings['established_year'] . ')') ?></span>
+        <?php if (!empty($settings['announcement_text'])): ?>
+          <span class="text-slate-400 hidden md:inline">• <?= htmlspecialchars($settings['announcement_text']) ?></span>
+        <?php endif; ?>
       </div>
       <div class="flex items-center gap-3 text-[11px] font-sans">
         <span class="text-amber-400 font-bold hidden xs:inline"><?= htmlspecialchars(!empty($settings['announcement_subtext']) ? $settings['announcement_subtext'] : 'Slot Dibuka Setiap Pekan') ?></span>
