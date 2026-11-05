@@ -134,6 +134,8 @@ try {
             `caption` VARCHAR(255) NULL,
             `session_id` INT NULL,
             `activity_date` DATE NULL,
+            `media_type` ENUM('photo', 'video') NOT NULL DEFAULT 'photo',
+            `video_url` VARCHAR(255) NULL,
             `display_order` INT NOT NULL DEFAULT 0,
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -399,7 +401,9 @@ try {
         $pdo->exec("
             ALTER TABLE `gallery` 
               ADD COLUMN IF NOT EXISTS `session_id` INT NULL AFTER `caption`,
-              ADD COLUMN IF NOT EXISTS `activity_date` DATE NULL AFTER `session_id`;
+              ADD COLUMN IF NOT EXISTS `activity_date` DATE NULL AFTER `session_id`,
+              ADD COLUMN IF NOT EXISTS `media_type` ENUM('photo', 'video') NOT NULL DEFAULT 'photo' AFTER `activity_date`,
+              ADD COLUMN IF NOT EXISTS `video_url` VARCHAR(255) NULL AFTER `media_type`;
         ");
         $pdo->exec("
             ALTER TABLE `financial_records`

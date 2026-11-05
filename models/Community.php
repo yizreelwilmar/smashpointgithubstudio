@@ -11,8 +11,8 @@ class Community {
         if (!$row) {
             return [
                 'community_name' => 'Powershoot Badminton Club',
-                'tagline' => 'Komunitas Badminton Kompetitif & Ramah',
-                'description' => 'Mabar rutin 3-4x seminggu di Jakarta Selatan dengan rotasi lapangan cerdas.',
+                'tagline' => 'Komunitas Badminton Ganda Terorganisasi & Ramah Pemula',
+                'description' => 'Sesi main bareng ganda 3–4 kali seminggu di GOR terbaik Jakarta Selatan dengan rotasi lapangan otomatis.',
                 'instagram' => '@powershoot.badminton',
                 'whatsapp_default' => '081299887766',
                 'base_city' => 'Jakarta Selatan',
@@ -20,16 +20,16 @@ class Community {
                 'logo_url' => '/smashpoint/public/uploads/powershoot_logo.jpg',
                 'hero_image_url' => 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=800&q=80',
                 'hero_title' => 'Main Badminton Bareng Tanpa Repot Cari Lawan & Lapangan.',
-                'hero_subtitle' => 'Selamat datang di Powershoot Badminton Club. Kami menyelenggarakan sesi main bareng ganda 4 kali setiap pekan di berbagai GOR terbaik Jakarta Selatan. Cukup daftar ke PIC WhatsApp, datang ke arena, dan nikmati pertandingan dengan pembagian giliran main yang teratur.',
+                'hero_subtitle' => 'Selamat datang di Powershoot Badminton Club. Kami menyelenggarakan sesi main bareng ganda di berbagai GOR pilihan Jakarta Selatan. Cukup konfirmasi ke PIC via WhatsApp, hadir di arena, dan nikmati pertandingan seru dengan rotasi lapangan teratur.',
                 'hero_cta_text' => 'Pilih Jadwal & Daftar via WhatsApp PIC →',
                 'announcement_text' => 'Komunitas Badminton Resmi Jakarta Selatan (Est. 2023)',
                 'announcement_subtext' => 'Slot Dibuka Setiap Pekan',
-                'step_1_title' => 'Pilih Jadwal & Hubungi PIC WA',
-                'step_1_desc' => 'Cek jadwal mabar di GOR terdekat, slot kuota tersisa, lalu klik tombol pendaftaran WhatsApp PIC untuk konfirmasi kehadiran.',
-                'step_2_title' => 'Konfirmasi & Selesaikan Iuran',
-                'step_2_desc' => 'PIC sesi akan memverifikasi pendaftaran Anda. Cukup selesaikan pembayaran via transfer/QRIS atau tunai di lokasi mabar.',
-                'step_3_title' => 'Datang & Main Sesuai Rotasi Otomatis',
-                'step_3_desc' => 'Cukup bawa raket dan hadir tepat waktu. Shuttlecock bulu angsa resmi berkualitas sudah kami sediakan di lapangan.',
+                'step_1_title' => 'Pilih Jadwal & Lokasi GOR',
+                'step_1_desc' => 'Cek daftar sesi mabar mingguan kami. Pilih hari, jam main, dan lokasi GOR yang paling sesuai dengan lokasi Anda.',
+                'step_2_title' => 'Konfirmasi via WhatsApp PIC',
+                'step_2_desc' => 'Klik tombol pendaftaran untuk terhubung langsung dengan PIC sesi via WhatsApp guna mengonfirmasi ketersediaan slot dan melunasi iuran.',
+                'step_3_title' => 'Datang & Main Sesuai Rotasi',
+                'step_3_desc' => 'Bawa raket pribadi Anda dan hadir tepat waktu. Shuttlecock bulu angsa berkualitas dan rotasi pertandingan ganda sudah disiapkan oleh sistem.',
                 'faq_json' => null
             ];
         }
@@ -194,16 +194,24 @@ class Community {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public static function addGalleryPhoto(string $title, string $imageUrl, ?string $caption = null, $sessionId = null, ?string $activityDate = null) {
+    public static function addGalleryPhoto(string $title, string $imageUrl, ?string $caption = null, $sessionId = null, ?string $activityDate = null, string $mediaType = 'photo', ?string $videoUrl = null) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("
-            INSERT INTO `gallery` (`title`, `image_url`, `caption`, `session_id`, `activity_date`, `created_at`) 
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO `gallery` (`title`, `image_url`, `caption`, `session_id`, `activity_date`, `media_type`, `video_url`, `created_at`) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $cleanSessionId = !empty($sessionId) ? (int)$sessionId : null;
         $cleanDate = !empty($activityDate) ? date('Y-m-d', strtotime($activityDate)) : date('Y-m-d');
+        $mediaType = strtolower($mediaType) === 'video' ? 'video' : 'photo';
         $timestamp = date('Y-m-d H:i:s');
-        return $stmt->execute([$title, $imageUrl, $caption ?: '', $cleanSessionId, $cleanDate, $timestamp]);
+        return $stmt->execute([$title, $imageUrl, $caption ?: '', $cleanSessionId, $cleanDate, $mediaType, $videoUrl, $timestamp]);
+    }
+
+    public static function addGalleryVideo(string $title, string $videoUrl, string $posterUrl = '', ?string $caption = null, $sessionId = null, ?string $activityDate = null) {
+        if (empty($posterUrl)) {
+            $posterUrl = 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=1200&q=80';
+        }
+        return self::addGalleryPhoto($title, $posterUrl, $caption, $sessionId, $activityDate, 'video', $videoUrl);
     }
 
     public static function deleteGalleryPhoto(int $id) {

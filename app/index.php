@@ -243,7 +243,8 @@ if ($currentSession) {
             $docDate = !empty($_POST['activity_date']) ? $_POST['activity_date'] : date('Y-m-d');
             $docSessionId = (int)$sessionId;
             $uploadedCount = 0;
-            $allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+            $allowedImages = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+            $allowedVideos = ['mp4', 'webm', 'mov', 'avi', 'mkv'];
             $targetDir = __DIR__ . '/../public/uploads/gallery/';
             if (!is_dir($targetDir)) {
                 @mkdir($targetDir, 0777, true);
@@ -253,7 +254,7 @@ if ($currentSession) {
                 $docTitle = "Dokumentasi Mabar " . ($currentSession ? $currentSession['venue_name'] : '');
             }
 
-            // 1. Handle Multiple Photo Files (photo_files[])
+            // 1. Handle Multiple Media Files Upload (Photos & Videos)
             if (isset($_FILES['photo_files']) && is_array($_FILES['photo_files']['name'])) {
                 $totalFiles = count($_FILES['photo_files']['name']);
                 for ($i = 0; $i < $totalFiles; $i++) {
@@ -261,13 +262,26 @@ if ($currentSession) {
                         $origName = $_FILES['photo_files']['name'][$i];
                         $tmpName = $_FILES['photo_files']['tmp_name'][$i];
                         $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
-                        if (in_array($ext, $allowed)) {
+                        
+                        if (in_array($ext, $allowedVideos, true)) {
+                            // Upload Video File
+                            $filename = 'video_mabar_' . $docSessionId . '_' . date('Ymd_His') . '_' . $i . '_' . substr(md5(uniqid()), 0, 6) . '.' . $ext;
+                            $targetFile = $targetDir . $filename;
+                            if (move_uploaded_file($tmpName, $targetFile)) {
+                                $videoMediaUrl = $baseDir . '/public/uploads/gallery/' . $filename;
+                                $posterFallback = 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=1200&q=80';
+                                $subTitle = $totalFiles > 1 ? "{$docTitle} Video (#" . ($uploadedCount + 1) . ")" : "{$docTitle} (Video Highlight)";
+                                Community::addGalleryPhoto($subTitle, $posterFallback, $docCaption, $docSessionId, $docDate, 'video', $videoMediaUrl);
+                                $uploadedCount++;
+                            }
+                        } elseif (in_array($ext, $allowedImages, true)) {
+                            // Upload Photo File
                             $filename = 'mabar_' . $docSessionId . '_' . date('Ymd_His') . '_' . $i . '_' . substr(md5(uniqid()), 0, 6) . '.' . $ext;
                             $targetFile = $targetDir . $filename;
                             if (move_uploaded_file($tmpName, $targetFile)) {
                                 $imgUrl = $baseDir . '/public/uploads/gallery/' . $filename;
                                 $subTitle = $totalFiles > 1 ? "{$docTitle} (#" . ($uploadedCount + 1) . ")" : $docTitle;
-                                Community::addGalleryPhoto($subTitle, $imgUrl, $docCaption, $docSessionId, $docDate);
+                                Community::addGalleryPhoto($subTitle, $imgUrl, $docCaption, $docSessionId, $docDate, 'photo');
                                 $uploadedCount++;
                             }
                         }
@@ -275,32 +289,28 @@ if ($currentSession) {
                 }
             }
 
-            // 2. Fallback: Single Photo File (photo_file)
-            if ($uploadedCount === 0 && isset($_FILES['photo_file']) && $_FILES['photo_file']['error'] === UPLOAD_ERR_OK) {
-                $file = $_FILES['photo_file'];
-                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                if (in_array($ext, $allowed)) {
-                    $filename = 'mabar_' . $docSessionId . '_' . date('Ymd_His') . '_' . substr(md5(uniqid()), 0, 6) . '.' . $ext;
-                    $targetFile = $targetDir . $filename;
-                    if (move_uploaded_file($file['tmp_name'], $targetFile)) {
-                        $imgUrl = $baseDir . '/public/uploads/gallery/' . $filename;
-                        Community::addGalleryPhoto($docTitle, $imgUrl, $docCaption, $docSessionId, $docDate);
-                        $uploadedCount++;
-                    }
+            // 2. Direct Video URL Input (YouTube / TikTok / Reel / MP4 link)
+            $directVideoUrl = trim(isset($_POST['video_url']) ? $_POST['video_url'] : '');
+            if ($uploadedCount === 0 && !empty($directVideoUrl)) {
+                $posterUrl = trim(isset($_POST['image_url']) ? $_POST['image_url'] : '');
+                if (empty($posterUrl)) {
+                    $posterUrl = 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=1200&q=80';
                 }
+                Community::addGalleryPhoto($docTitle, $posterUrl, $docCaption, $docSessionId, $docDate, 'video', $directVideoUrl);
+                $uploadedCount++;
             }
 
-            // 3. Fallback: Direct Image URL
+            // 3. Direct Image URL Input
             $imageUrl = trim(isset($_POST['image_url']) ? $_POST['image_url'] : '');
             if ($uploadedCount === 0 && !empty($imageUrl)) {
-                Community::addGalleryPhoto($docTitle, $imageUrl, $docCaption, $docSessionId, $docDate);
+                Community::addGalleryPhoto($docTitle, $imageUrl, $docCaption, $docSessionId, $docDate, 'photo');
                 $uploadedCount++;
             }
 
             if ($uploadedCount > 0) {
-                $appMessage = "Berhasil mengunggah {$uploadedCount} foto dokumentasi mabar! Langsung tayang di Landing Page publik.";
+                $appMessage = "Berhasil mengunggah {$uploadedCount} file media (foto/video) dokumentasi mabar! Langsung tayang di Galeri publik.";
             } elseif (!$appError) {
-                $appError = "Pilih 1 atau beberapa file foto dari kamera/galeri HP (bisa pilih banyak sekaligus) atau masukkan URL gambar.";
+                $appError = "Pilih file foto atau video dari HP (bisa pilih banyak sekaligus) atau masukkan link URL video/foto.";
             }
         } elseif ($_POST['form_action'] === 'delete_documentation') {
             $photoId = (int)$_POST['photo_id'];
@@ -1876,87 +1886,107 @@ $waRecapFullText = implode("\n", $waRecapLines);
               </div>
             </div>
 
-            <!-- Upload Photo File (Direct Camera / Gallery on Mobile - Multi-Photo Selection) -->
+            <!-- Upload Media File (Photos & Video Files supported!) -->
             <div>
               <div class="flex items-center justify-between mb-1">
                 <label class="block text-xs font-bold text-slate-800">
-                  File Foto (Kamera / Galeri HP):
+                  File Media (Foto / Video Kamera & Galeri HP):
                 </label>
                 <span class="text-[10px] font-mono font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                  ✓ Bisa Pilih Banyak Foto Sekaligus
+                  ✓ Foto & Video (.mp4 / .mov)
                 </span>
               </div>
-              <input type="file" name="photo_files[]" multiple accept="image/*" class="w-full bg-slate-50 border border-slate-300 px-3 py-2 text-xs text-slate-700 file:mr-3 file:py-1 file:px-2.5 file:border-0 file:text-xs file:font-bold file:bg-[#0b1e36] file:text-white cursor-pointer rounded-xs">
+              <input type="file" name="photo_files[]" multiple accept="image/*,video/*" class="w-full bg-slate-50 border border-slate-300 px-3 py-2 text-xs text-slate-700 file:mr-3 file:py-1 file:px-2.5 file:border-0 file:text-xs file:font-bold file:bg-[#0b1e36] file:text-white cursor-pointer rounded-xs">
               <span class="text-[10px] text-slate-500 mt-1 block font-sans">
-                <em>Tip di HP:</em> Anda bisa tap beberapa foto atau tahan foto untuk memilih lebih dari 1 file sekaligus. Format: JPG/PNG/WEBP (Maks 10MB per foto).
+                <em>Tip di HP:</em> Pilih file Foto (JPG/PNG/WEBP) atau Video Rekaman Match Smash (.mp4 / .mov / .webm). Bisa pilih beberapa file sekaligus.
               </span>
             </div>
 
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-500 mb-1">
-                Atau Masukkan URL Gambar (Opsional jika foto sudah di cloud):
-              </label>
-              <input type="url" name="image_url" placeholder="https://..." class="w-full bg-slate-50 border border-slate-300 px-3 py-2 text-xs text-slate-900">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 mb-1">
+                  Link URL Video Highlight (Opsional - YouTube Shorts / TikTok / Reel / MP4):
+                </label>
+                <input type="url" name="video_url" placeholder="https://youtube.com/shorts/... atau .mp4" class="w-full bg-slate-50 border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:outline-none">
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 mb-1">
+                  URL Thumbnail Poster / Gambar (Opsional):
+                </label>
+                <input type="url" name="image_url" placeholder="https://..." class="w-full bg-slate-50 border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:outline-none">
+              </div>
             </div>
 
             <div>
               <label class="block text-xs font-bold text-slate-700 mb-1">
                 Catatan / Keterangan Sesi (Caption):
               </label>
-              <textarea name="caption" rows="2" placeholder="Tuliskan catatan keseruan mabar..." class="w-full bg-slate-50 border border-slate-300 px-3 py-2 text-xs text-slate-900"></textarea>
+              <textarea name="caption" rows="2" placeholder="Tuliskan catatan keseruan mabar atau cuplikan smash..." class="w-full bg-slate-50 border border-slate-300 px-3 py-2 text-xs text-slate-900"></textarea>
             </div>
 
-            <button type="submit" class="w-full py-2.5 bg-[#0b1e36] hover:bg-[#071324] text-amber-400 hover:text-amber-300 font-bold text-xs uppercase tracking-wider transition-all border border-amber-400/30 flex items-center justify-center">
-              <span>Unggah Foto ke Dokumentasi Web</span>
+            <button type="submit" class="w-full py-2.5 bg-[#0b1e36] hover:bg-[#071324] text-amber-400 hover:text-amber-300 font-bold text-xs uppercase tracking-wider transition-all border border-amber-400/30 flex items-center justify-center gap-1.5">
+              <span>Unggah Dokumentasi Foto & Video ke Web</span>
             </button>
           </form>
         </div>
 
-        <!-- Daftar Foto Dokumentasi Sesi Ini -->
+        <!-- Daftar Media Dokumentasi Sesi Ini -->
         <div>
           <div class="flex items-center justify-between mb-3 px-1">
             <h3 class="text-xs font-mono font-bold uppercase tracking-wider text-slate-800">
-              Foto Dokumentasi Mabar (<?= count($sessionPhotos) ?>)
+              Dokumentasi Foto & Video Mabar (<?= count($sessionPhotos) ?>)
             </h3>
-            <span class="text-[11px] text-slate-500">Tampil di Landing Page Publik</span>
+            <span class="text-[11px] text-slate-500">Tampil di Galeri Landing Page</span>
           </div>
 
           <?php if (empty($sessionPhotos)): ?>
             <div class="bg-white border border-slate-200 p-8 text-center text-slate-400 space-y-2">
-              <h4 class="text-xs font-bold text-slate-700">Belum Ada Foto Dokumentasi untuk Sesi Ini</h4>
+              <h4 class="text-xs font-bold text-slate-700">Belum Ada Media Dokumentasi untuk Sesi Ini</h4>
               <p class="text-[11px] text-slate-400 max-w-xs mx-auto">
-                Gunakan form di atas untuk mengunggah foto mabar langsung dari HP Anda.
+                Gunakan form di atas untuk mengunggah foto atau video mabar langsung dari HP Anda.
               </p>
             </div>
           <?php else: ?>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <?php foreach ($sessionPhotos as $pic): 
                 $picDate = !empty($pic['activity_date']) ? formatIndoDate($pic['activity_date']) : substr($pic['created_at'], 0, 10);
+                $isVideo = ($pic['media_type'] ?? 'photo') === 'video' || !empty($pic['video_url']);
               ?>
                 <div class="bg-white border border-slate-200 overflow-hidden shadow-xs flex flex-col justify-between">
-                  <div class="aspect-video bg-slate-100 overflow-hidden relative">
-                    <img src="<?= htmlspecialchars($pic['image_url']) ?>" alt="<?= htmlspecialchars($pic['title']) ?>" class="w-full h-full object-cover">
-                    <div class="absolute top-2 left-2">
+                  <div class="aspect-video bg-slate-950 overflow-hidden relative">
+                    <?php if ($isVideo && !empty($pic['video_url']) && strpos($pic['video_url'], '.mp4') !== false): ?>
+                      <video src="<?= htmlspecialchars($pic['video_url']) ?>" controls poster="<?= htmlspecialchars($pic['image_url']) ?>" class="w-full h-full object-cover"></video>
+                    <?php else: ?>
+                      <img src="<?= htmlspecialchars($pic['image_url']) ?>" alt="<?= htmlspecialchars($pic['title']) ?>" class="w-full h-full object-cover">
+                    <?php endif; ?>
+
+                    <div class="absolute top-2 left-2 flex items-center gap-1.5">
                       <span class="text-[10px] font-mono font-bold text-slate-900 bg-white/95 border border-slate-200 px-2 py-0.5">
-                        Tgl: <?= htmlspecialchars($picDate) ?>
+                        <?= htmlspecialchars($picDate) ?>
                       </span>
+                      <?php if ($isVideo): ?>
+                        <span class="text-[9px] font-mono font-black text-slate-950 bg-amber-400 border border-amber-300 px-1.5 py-0.5 uppercase tracking-wider flex items-center gap-1">
+                          <span>📹</span> VIDEO
+                        </span>
+                      <?php endif; ?>
                     </div>
                   </div>
                   <div class="p-3 flex-1 flex flex-col justify-between">
                     <div>
                       <h4 class="font-bold text-slate-900 text-xs mb-1 line-clamp-1"><?= htmlspecialchars($pic['title']) ?></h4>
-                      <p class="text-[11px] text-slate-500 line-clamp-2"><?= htmlspecialchars($pic['caption'] ? $pic['caption'] : 'Foto dokumentasi sesi.') ?></p>
+                      <p class="text-[11px] text-slate-500 line-clamp-2"><?= htmlspecialchars($pic['caption'] ? $pic['caption'] : ($isVideo ? 'Video highlight mabar.' : 'Foto dokumentasi sesi.')) ?></p>
                     </div>
 
                     <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
                       <span class="font-mono text-slate-400 text-[10px]">
-                        DOK-<?= strtoupper(substr(md5((string)$pic['id']), 0, 5)) ?>
+                        <?= $isVideo ? 'VID' : 'DOK' ?>-<?= strtoupper(substr(md5((string)$pic['id']), 0, 5)) ?>
                       </span>
                       <form method="POST" action="?view=documentation" onsubmit="handleDeletePhotoConfirm(event, this); return false;">
                         <input type="hidden" name="form_action" value="delete_documentation">
                         <input type="hidden" name="photo_id" value="<?= $pic['id'] ?>">
                         <button type="submit" class="text-rose-600 hover:text-rose-800 font-bold hover:underline">
-                          Hapus Foto
+                          Hapus <?= $isVideo ? 'Video' : 'Foto' ?>
                         </button>
                       </form>
                     </div>

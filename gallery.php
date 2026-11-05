@@ -122,6 +122,8 @@ $galleryJson = json_encode(array_map(function($p) {
         'title' => $p['title'],
         'caption' => $p['caption'] ?: '',
         'image_url' => $p['image_url'],
+        'media_type' => $p['media_type'] ?? 'photo',
+        'video_url' => $p['video_url'] ?: '',
         'date' => formatPhotoDate($p['activity_date']),
         'venue' => $p['venue_name'] ?: (!empty($settings['community_name']) ? $settings['community_name'] : 'Badminton Club'),
         'area' => $p['branch_area'] ?: (!empty($settings['base_city']) ? $settings['base_city'] : 'Komunitas')
@@ -362,24 +364,33 @@ $galleryJson = json_encode(array_map(function($p) {
 
       <!-- High-End Photography Card Grid -->
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
+      <!-- High-End Media Card Grid (Photos & Videos) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
         <?php foreach ($photos as $idx => $p): 
           $fmtDate = formatPhotoDate($p['activity_date']);
+          $isVideo = ($p['media_type'] ?? 'photo') === 'video' || !empty($p['video_url']);
         ?>
-          <div class="bg-[#0b1e36] border border-slate-800 overflow-hidden shadow-md hover:border-amber-400 hover:shadow-xl hover:shadow-amber-400/5 transition-all duration-300 group flex flex-col cursor-pointer" onclick="openLightbox(<?= $idx ?>)">
+          <div class="bg-[#0b1e36] border border-slate-800 overflow-hidden shadow-md hover:border-amber-400 hover:shadow-xl hover:shadow-amber-400/10 transition-all duration-300 group flex flex-col cursor-pointer rounded-lg" onclick="openLightbox(<?= $idx ?>)">
             
-            <!-- Photo Aspect Container -->
-            <div class="aspect-[4/3] bg-slate-900 overflow-hidden relative">
+            <!-- Media Aspect Container -->
+            <div class="aspect-[4/3] bg-slate-950 overflow-hidden relative">
               <img src="<?= htmlspecialchars($p['image_url']) ?>" alt="<?= htmlspecialchars($p['title']) ?>" loading="lazy" class="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out">
               
               <!-- Dark Vignette Gradient -->
               <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
 
               <!-- Top Left: Venue Badge -->
-              <div class="absolute top-2.5 left-2.5">
+              <div class="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
                 <span class="px-2.5 py-1 bg-[#071324]/90 backdrop-blur-md text-amber-400 text-[10px] font-mono font-black uppercase tracking-wider border border-amber-400/40 shadow-sm flex items-center gap-1">
                   <svg class="w-3 h-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
-                  <span class="truncate max-w-[150px]"><?= htmlspecialchars($p['venue_name'] ?: ($settings['community_name'] ?? 'Badminton Club')) ?></span>
+                  <span class="truncate max-w-[130px]"><?= htmlspecialchars($p['venue_name'] ?: ($settings['community_name'] ?? 'Badminton Club')) ?></span>
                 </span>
+                <?php if ($isVideo): ?>
+                  <span class="px-2 py-0.5 bg-amber-400 text-slate-950 text-[9px] font-mono font-black uppercase tracking-wider shadow-sm flex items-center gap-1 border border-amber-300">
+                    <svg class="w-3 h-3 text-slate-950 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <span>VIDEO</span>
+                  </span>
+                <?php endif; ?>
               </div>
 
               <!-- Top Right: Date Badge -->
@@ -389,12 +400,20 @@ $galleryJson = json_encode(array_map(function($p) {
                 </span>
               </div>
 
-              <!-- Center Interactive Cue on Hover -->
-              <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                <span class="px-3.5 py-2 bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl transform group-hover:scale-100 scale-90 transition-transform">
-                  Perbesar Foto ↗
-                </span>
-              </div>
+              <!-- Video Play Overlay / Center Interactive Cue -->
+              <?php if ($isVideo): ?>
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div class="w-14 h-14 rounded-full bg-amber-400/90 text-slate-950 border-2 border-white shadow-2xl flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-300 transition-all duration-300 pl-1">
+                    <svg class="w-7 h-7 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  </div>
+                </div>
+              <?php else: ?>
+                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                  <span class="px-3.5 py-2 bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl transform group-hover:scale-100 scale-90 transition-transform">
+                    Perbesar Foto ↗
+                  </span>
+                </div>
+              <?php endif; ?>
             </div>
 
             <!-- Card Bottom Content -->
@@ -409,7 +428,7 @@ $galleryJson = json_encode(array_map(function($p) {
                   </p>
                 <?php else: ?>
                   <p class="text-xs text-slate-500 mt-1.5 italic">
-                    Dokumentasi mabar mingguan ganda komunitas <?= htmlspecialchars($settings['community_name'] ?? 'Badminton Club') ?>.
+                    <?= $isVideo ? 'Video cuplikan highlight mabar ganda.' : 'Dokumentasi mabar mingguan ganda.' ?>
                   </p>
                 <?php endif; ?>
               </div>
@@ -417,7 +436,7 @@ $galleryJson = json_encode(array_map(function($p) {
               <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 font-mono">
                 <span class="truncate max-w-[170px]"><?= htmlspecialchars($p['branch_area'] ?: (!empty($settings['base_city']) ? $settings['base_city'] : 'Komunitas')) ?></span>
                 <span class="text-amber-400 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                  Lihat <span>→</span>
+                  <span><?= $isVideo ? 'Putar Video ▶' : 'Lihat Foto →' ?></span>
                 </span>
               </div>
             </div>
@@ -462,19 +481,20 @@ $galleryJson = json_encode(array_map(function($p) {
       </div>
 
       <!-- Lightbox Main Stage with Touch Gestures -->
-      <div id="lbStage" class="bg-black flex-1 relative flex items-center justify-center min-h-[260px] max-h-[72vh] sm:max-h-[66vh] overflow-hidden touch-pan-y">
-        <img id="lbImg" src="" alt="Dokumentasi" class="max-h-[72vh] sm:max-h-[66vh] max-w-full object-contain transition-all duration-200 pointer-events-none">
+      <div id="lbStage" class="bg-slate-950 flex-1 relative flex items-center justify-center min-h-[280px] max-h-[72vh] sm:max-h-[66vh] overflow-hidden touch-pan-y p-2">
+        <img id="lbImg" src="" alt="Dokumentasi" class="max-h-[72vh] sm:max-h-[66vh] max-w-full object-contain transition-all duration-200">
+        <div id="lbVideoWrap" class="hidden w-full h-full flex items-center justify-center"></div>
 
         <!-- Mobile Swipe Guidance Pill (Fades after 2s) -->
         <div id="lbSwipeHint" class="sm:hidden absolute top-3 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur text-slate-300 border border-slate-700 text-[10px] font-mono font-bold transition-opacity duration-500 pointer-events-none">
-          ↔ Geser layar untuk foto lain
+          ↔ Geser layar untuk media lain
         </div>
 
         <!-- Desktop Navigation Arrows -->
-        <button type="button" onclick="prevLightbox()" class="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-slate-950/80 hover:bg-amber-400 hover:text-slate-950 text-white text-2xl font-bold items-center justify-center backdrop-blur border border-slate-700 transition-all active:scale-90" aria-label="Foto Sebelumnya" title="Panah Kiri">
+        <button type="button" onclick="prevLightbox()" class="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-slate-950/80 hover:bg-amber-400 hover:text-slate-950 text-white text-2xl font-bold items-center justify-center backdrop-blur border border-slate-700 transition-all active:scale-90 z-20" aria-label="Media Sebelumnya" title="Panah Kiri">
           ‹
         </button>
-        <button type="button" onclick="nextLightbox()" class="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-slate-950/80 hover:bg-amber-400 hover:text-slate-950 text-white text-2xl font-bold items-center justify-center backdrop-blur border border-slate-700 transition-all active:scale-90" aria-label="Foto Selanjutnya" title="Panah Kanan">
+        <button type="button" onclick="nextLightbox()" class="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-slate-950/80 hover:bg-amber-400 hover:text-slate-950 text-white text-2xl font-bold items-center justify-center backdrop-blur border border-slate-700 transition-all active:scale-90 z-20" aria-label="Media Selanjutnya" title="Panah Kanan">
           ›
         </button>
       </div>
@@ -500,7 +520,7 @@ $galleryJson = json_encode(array_map(function($p) {
           </div>
 
           <a id="lbDownloadLink" href="#" target="_blank" download class="min-h-[44px] px-4 py-2 bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider transition-all border border-amber-300 flex items-center justify-center gap-1.5 shadow-xs">
-            <span>Buka Ukuran Asli</span>
+            <span>Buka Media Ukuran Asli</span>
           </a>
         </div>
       </div>
@@ -517,7 +537,7 @@ $galleryJson = json_encode(array_map(function($p) {
         <?= htmlspecialchars($settings['community_name']) ?> — Komunitas Bulutangkis <?= htmlspecialchars(!empty($settings['base_city']) ? $settings['base_city'] : 'Indonesia') ?>
       </p>
       <p class="text-[11px] text-slate-500 mt-1">
-        Dokumentasi resmi seluruh sesi mabar ganda mingguan. Foto hak cipta milik komunitas.
+        Dokumentasi resmi seluruh sesi mabar ganda mingguan. Foto & video hak cipta milik komunitas.
       </p>
     </div>
   </footer>
@@ -547,6 +567,8 @@ $galleryJson = json_encode(array_map(function($p) {
       const modal = document.getElementById('lightboxModal');
       modal.classList.add('hidden');
       document.body.style.overflow = '';
+      const vidWrap = document.getElementById('lbVideoWrap');
+      if (vidWrap) vidWrap.innerHTML = '';
     }
 
     function handleLightboxBackdrop(e) {
@@ -560,16 +582,28 @@ $galleryJson = json_encode(array_map(function($p) {
       if (!item) return;
 
       const imgEl = document.getElementById('lbImg');
-      imgEl.style.opacity = '0.3';
-      imgEl.src = item.image_url;
-      imgEl.onload = () => { imgEl.style.opacity = '1'; };
+      const vidWrap = document.getElementById('lbVideoWrap');
+      const isVid = (item.media_type === 'video') || (item.video_url && item.video_url.trim() !== '');
 
-      document.getElementById('lbTitle').textContent = item.title;
+      if (isVid && item.video_url) {
+        imgEl.classList.add('hidden');
+        vidWrap.classList.remove('hidden');
+        vidWrap.innerHTML = `<video src="${item.video_url}" controls autoplay poster="${item.image_url}" class="max-h-[70vh] max-w-full rounded shadow-2xl focus:outline-none"></video>`;
+      } else {
+        vidWrap.classList.add('hidden');
+        vidWrap.innerHTML = '';
+        imgEl.classList.remove('hidden');
+        imgEl.style.opacity = '0.3';
+        imgEl.src = item.image_url;
+        imgEl.onload = () => { imgEl.style.opacity = '1'; };
+      }
+
+      document.getElementById('lbTitle').textContent = (isVid ? '📹 ' : '') + item.title;
       document.getElementById('lbVenue').textContent = `${item.venue.toUpperCase()} • ${item.area.toUpperCase()}`;
       document.getElementById('lbDate').textContent = item.date;
       document.getElementById('lbCaption').textContent = item.caption || <?= json_encode('Dokumentasi resmi sesi mabar ' . ($settings['community_name'] ?? 'Badminton Club') . '.') ?>;
-      document.getElementById('lbCounter').textContent = `Foto ${currentIdx + 1} dari ${galleryItems.length}`;
-      document.getElementById('lbDownloadLink').href = item.image_url;
+      document.getElementById('lbCounter').textContent = `Media ${currentIdx + 1} dari ${galleryItems.length}`;
+      document.getElementById('lbDownloadLink').href = item.video_url || item.image_url;
     }
 
     function prevLightbox() {
