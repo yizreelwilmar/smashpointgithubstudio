@@ -33,7 +33,12 @@ if (isset($_GET['session_id']) || isset($_GET['id'])) {
 if (isset($_GET['switch'])) {
     $decoded = Security::decodeId((string)$_GET['switch']);
     if ($decoded > 0) {
-        $_SESSION['courtside_session_id'] = $decoded;
+        $targetSch = Schedule::find($decoded);
+        if ($targetSch && ($targetSch['status'] ?? '') === 'completed' && !Auth::isAdmin()) {
+            $_SESSION['courtside_error_msg'] = "Sesi ini telah selesai & terkonfirmasi. Sesi yang telah selesai tidak dapat diubah lagi dari aplikasi lapangan.";
+        } else {
+            $_SESSION['courtside_session_id'] = $decoded;
+        }
     }
     $cleanView = isset($_GET['view']) ? $_GET['view'] : 'court';
     header("Location: ?view={$cleanView}", true, 302);
@@ -2167,39 +2172,39 @@ $waRecapFullText = implode("\n", $waRecapLines);
           </div>
         <?php endif; ?>
 
-        <!-- SECTION 2: RIWAYAT SESI SELESAI (ARCHIVED) -->
+        <!-- SECTION 2: RIWAYAT SESI SELESAI (ARCHIVED & LOCKED) -->
         <?php if (!empty($completedSessionsList)): ?>
           <div class="<?= !empty($activeSessionsList) ? 'pt-3 border-t border-slate-800' : '' ?>">
             <div class="text-[10px] font-mono font-black text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5 px-1">
-              <span>📁 RIWAYAT SESI SELESAI / TERKUNCI (<?= count($completedSessionsList) ?>)</span>
+              <span>🔒 RIWAYAT SESI SELESAI / TERKUNCI (<?= count($completedSessionsList) ?>)</span>
             </div>
             <div class="space-y-2">
               <?php foreach ($completedSessionsList as $sch): 
                 $tS = isset($sch['time_start']) ? $sch['time_start'] : (isset($sch['start_time']) ? $sch['start_time'] : '20:00');
                 $tDisplay = substr($tS, 0, 5) . ' WIB';
               ?>
-                <a href="?view=<?= htmlspecialchars($view) ?>&switch=<?= urlencode(Security::hashId((int)$sch['id'])) ?>" class="flex items-center justify-between p-3 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 rounded-xl active:scale-98 transition-all group opacity-85">
+                <div class="flex items-center justify-between p-3 bg-slate-950/70 border border-slate-800/80 rounded-xl opacity-60 cursor-not-allowed select-none">
                   <div class="flex items-center gap-3 min-w-0">
                     <div class="w-9 h-9 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 flex items-center justify-center font-bold text-xs font-mono shrink-0">
-                      ✓
+                      🔒
                     </div>
                     <div class="min-w-0 text-left">
-                      <div class="font-bold text-xs text-slate-300 group-hover:text-white transition-colors truncate">
+                      <div class="font-bold text-xs text-slate-300 truncate">
                         <?= htmlspecialchars($sch['venue_name']) ?>
                       </div>
                       <div class="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5 font-mono truncate">
                         <span><?= htmlspecialchars($sch['day_name']) ?></span>
                         <span>•</span>
                         <span><?= $tDisplay ?></span>
-                        <span class="text-emerald-400 font-bold bg-emerald-950/60 px-1 py-0.2 border border-emerald-800/60 rounded-xs">[Selesai]</span>
+                        <span class="text-rose-400 font-bold bg-rose-950/60 px-1.5 py-0.2 border border-rose-800/60 rounded-xs">[Selesai]</span>
                       </div>
                     </div>
                   </div>
 
-                  <div class="text-slate-400 text-[11px] font-semibold shrink-0 px-2 py-1 rounded bg-slate-800 group-hover:text-white transition-all font-mono">
-                    Lihat Arsip
+                  <div class="text-slate-400 text-[10px] font-bold shrink-0 px-2 py-1 rounded bg-slate-800/80 font-mono">
+                    Terkunci
                   </div>
-                </a>
+                </div>
               <?php endforeach; ?>
             </div>
           </div>
