@@ -24,16 +24,12 @@ require __DIR__ . '/../layout/header.php';
     <form method="POST" action="index.php?page=admin-login" class="space-y-4">
       <div>
         <label class="block text-xs font-semibold text-slate-300 mb-1">Username</label>
-        <input type="text" name="username" required value="admin" class="w-full bg-slate-800 border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono">
+        <input type="text" name="username" required autocomplete="username" class="w-full bg-slate-800 border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono">
       </div>
 
       <div>
         <label class="block text-xs font-semibold text-slate-300 mb-1">Password</label>
-        <input type="password" name="password" required value="smashpoint123" class="w-full bg-slate-800 border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono">
-      </div>
-
-      <div class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] text-[11px] text-slate-400">
-        Default credential: <span class="text-emerald-400 font-mono">admin</span> / <span class="text-emerald-400 font-mono">smashpoint123</span>
+        <input type="password" name="password" required autocomplete="current-password" class="w-full bg-slate-800 border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono">
       </div>
 
       <button type="submit" class="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold transition-all shadow-lg shadow-emerald-500/20 active:scale-95">

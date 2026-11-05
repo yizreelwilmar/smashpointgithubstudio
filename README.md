@@ -1,6 +1,6 @@
 # 🏸 POWERSHOOT BADMINTON — Badminton Community & Mabar Management System
 
-Sistem manajemen komunitas bulutangkis mandiri (*self-hosted ready*) yang dirancang khusus dalam **1 root folder** di Laragon (`C:\laragon\www\smashpoint\`) untuk mengelola operasional mabar rutin tanpa kertas atau catatan manual.
+Sistem manajemen komunitas bulutangkis mandiri (*self-hosted ready*) yang dirancang dalam **1 root folder** untuk mengelola operasional mabar rutin tanpa kertas atau catatan manual.
 
 Sistem ini terbagi dalam 3 antarmuka yang terintegrasi penuh:
 1. **Landing Page Komunitas** (Informasi profil, jadwal mabar mingguan multi-cabang/hari, galeri dokumentasi, leaderboard poin teratas, dan artikel klub).
@@ -9,29 +9,26 @@ Sistem ini terbagi dalam 3 antarmuka yang terintegrasi penuh:
 
 ---
 
-## 🏛️ Arsitektur 1 Root Folder & Subdomain Routing
+## 🏛️ Arsitektur 1 Root Folder
 
-Semua kode aplikasi dibungkus rapi dalam 1 folder root:
-```
-C:\laragon\www\smashpoint\
-```
+Seluruh aplikasi PHP berjalan dari satu document root. Tidak perlu memisahkan subdomain per folder.
 
-Ketika di-hosting di server/rumah, Anda cukup mengarahkan DNS record atau virtual host Apache ke subdomain masing-masing:
+| Route | Fungsi Utama |
+| :--- | :--- |
+| `/` | **Landing Page Publik**: profil komunitas, jadwal mabar, galeri, leaderboard, dan artikel. |
+| `/app/` | **Aplikasi PIC**: rotasi lapangan, absensi, status pembayaran, input skor, kas sesi, dan dokumentasi. |
+| `/admin/` atau `/cms/` | **CMS Pengurus**: jadwal, roster, akun PIC, galeri, keuangan, pengaturan komunitas, dan SEO. |
+| `/api/` | **Endpoint JSON internal** untuk aksi aplikasi. |
+| `/guide.php` | **Buku panduan interaktif** dan versi cetak A4. |
 
-| Subdomain Produksi | Folder / Route | Fungsi Utama |
-| :--- | :--- | :--- |
-| **`powershootbadminton.com`** *(Domain Utama)* | `.../views/landing/` atau root `/` | **Landing Page Publik**: Profil, 4 sesi jadwal mingguan, galeri foto, top 5 leaderboard, dan artikel komunitas. |
-| **`app.powershootbadminton.com`** | `.../app/` *(atau `?view=app`)* | **Aplikasi Operasional**: Papan rotasi lapangan, papan skor, **flag pembayaran peserta (lunas/pending)**, dan leaderboard. |
-| **`admin.powershootbadminton.com`** | `.../admin/` *(atau `?view=admin`)* | **CMS Pengurus**: Tambah/hapus galeri, atur jadwal sesi cabang, tulis artikel, dan reset musim poin. |
-| **API Endpoints** | `.../api/` | **REST API**: Rotasi ronde otomatis, simpan skor, toggle status bayar, toggle kehadiran, quick add pemain. |
+### 🚀 Cara Akses di Laragon Lokal
+- **Landing Page**: `http://localhost:8080/<nama-folder>/`
+- **Aplikasi PIC**: `http://localhost:8080/<nama-folder>/app/`
+- **CMS Admin**: `http://localhost:8080/<nama-folder>/admin/`
+  - Kredensial awal: `admin` / `admin123` (wajib diganti setelah login pertama).
+- **Buku Panduan**: `http://localhost:8080/<nama-folder>/guide.php`
 
-### 🚀 Cara Akses di Laragon Lokal (Port 8080)
-Sistem sudah dilengkapi **Top Navigation Pill Bar** di bagian atas setiap halaman untuk berpindah antar antarmuka dengan 1 klik:
-- **Landing Page**: [http://localhost:8080/smashpoint/](http://localhost:8080/smashpoint/)
-- **Aplikasi Operasional Mabar**: [http://localhost:8080/smashpoint/app/](http://localhost:8080/smashpoint/app/)
-- **CMS Admin**: [http://localhost:8080/smashpoint/admin/](http://localhost:8080/smashpoint/admin/)
-  - **Username**: `admin`
-  - **Password**: `admin123`
+Jika dipasang di root domain, hilangkan `<nama-folder>/`.
 
 ---
 
@@ -62,8 +59,8 @@ Pengurus/kapten tidak perlu mencatat uang masuk di secarik kertas:
   - Mengacak 4 pemain per lapangan ganda secara otomatis.
   - Meminimalkan pasangan pemain yang sama berulang kali (Monte-Carlo partner matching).
   - Mengatur rotasi bangku istirahat (*bye bench queue*) secara adil bagi sesi dengan jumlah pemain ganjil atau lebih dari 4 pemain per lapangan.
-  - Tersedia opsi mode **Mexicano / Ladder** (memasangkan pemain berdasarkan peringkat poin).
-- **Papan Skor Sentuh (+ / -)**: Mudah ditekan langsung dari tablet atau layar smartphone di pinggir lapangan GOR.
+  - Tersedia 3 mode: **Kombinasi Seimbang (Fair Level)**, **Selevel**, dan **Kocok Campur Merata**.
+- **Input Skor Manual**: PIC mengisi skor tiap tim lalu menekan tombol simpan; poin langsung masuk ke leaderboard.
 
 ### 4. Leaderboard Akumulasi Total Poin ("Banyak-Banyakan Poin") (`/app/?view=leaderboard`)
 - Poin setiap pertandingan yang dicetak pemain otomatis diakumulasikan ke profil member (`total_points += match_score`).
@@ -81,18 +78,22 @@ Pengurus/kapten tidak perlu mencatat uang masuk di secarik kertas:
 
 Database menggunakan MySQL dengan skema murni `powershoot_db`:
 
-1. **Konfigurasi Database** di file [`config/database.php`](file:///C:/laragon/www/smashpoint/config/database.php):
+1. **Konfigurasi Database** di file [`config/database.php`](config/database.php):
    - Host: `127.0.0.1`
    - Port: `3306`
    - DB Name: `powershoot_db`
    - User: `root`
    - Password: `(kosong)`
 
-2. **Migrasi & Seed Data**:
-   File migrasi dan seeder awal siap dijalankan kapan saja jika ingin inisialisasi ulang:
-   ```bash
-   php C:\laragon\www\smashpoint\config\setup.php
-   ```
+2. **Instalasi**:
+   - **Produksi (bersih):** sesuaikan [`config/database.php`](config/database.php), lalu jalankan:
+     ```bash
+     php config/setup.php
+     ```
+     Installer membuat database, seluruh tabel, pengaturan awal, dan satu akun admin.
+   - **Demo:** jalankan `php config/setup.php --demo`, atau impor `database_backup.sql`.
+   - **Password admin awal** ditentukan oleh `SMASHPOINT_INITIAL_ADMIN_PASSWORD` di `config/setup.php` (default `admin123`) dan wajib diganti setelah login pertama.
+   - Hapus atau kunci `config/setup.php` setelah instalasi selesai.
 
 ---
 
@@ -104,7 +105,7 @@ C:\laragon\www\smashpoint\
 ├── .htaccess                 # Apache rewrite & headers
 ├── config/
 │   ├── database.php          # Database PDO Config
-│   └── setup.php             # Schema migration & mock data seeder
+│   └── setup.php             # Installer skema lengkap + demo opsional (--demo)
 ├── core/
 │   ├── Database.php          # Singleton PDO connection (PHP 7.2+ poly-compatible)
 │   ├── Auth.php              # Session-based admin authentication

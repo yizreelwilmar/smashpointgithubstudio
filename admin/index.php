@@ -874,13 +874,12 @@ if ($isLoggedIn && $tab === 'finance' && isset($_GET['export']) && $_GET['export
 
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">Username Admin:</label>
-            <input type="text" name="username" required value="admin" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-700">
+            <input type="text" name="username" required autocomplete="username" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-700">
           </div>
 
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">Password:</label>
-            <input type="password" name="password" required value="admin123" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-700">
-            <span class="text-[11px] text-slate-400 mt-1 block">Default: admin / admin123</span>
+            <input type="password" name="password" required autocomplete="current-password" class="w-full bg-slate-50 border border-slate-300 rounded-md px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-700">
           </div>
 
           <button type="submit" class="w-full py-3 rounded-md bg-[#0b1e36] hover:bg-[#132b4f] text-amber-400 border border-amber-400/30 font-black text-xs uppercase tracking-wider transition-all btn-tactile shadow-md">
@@ -5125,13 +5124,13 @@ ${listLines.join('\n')}${fullTag}`;
               <div class="inline-flex items-center gap-2 px-2.5 py-1 bg-amber-400 text-slate-950 text-[10px] font-mono font-black uppercase tracking-wider rounded">
                 <span>FORMAT CETAK RESMI A4</span>
                 <span>•</span>
-                <span>VERSI 2.4</span>
+                <span>VERSI 2.4.0</span>
               </div>
               <h2 class="text-xl sm:text-3xl font-black tracking-tight text-white">
                 Buku Panduan Operasional & Playbook Demo (PDF)
               </h2>
               <p class="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
-                Dokumen komprehensif 5 bab siap unduh/cetak dalam format PDF standar A4 portrait, dilengkapi skrip presentasi 1-by-1 untuk memikat calon customer (pengurus komunitas, pemilik GOR, dan EO).
+                Dokumen panduan lengkap 9 modul (akses, publik, PIC, CMS, rumus rotasi/poin/kas, instalasi, SOP, troubleshooting, UAT) plus playbook demo 6 langkah. Dapat dibuka interaktif atau dicetak ke PDF standar A4 portrait.
               </p>
             </div>
 
@@ -5145,7 +5144,7 @@ ${listLines.join('\n')}${fullTag}`;
                 <input type="hidden" name="form_action" value="quick_demo_pic">
                 <button type="submit" class="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 active:scale-95">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                  <span>1-Click Buat Akun PIC Demo</span>
+                  <span>1-Click Generate PIC Demo</span>
                 </button>
               </form>
             </div>
@@ -5210,7 +5209,7 @@ ${listLines.join('\n')}${fullTag}`;
                   </div>
                   <h4 class="text-sm font-black text-slate-900 mb-1">Admin: 1-Click Buat PIC & Sesi</h4>
                   <p class="text-xs text-slate-600 leading-relaxed">
-                    Buka <code>admin/?tab=pic_accounts</code>. Klik tombol <i>1-Click Generate Akun PIC Demo</i>. Akun PIC langsung terbit dan tertaut ke sesi dalam 1 detik.
+                    Buka <code>admin/?tab=pic_accounts</code>. Klik tombol <i>1-Click Generate PIC Demo</i>. Akun PIC langsung terbit dan siap ditugaskan ke sesi mabar.
                   </p>
                 </div>
                 <div class="mt-3 pt-2 border-t border-slate-200">
@@ -5244,7 +5243,7 @@ ${listLines.join('\n')}${fullTag}`;
                   </div>
                   <h4 class="text-sm font-black text-slate-900 mb-1">App Lapangan & Rotasi Otomatis</h4>
                   <p class="text-xs text-slate-600 leading-relaxed">
-                    Buka <code>/app/</code>. Tunjukkan tombol acak rotasi ganda berkeadilan (*Fair Play*), pencatatan skor, dan klasemen poin pemain bulanan.
+                    Buka <code>/app/</code>. Tunjukkan tombol <i>Generate Ronde Berikutnya</i> dengan 3 mode rotasi (Kombinasi Seimbang, Selevel, Kocok Campur), input skor manual, dan klasemen poin sesi.
                   </p>
                 </div>
                 <div class="mt-3 pt-2 border-t border-slate-200">
@@ -5272,7 +5271,7 @@ ${listLines.join('\n')}${fullTag}`;
             </div>
           </div>
 
-          <!-- Section 2: Struktur 5 Bab Buku Panduan PDF -->
+          <!-- Section 2: Struktur 5 Halaman Buku Panduan PDF -->
           <div class="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 shadow-xs space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
               <div>
@@ -5280,7 +5279,7 @@ ${listLines.join('\n')}${fullTag}`;
                   DOKUMEN CETAK RESMI
                 </span>
                 <h3 class="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                  Struktur Dokumen Manual Book (Standar A4 Portrait)
+                  Struktur Playbook Demo (5 Halaman A4 Portrait)
                 </h3>
               </div>
               <a href="manual-book-pdf.php" target="_blank" class="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1">

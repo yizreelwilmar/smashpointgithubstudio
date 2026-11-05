@@ -321,7 +321,7 @@ $printDate = date('d F Y');
             <span class="bg-blue-100 px-2 py-0.5 rounded text-blue-800">Admin Control</span>
           </div>
           <p class="text-slate-700 leading-relaxed">
-            <b>Aksi Demo:</b> Buka <code>/admin/?tab=pic_accounts</code>. Klik tombol hijau <b>"1-Click Generate Akun PIC Demo"</b>. Tunjukkan kepada klien: dalam 1 detik akun PIC langsung terbit, otomatis terhubung ke jadwal GOR, dan siap dipakai login. Jelaskan betapa mudahnya menugaskan PIC lapangan.
+            <b>Aksi Demo:</b> Buka <code>/admin/?tab=pic_accounts</code>. Klik tombol hijau <b>"1-Click Generate PIC Demo"</b>. Tunjukkan kepada klien: akun PIC langsung terbit dengan password acak yang ditampilkan sekali, ditugaskan ke sesi yang dipilih, dan siap dipakai login. Jelaskan betapa mudahnya menugaskan PIC lapangan.
           </p>
         </div>
 
